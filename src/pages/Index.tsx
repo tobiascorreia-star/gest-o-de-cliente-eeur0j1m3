@@ -1,10 +1,18 @@
-/* Home Page - Replace this page layout, components, content, behavior with what you want and translate to the language of the user */
+import { KpiCards } from '@/components/dashboard/kpi-cards'
+import { DashboardCharts } from '@/components/dashboard/charts'
+import { AlertsWidget } from '@/components/dashboard/alerts-widget'
+
 const Index = () => {
   return (
-    <div className="container mx-auto py-8 px-4">
-      <h1 className="text-3xl font-bold mb-6">
-        This is a example page ready to be rewritten with your own content
-      </h1>
+    <div className="space-y-2">
+      <div className="flex flex-col gap-1 mb-6">
+        <h2 className="text-2xl font-bold tracking-tight text-foreground">Visão Geral</h2>
+        <p className="text-muted-foreground text-sm">Acompanhe as métricas e alertas do sistema.</p>
+      </div>
+
+      <KpiCards />
+      <DashboardCharts />
+      <AlertsWidget />
     </div>
   )
 }
