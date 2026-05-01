@@ -27,11 +27,17 @@ export function AppHeader() {
 
   const baixaStatusId = statusList.find((s) => s.name === 'Baixa')?.id
 
-  const activeAlerts = clients.filter((c) => {
-    if (c.statusId === baixaStatusId) return false
-    const days = differenceInDays(new Date(), new Date(c.dataCadastro))
-    return days >= alertConfig.moderateDays
-  })
+  const activeAlerts = clients
+    .filter((c) => {
+      if (c.statusId === baixaStatusId) return false
+      const days = differenceInDays(new Date(), new Date(c.dataCadastro))
+      return days >= alertConfig.moderateDays
+    })
+    .sort((a, b) => {
+      const daysA = differenceInDays(new Date(), new Date(a.dataCadastro))
+      const daysB = differenceInDays(new Date(), new Date(b.dataCadastro))
+      return daysB - daysA
+    })
 
   return (
     <header className="h-14 border-b bg-background flex items-center justify-between px-4 shrink-0 z-10 sticky top-0">
@@ -70,15 +76,35 @@ export function AppHeader() {
                 </p>
               ) : (
                 <div className="flex flex-col gap-2">
-                  {activeAlerts.slice(0, 5).map((alert) => (
-                    <div
-                      key={alert.id}
-                      className="text-sm p-2 rounded-md hover:bg-muted transition-colors cursor-default"
-                    >
-                      <p className="font-medium text-foreground truncate">{alert.razaoSocial}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">Pendência identificada</p>
-                    </div>
-                  ))}
+                  {activeAlerts.slice(0, 5).map((alert) => {
+                    const days = differenceInDays(new Date(), new Date(alert.dataCadastro))
+                    let severityLabel = 'Moderado'
+                    let severityClass = 'text-amber-500'
+
+                    if (days >= alertConfig.veryCriticalDays) {
+                      severityLabel = 'Crítica Absoluta'
+                      severityClass = 'text-purple-600'
+                    } else if (days >= alertConfig.oldDays) {
+                      severityLabel = 'Antiguidade'
+                      severityClass = 'text-slate-500'
+                    } else if (days >= alertConfig.criticalDays) {
+                      severityLabel = 'Crítico'
+                      severityClass = 'text-destructive'
+                    }
+
+                    return (
+                      <div
+                        key={alert.id}
+                        className="text-sm p-2 rounded-md hover:bg-muted transition-colors cursor-default"
+                      >
+                        <p className="font-medium text-foreground truncate">{alert.razaoSocial}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5 flex justify-between items-center pr-2">
+                          <span>Pendente há {days} dias</span>
+                          <span className={`font-medium ${severityClass}`}>{severityLabel}</span>
+                        </p>
+                      </div>
+                    )
+                  })}
                 </div>
               )}
             </div>

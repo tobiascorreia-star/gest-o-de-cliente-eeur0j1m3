@@ -21,8 +21,10 @@ export function AlertsWidget() {
     .filter((c) => c.statusId !== baixaStatusId)
     .map((c) => {
       const days = differenceInDays(new Date(), new Date(c.dataCadastro))
-      let severity: 'none' | 'moderate' | 'critical' = 'none'
-      if (days >= alertConfig.criticalDays) severity = 'critical'
+      let severity: 'none' | 'moderate' | 'critical' | 'old' | 'veryCritical' = 'none'
+      if (days >= alertConfig.veryCriticalDays) severity = 'veryCritical'
+      else if (days >= alertConfig.oldDays) severity = 'old'
+      else if (days >= alertConfig.criticalDays) severity = 'critical'
       else if (days >= alertConfig.moderateDays) severity = 'moderate'
 
       return { ...c, days, severity }
@@ -98,14 +100,28 @@ export function AlertsWidget() {
                       {alert.days} dias
                     </span>
                     <Badge
-                      variant={alert.severity === 'critical' ? 'destructive' : 'secondary'}
+                      variant={
+                        alert.severity === 'critical' || alert.severity === 'veryCritical'
+                          ? 'destructive'
+                          : 'secondary'
+                      }
                       className={
-                        alert.severity === 'moderate'
-                          ? 'bg-amber-100 text-amber-800 hover:bg-amber-200 dark:bg-amber-900/30 dark:text-amber-500'
-                          : ''
+                        alert.severity === 'veryCritical'
+                          ? 'bg-purple-600 text-white hover:bg-purple-700'
+                          : alert.severity === 'old'
+                            ? 'bg-slate-500 text-white hover:bg-slate-600'
+                            : alert.severity === 'moderate'
+                              ? 'bg-amber-100 text-amber-800 hover:bg-amber-200 dark:bg-amber-900/30 dark:text-amber-500'
+                              : ''
                       }
                     >
-                      {alert.severity === 'critical' ? 'Crítico' : 'Moderado'}
+                      {alert.severity === 'veryCritical'
+                        ? 'Crítica Absoluta'
+                        : alert.severity === 'old'
+                          ? 'Antiguidade'
+                          : alert.severity === 'critical'
+                            ? 'Crítico'
+                            : 'Moderado'}
                     </Badge>
                   </div>
                 </div>

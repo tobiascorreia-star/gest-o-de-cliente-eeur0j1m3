@@ -12,7 +12,17 @@ import {
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { MoreHorizontal, FileText, Trash2, Edit, CheckCircle, Undo2 } from 'lucide-react'
+import {
+  MoreHorizontal,
+  FileText,
+  Trash2,
+  Edit,
+  CheckCircle,
+  Undo2,
+  Copy,
+  Check,
+} from 'lucide-react'
+import { toast } from '@/hooks/use-toast'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -65,6 +75,9 @@ export function ClienteList({
   const getAlertColor = (client: Client) => {
     if (client.statusId === baixaStatusId) return ''
     const days = differenceInDays(new Date(), new Date(client.dataCadastro))
+    if (days >= alertConfig.veryCriticalDays)
+      return 'border-l-4 border-l-purple-600 bg-purple-600/5'
+    if (days >= alertConfig.oldDays) return 'border-l-4 border-l-slate-500 bg-slate-500/5'
     if (days >= alertConfig.criticalDays) return 'border-l-4 border-l-destructive bg-destructive/5'
     if (days >= alertConfig.moderateDays) return 'border-l-4 border-l-amber-500 bg-amber-500/5'
     return ''
@@ -72,28 +85,26 @@ export function ClienteList({
 
   const isOperator = currentUser?.role === 'Operator'
   const [reportClient, setReportClient] = useState<Client | null>(null)
+  const [copiedCnpj, setCopiedCnpj] = useState<string | null>(null)
+
+  const handleCopyCnpj = (cnpj: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    navigator.clipboard.writeText(cnpj)
+    setCopiedCnpj(cnpj)
+    toast({ title: 'Copiado', description: 'CNPJ copiado para a área de transferência.' })
+    setTimeout(() => setCopiedCnpj(null), 2000)
+  }
 
   const handleGenerateReport = (client: Client) => {
     setReportClient(client)
   }
 
   const renderActions = (client: Client) => {
-    if (isOperator && isRestrictedArea) {
-      return (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8 print:hidden">
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48 print:hidden">
-            <DropdownMenuItem onClick={() => handleGenerateReport(client)}>
-              <FileText className="mr-2 h-4 w-4" /> Gerar Relatório
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      )
-    }
+    const showEdit = !isRestrictedArea
+    const showBaixa =
+      !isOperator && client.statusId !== baixaStatusId && onBaixa && !isRestrictedArea
+    const showEstorno = client.statusId === baixaStatusId && onReverse && !isOperator
+    const showDelete = !isOperator
 
     return (
       <DropdownMenu>
@@ -103,14 +114,17 @@ export function ClienteList({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-48 print:hidden">
-          <DropdownMenuItem onClick={() => onEdit(client)}>
-            <Edit className="mr-2 h-4 w-4" /> Editar Cliente
-          </DropdownMenuItem>
+          {showEdit && (
+            <DropdownMenuItem onClick={() => onEdit(client)}>
+              <Edit className="mr-2 h-4 w-4" /> Editar Cliente
+            </DropdownMenuItem>
+          )}
+
           <DropdownMenuItem onClick={() => handleGenerateReport(client)}>
             <FileText className="mr-2 h-4 w-4" /> Gerar Relatório
           </DropdownMenuItem>
 
-          {!isOperator && client.statusId !== baixaStatusId && onBaixa && (
+          {showBaixa && (
             <DropdownMenuItem
               onClick={() => onBaixa(client.id)}
               className="text-emerald-600 focus:text-emerald-600"
@@ -119,7 +133,7 @@ export function ClienteList({
             </DropdownMenuItem>
           )}
 
-          {client.statusId === baixaStatusId && onReverse && !isOperator && (
+          {showEstorno && (
             <DropdownMenuItem
               onClick={() => onReverse(client.id)}
               className="text-orange-600 focus:text-orange-600"
@@ -128,7 +142,7 @@ export function ClienteList({
             </DropdownMenuItem>
           )}
 
-          {!isOperator && (
+          {showDelete && (
             <>
               <DropdownMenuSeparator />
               <DropdownMenuItem
@@ -179,8 +193,19 @@ export function ClienteList({
               >
                 <TableCell>
                   <div className="font-medium text-foreground">{client.razaoSocial}</div>
-                  <div className="text-xs text-muted-foreground font-mono mt-0.5">
+                  <div className="text-xs text-muted-foreground font-mono mt-0.5 flex items-center gap-1.5 group/cnpj">
                     {client.cnpj}
+                    <button
+                      onClick={(e) => handleCopyCnpj(client.cnpj, e)}
+                      className="text-muted-foreground/50 hover:text-foreground transition-colors print:hidden opacity-0 group-hover/cnpj:opacity-100 focus:opacity-100"
+                      title="Copiar CNPJ"
+                    >
+                      {copiedCnpj === client.cnpj ? (
+                        <Check className="h-3 w-3 text-emerald-500" />
+                      ) : (
+                        <Copy className="h-3 w-3" />
+                      )}
+                    </button>
                   </div>
                   <Badge
                     variant="outline"
@@ -235,7 +260,20 @@ export function ClienteList({
               <div className="flex justify-between items-start">
                 <div>
                   <h4 className="font-medium text-foreground">{client.razaoSocial}</h4>
-                  <p className="text-xs font-mono text-muted-foreground mt-1">{client.cnpj}</p>
+                  <p className="text-xs font-mono text-muted-foreground mt-1 flex items-center gap-1.5">
+                    {client.cnpj}
+                    <button
+                      onClick={(e) => handleCopyCnpj(client.cnpj, e)}
+                      className="text-muted-foreground hover:text-foreground transition-colors print:hidden"
+                      title="Copiar CNPJ"
+                    >
+                      {copiedCnpj === client.cnpj ? (
+                        <Check className="h-3.5 w-3.5 text-emerald-500" />
+                      ) : (
+                        <Copy className="h-3.5 w-3.5" />
+                      )}
+                    </button>
+                  </p>
                   <p className="text-sm font-medium mt-2">Cliente: {client.nome}</p>
                 </div>
                 {renderActions(client)}
@@ -317,7 +355,20 @@ export function ClienteList({
                   <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">
                     CNPJ
                   </h4>
-                  <p className="font-medium text-base mt-1 font-mono">{reportClient.cnpj}</p>
+                  <p className="font-medium text-base mt-1 font-mono flex items-center gap-2 group/modalCnpj">
+                    {reportClient.cnpj}
+                    <button
+                      onClick={(e) => handleCopyCnpj(reportClient.cnpj, e)}
+                      className="text-muted-foreground hover:text-foreground transition-colors print:hidden opacity-0 group-hover/modalCnpj:opacity-100 focus:opacity-100"
+                      title="Copiar CNPJ"
+                    >
+                      {copiedCnpj === reportClient.cnpj ? (
+                        <Check className="h-4 w-4 text-emerald-500" />
+                      ) : (
+                        <Copy className="h-4 w-4" />
+                      )}
+                    </button>
+                  </p>
                 </div>
                 <div>
                   <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">
