@@ -52,18 +52,10 @@ export const mockAudit: AuditLog[] = []
 export const mockUsers: User[] = [
   {
     id: 'u1',
-    name: 'Tobias Correia',
-    email: 'tobiascorreia@gmail.com',
+    name: 'Administrador',
+    email: 'tobias@megafllex',
     role: 'Admin',
     avatarUrl: 'https://img.usecurling.com/ppl/thumbnail?gender=male&seed=1',
-    password: 'Skip@2026',
-  },
-  {
-    id: 'u2',
-    name: 'Ana Silva',
-    email: 'ana@gestao.com',
-    role: 'Operator',
-    avatarUrl: 'https://img.usecurling.com/ppl/thumbnail?gender=female&seed=2',
-    password: '123',
+    password: 'Fui3G35@',
   },
 ]
