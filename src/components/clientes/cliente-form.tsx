@@ -27,7 +27,7 @@ const formSchema = z.object({
   statusId: z.string().min(1, 'Selecione um status'),
   categoriaId: z.string().min(1, 'Selecione uma categoria'),
   dataCadastro: z.string().optional(),
-  pgtoId: z.string().min(1, 'Pagamento é obrigatório'),
+  pgtoId: z.string().optional(),
   obs: z.string().optional(),
 })
 
@@ -50,6 +50,7 @@ const applyCnpjMask = (value: string) => {
 
 export function ClienteForm({ initialData, onSuccess }: ClienteFormProps) {
   const {
+    currentUser,
     colaboradores,
     solicitacoes,
     statusList,
@@ -59,11 +60,13 @@ export function ClienteForm({ initialData, onSuccess }: ClienteFormProps) {
     updateClient,
   } = useApp()
   const [isFetchingCnpj, setIsFetchingCnpj] = useState(false)
+  const isAdmin = currentUser?.role === 'Admin'
 
   const {
     register,
     handleSubmit,
     setValue,
+    setError,
     watch,
     formState: { errors },
   } = useForm<FormData>({
@@ -112,6 +115,11 @@ export function ClienteForm({ initialData, onSuccess }: ClienteFormProps) {
   }
 
   const onSubmit = (data: FormData) => {
+    if (isAdmin && !data.pgtoId) {
+      setError('pgtoId', { type: 'manual', message: 'Pagamento é obrigatório' })
+      return
+    }
+
     const finalDataCadastro =
       initialData && data.dataCadastro
         ? new Date(data.dataCadastro).toISOString()
@@ -120,7 +128,7 @@ export function ClienteForm({ initialData, onSuccess }: ClienteFormProps) {
     const clientData = {
       ...data,
       dataCadastro: finalDataCadastro,
-      pgtoId: data.pgtoId,
+      pgtoId: data.pgtoId || '',
     }
 
     if (initialData) {
