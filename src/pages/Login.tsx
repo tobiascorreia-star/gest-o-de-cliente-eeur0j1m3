@@ -117,19 +117,6 @@ export default function Login() {
             Acessar Sistema
           </Button>
         </form>
-
-        <div className="mt-6 p-3 bg-blue-900/30 rounded-lg border border-blue-400/20 text-center">
-          <p className="text-xs text-blue-200/70 leading-relaxed">
-            Aviso: O sistema está funcionando com dados locais (Mock Data). Para persistência e
-            segurança reais, é necessário conectar um banco de dados.
-          </p>
-        </div>
-
-        <div className="mt-6 text-center text-xs text-white/40 border-t border-white/10 pt-4">
-          <p className="font-medium mb-1 text-white/60">Contas para teste:</p>
-          <p>tobiascorreia@gmail.com / 12345678 (Administrador)</p>
-          <p>ana@gestao.com / 123 (Operador)</p>
-        </div>
       </div>
 
       <div className="absolute bottom-4 left-0 right-0 text-center z-10">
