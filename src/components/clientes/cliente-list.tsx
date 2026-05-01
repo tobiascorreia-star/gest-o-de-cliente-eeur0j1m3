@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Client } from '@/types'
 import { useApp } from '@/contexts/app-context'
 import {
@@ -20,6 +21,13 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { format, differenceInDays } from 'date-fns'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog'
 
 interface ClienteListProps {
   clients: Client[]
@@ -63,18 +71,23 @@ export function ClienteList({
   }
 
   const isOperator = currentUser?.role === 'Operator'
+  const [reportClient, setReportClient] = useState<Client | null>(null)
+
+  const handleGenerateReport = (client: Client) => {
+    setReportClient(client)
+  }
 
   const renderActions = (client: Client) => {
     if (isOperator && isRestrictedArea) {
       return (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8">
+            <Button variant="ghost" size="icon" className="h-8 w-8 print:hidden">
               <MoreHorizontal className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuItem onClick={() => {}}>
+          <DropdownMenuContent align="end" className="w-48 print:hidden">
+            <DropdownMenuItem onClick={() => handleGenerateReport(client)}>
               <FileText className="mr-2 h-4 w-4" /> Gerar Relatório
             </DropdownMenuItem>
           </DropdownMenuContent>
@@ -85,19 +98,19 @@ export function ClienteList({
     return (
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" className="h-8 w-8">
+          <Button variant="ghost" size="icon" className="h-8 w-8 print:hidden">
             <MoreHorizontal className="h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-48">
+        <DropdownMenuContent align="end" className="w-48 print:hidden">
           <DropdownMenuItem onClick={() => onEdit(client)}>
             <Edit className="mr-2 h-4 w-4" /> Editar Cliente
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => {}}>
+          <DropdownMenuItem onClick={() => handleGenerateReport(client)}>
             <FileText className="mr-2 h-4 w-4" /> Gerar Relatório
           </DropdownMenuItem>
 
-          {client.statusId !== baixaStatusId && (
+          {!isOperator && client.statusId !== baixaStatusId && onBaixa && (
             <DropdownMenuItem
               onClick={() => onBaixa(client.id)}
               className="text-emerald-600 focus:text-emerald-600"
@@ -133,7 +146,7 @@ export function ClienteList({
 
   return (
     <>
-      <div className="hidden md:block rounded-xl border bg-card shadow-sm overflow-hidden">
+      <div className="hidden md:block print:block rounded-xl border bg-card shadow-sm overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/50 hover:bg-muted/50 border-b-border/50">
@@ -145,7 +158,7 @@ export function ClienteList({
               <TableHead className="font-semibold">Pgto</TableHead>
               <TableHead className="font-semibold max-w-[200px]">Obs</TableHead>
               <TableHead className="font-semibold">Data</TableHead>
-              <TableHead className="w-[60px]"></TableHead>
+              <TableHead className="w-[60px] print:hidden"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -162,7 +175,7 @@ export function ClienteList({
             {clients.map((client) => (
               <TableRow
                 key={client.id}
-                className={`group transition-colors hover:bg-muted/30 ${getAlertColor(client)}`}
+                className={`group transition-colors hover:bg-muted/30 print:break-inside-avoid ${getAlertColor(client)}`}
               >
                 <TableCell>
                   <div className="font-medium text-foreground">{client.razaoSocial}</div>
@@ -200,14 +213,14 @@ export function ClienteList({
                 <TableCell className="text-sm text-muted-foreground">
                   {format(new Date(client.dataCadastro), 'dd/MM/yyyy')}
                 </TableCell>
-                <TableCell>{renderActions(client)}</TableCell>
+                <TableCell className="print:hidden">{renderActions(client)}</TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 md:hidden">
+      <div className="grid grid-cols-1 gap-4 md:hidden print:hidden">
         {clients.length === 0 && (
           <div className="text-center py-12 text-muted-foreground bg-card border rounded-xl shadow-sm">
             Nenhum cliente encontrado.
@@ -275,6 +288,109 @@ export function ClienteList({
           </Card>
         ))}
       </div>
+
+      <Dialog open={!!reportClient} onOpenChange={(open) => !open && setReportClient(null)}>
+        <DialogContent className="sm:max-w-md print:w-full print:max-w-none print:shadow-none print:border-none print:p-0 bg-background">
+          <DialogHeader className="print:hidden">
+            <DialogTitle>Relatório do Cliente</DialogTitle>
+          </DialogHeader>
+          {reportClient && (
+            <div className="space-y-4 py-4 print:py-0 print:block">
+              <div className="text-center mb-6 hidden print:block border-b pb-4">
+                <h1 className="text-2xl font-bold">GESTÃO Cliente</h1>
+                <h2 className="text-xl mt-2 text-muted-foreground">
+                  Relatório Individual de Cliente
+                </h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Gerado em {format(new Date(), 'dd/MM/yyyy HH:mm')}
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-y-6 gap-x-4">
+                <div>
+                  <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">
+                    Razão Social
+                  </h4>
+                  <p className="font-medium text-base mt-1">{reportClient.razaoSocial}</p>
+                </div>
+                <div>
+                  <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">
+                    CNPJ
+                  </h4>
+                  <p className="font-medium text-base mt-1 font-mono">{reportClient.cnpj}</p>
+                </div>
+                <div>
+                  <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">
+                    Nome do Cliente
+                  </h4>
+                  <p className="font-medium text-base mt-1">{reportClient.nome}</p>
+                </div>
+                <div>
+                  <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">
+                    Data de Cadastro
+                  </h4>
+                  <p className="font-medium text-base mt-1">
+                    {format(new Date(reportClient.dataCadastro), 'dd/MM/yyyy')}
+                  </p>
+                </div>
+                <div>
+                  <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">
+                    Colaborador Resp.
+                  </h4>
+                  <p className="font-medium text-base mt-1">
+                    {getLookupName(colaboradores, reportClient.colaboradorId)}
+                  </p>
+                </div>
+                <div>
+                  <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">
+                    Status Atual
+                  </h4>
+                  <div className="mt-1 flex">
+                    <Badge
+                      variant="outline"
+                      className={`border-none ${getLookupColor(statusList, reportClient.statusId)}`}
+                    >
+                      {getLookupName(statusList, reportClient.statusId)}
+                    </Badge>
+                  </div>
+                </div>
+                <div>
+                  <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">
+                    Categoria
+                  </h4>
+                  <p className="font-medium text-base mt-1">
+                    {getLookupName(categorias, reportClient.categoriaId)}
+                  </p>
+                </div>
+                <div>
+                  <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">
+                    Condição Pgto.
+                  </h4>
+                  <p className="font-medium text-base mt-1">
+                    {getLookupName(pgtoTipos, reportClient.pgtoId)}
+                  </p>
+                </div>
+                <div className="col-span-2 bg-muted/30 p-4 rounded-lg mt-2">
+                  <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider text-[10px] mb-2">
+                    Observações
+                  </h4>
+                  <p className="font-medium text-sm whitespace-pre-wrap leading-relaxed">
+                    {reportClient.obs || 'Nenhuma observação registrada para este cliente.'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter className="print:hidden mt-6">
+            <Button variant="outline" onClick={() => setReportClient(null)}>
+              Fechar
+            </Button>
+            <Button onClick={() => window.print()} className="bg-primary text-primary-foreground">
+              <FileText className="w-4 h-4 mr-2" /> Imprimir Relatório
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }

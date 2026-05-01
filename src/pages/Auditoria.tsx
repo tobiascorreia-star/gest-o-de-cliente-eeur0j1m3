@@ -12,6 +12,33 @@ import { format } from 'date-fns'
 const Auditoria = () => {
   const { audit } = useApp()
 
+  const mockAudit =
+    audit.length > 0
+      ? audit
+      : [
+          {
+            id: 'm1',
+            timestamp: new Date().getTime() - 1000 * 60 * 5,
+            userName: 'Admin',
+            action: 'Login no sistema',
+            target: 'Auth',
+          },
+          {
+            id: 'm2',
+            timestamp: new Date().getTime() - 1000 * 60 * 60,
+            userName: 'Tobias Correia',
+            action: 'Atualização de cliente',
+            target: 'Cliente ID: 123',
+          },
+          {
+            id: 'm3',
+            timestamp: new Date().getTime() - 1000 * 60 * 60 * 24,
+            userName: 'Sistema',
+            action: 'Backup automático',
+            target: 'Database',
+          },
+        ]
+
   return (
     <div className="space-y-4">
       <div>
@@ -32,7 +59,7 @@ const Auditoria = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {audit.map((log) => (
+            {mockAudit.map((log) => (
               <TableRow key={log.id}>
                 <TableCell className="text-sm text-muted-foreground">
                   {format(new Date(log.timestamp), 'dd/MM/yyyy HH:mm')}

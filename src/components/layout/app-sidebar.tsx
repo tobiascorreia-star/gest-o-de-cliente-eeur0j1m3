@@ -57,7 +57,7 @@ export function AppSidebar() {
             <Building2 className="w-5 h-5" />
           </div>
           <span className="font-bold tracking-wide text-sm truncate group-data-[collapsible=icon]:hidden text-sidebar-foreground">
-            MEGA Ponto
+            GESTÃO Cliente
           </span>
         </div>
       </SidebarHeader>

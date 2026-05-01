@@ -29,6 +29,8 @@ export default function Usuarios() {
   const [isOpen, setIsOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<User | null>(null)
 
+  const [accessUser, setAccessUser] = useState<User | null>(null)
+
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -122,7 +124,12 @@ export default function Usuarios() {
                 </div>
               </div>
               <div className="mt-6 flex gap-2">
-                <Button variant="outline" size="sm" className="w-full">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  onClick={() => setAccessUser(user)}
+                >
                   <Shield className="w-4 h-4 mr-2" /> Acessos
                 </Button>
                 <Button variant="secondary" size="sm" onClick={() => openForm(user)}>
@@ -187,6 +194,46 @@ export default function Usuarios() {
               Cancelar
             </Button>
             <Button onClick={handleSave}>Salvar</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!accessUser} onOpenChange={(open) => !open && setAccessUser(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Configurações de Acesso - {accessUser?.name}</DialogTitle>
+            <DialogDescription>
+              Detalhes de segurança e histórico de acessos para este usuário.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            <div className="p-3 bg-muted rounded-md text-sm">
+              <div className="flex justify-between items-center border-b border-border/50 pb-2 mb-2">
+                <span className="text-muted-foreground">Último Login</span>
+                <span className="font-medium">
+                  {new Date().toLocaleDateString('pt-BR')} às{' '}
+                  {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              </div>
+              <div className="flex justify-between items-center border-b border-border/50 pb-2 mb-2">
+                <span className="text-muted-foreground">Status da Conta</span>
+                <Badge
+                  variant="default"
+                  className="bg-emerald-500 hover:bg-emerald-600 border-none"
+                >
+                  Ativa
+                </Badge>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Tentativas de Login Falhas</span>
+                <span className="font-medium text-destructive">0</span>
+              </div>
+            </div>
+          </div>
+          <div className="flex justify-end pt-2">
+            <Button variant="outline" onClick={() => setAccessUser(null)}>
+              Fechar
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

@@ -49,14 +49,14 @@ const Relatorio = () => {
 
   return (
     <div className="space-y-6">
-      <div className="print-hidden">
+      <div className="print:hidden">
         <h2 className="text-2xl font-bold tracking-tight">Relatórios</h2>
         <p className="text-muted-foreground text-sm mt-1">
           Gere extratos detalhados e visualize relatórios impressos.
         </p>
       </div>
 
-      <Card className="max-w-4xl border-border/50 shadow-sm rounded-xl print-hidden">
+      <Card className="max-w-4xl border-border/50 shadow-sm rounded-xl print:hidden">
         <CardHeader>
           <CardTitle>Filtros do Relatório</CardTitle>
           <CardDescription>
@@ -136,7 +136,7 @@ const Relatorio = () => {
       {/* This container will be the only visible part during print */}
       <div id="printable-report" className="hidden print:block space-y-4">
         <div className="text-center mb-8 border-b pb-4">
-          <h1 className="text-2xl font-bold">Relatório de Gestão de Clientes</h1>
+          <h1 className="text-2xl font-bold">GESTÃO Cliente - Relatório</h1>
           <p className="text-gray-600 mt-2">
             Período: {dateStart ? format(dateStart, 'dd/MM/yyyy') : 'Início'} até{' '}
             {dateEnd ? format(dateEnd, 'dd/MM/yyyy') : 'Hoje'} | Status:{' '}
@@ -159,7 +159,7 @@ const Relatorio = () => {
         />
       </div>
 
-      <div className="print-hidden pt-4">
+      <div className="print:hidden pt-4">
         <h3 className="text-lg font-semibold mb-4 text-muted-foreground">
           Pré-visualização dos Dados ({filteredClients.length} registros)
         </h3>

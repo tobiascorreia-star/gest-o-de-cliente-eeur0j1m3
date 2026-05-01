@@ -37,7 +37,7 @@ export default function Login() {
           <div className="bg-gradient-to-tr from-accent to-yellow-300 w-16 h-16 rounded-2xl flex items-center justify-center mb-4 shadow-lg">
             <Building2 className="w-8 h-8 text-primary" />
           </div>
-          <h1 className="text-3xl font-bold text-white tracking-wide">MEGA Ponto</h1>
+          <h1 className="text-3xl font-bold text-white tracking-wide">GESTÃO Cliente</h1>
           <p className="text-white/60 text-sm mt-2">SISTEMA DE GESTÃO EMPRESARIAL</p>
         </div>
 
