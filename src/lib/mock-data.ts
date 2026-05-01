@@ -41,6 +41,7 @@ export const mockClients: Client[] = [
     categoriaId: 'cat1',
     dataCadastro: minusDays(5),
     obs: 'Cliente solicitou urgência na renovação.',
+    pgto: 'Pix',
   },
   {
     id: 'cli2',
@@ -52,6 +53,7 @@ export const mockClients: Client[] = [
     statusId: 'st2',
     categoriaId: 'cat2',
     dataCadastro: minusDays(15),
+    pgto: 'Boleto',
   },
   {
     id: 'cli3',
@@ -63,6 +65,7 @@ export const mockClients: Client[] = [
     statusId: 'st1',
     categoriaId: 'cat3',
     dataCadastro: minusDays(2),
+    pgto: 'Cartão de Crédito',
   },
   {
     id: 'cli4',
@@ -73,8 +76,9 @@ export const mockClients: Client[] = [
     solicitacaoId: 'so4',
     statusId: 'st3',
     categoriaId: 'cat2',
-    dataCadastro: minusDays(30),
-    dataBaixa: minusDays(2),
+    dataCadastro: minusDays(60),
+    dataBaixa: minusDays(40),
+    pgto: 'Transferência',
   },
 ]
 

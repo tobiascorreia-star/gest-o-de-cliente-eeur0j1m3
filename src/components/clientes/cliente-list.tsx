@@ -85,9 +85,11 @@ export function ClienteList({ clients, onEdit, onDelete, onBaixa }: ClienteListP
           <TableHeader>
             <TableRow className="bg-muted/50 hover:bg-muted/50">
               <TableHead>CNPJ / Razão Social</TableHead>
+              <TableHead>Cliente</TableHead>
               <TableHead>Colaborador</TableHead>
               <TableHead>Solicitação</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Pgto</TableHead>
               <TableHead>Data</TableHead>
               <TableHead className="w-[60px]"></TableHead>
             </TableRow>
@@ -95,7 +97,7 @@ export function ClienteList({ clients, onEdit, onDelete, onBaixa }: ClienteListP
           <TableBody>
             {clients.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                   Nenhum cliente encontrado.
                 </TableCell>
               </TableRow>
@@ -115,6 +117,7 @@ export function ClienteList({ clients, onEdit, onDelete, onBaixa }: ClienteListP
                     {getLookupName(categorias, client.categoriaId)}
                   </Badge>
                 </TableCell>
+                <TableCell className="font-medium text-sm">{client.nome}</TableCell>
                 <TableCell>{getLookupName(colaboradores, client.colaboradorId)}</TableCell>
                 <TableCell>{getLookupName(solicitacoes, client.solicitacaoId)}</TableCell>
                 <TableCell>
@@ -124,6 +127,7 @@ export function ClienteList({ clients, onEdit, onDelete, onBaixa }: ClienteListP
                     {getLookupName(statusList, client.statusId)}
                   </span>
                 </TableCell>
+                <TableCell className="text-sm">{client.pgto || '-'}</TableCell>
                 <TableCell className="text-sm text-muted-foreground">
                   {format(new Date(client.dataCadastro), 'dd/MM/yyyy')}
                 </TableCell>
@@ -148,6 +152,7 @@ export function ClienteList({ clients, onEdit, onDelete, onBaixa }: ClienteListP
                 <div>
                   <h4 className="font-medium leading-none">{client.razaoSocial}</h4>
                   <p className="text-xs text-muted-foreground mt-1">{client.cnpj}</p>
+                  <p className="text-sm font-medium mt-1">Cliente: {client.nome}</p>
                 </div>
                 {renderActions(client)}
               </div>
@@ -164,16 +169,22 @@ export function ClienteList({ clients, onEdit, onDelete, onBaixa }: ClienteListP
                   {getLookupName(categorias, client.categoriaId)}
                 </Badge>
               </div>
-              <div className="text-sm grid grid-cols-2 gap-2 mt-2 bg-muted/30 p-2 rounded-md">
-                <div>
+              <div className="text-sm grid grid-cols-3 gap-2 mt-2 bg-muted/30 p-2 rounded-md">
+                <div className="col-span-1">
                   <span className="text-xs text-muted-foreground block">Colaborador</span>
-                  <span className="truncate">
+                  <span className="truncate block">
                     {getLookupName(colaboradores, client.colaboradorId)}
                   </span>
                 </div>
-                <div>
+                <div className="col-span-1">
+                  <span className="text-xs text-muted-foreground block">Pgto</span>
+                  <span className="truncate block">{client.pgto || '-'}</span>
+                </div>
+                <div className="col-span-1">
                   <span className="text-xs text-muted-foreground block">Data</span>
-                  <span>{format(new Date(client.dataCadastro), 'dd/MM/yy')}</span>
+                  <span className="truncate block">
+                    {format(new Date(client.dataCadastro), 'dd/MM/yy')}
+                  </span>
                 </div>
               </div>
             </CardContent>

@@ -6,6 +6,7 @@ import {
   ShieldAlert,
   UserCog,
   CheckSquare,
+  Archive,
   FileBarChart,
   Settings,
   Building2,
@@ -30,6 +31,7 @@ const navigation = [
   { name: 'Auditoria', href: '/auditoria', icon: ShieldAlert },
   { name: 'Usuários', href: '/usuarios', icon: UserCog },
   { name: 'Concluídos do Mês', href: '/concluidos', icon: CheckSquare },
+  { name: 'Arquivo', href: '/arquivo', icon: Archive },
   { name: 'Relatório', href: '/relatorio', icon: FileBarChart },
   { name: 'Configuração', href: '/configuracao', icon: Settings },
 ]

@@ -19,13 +19,15 @@ import { toast } from '@/hooks/use-toast'
 import { Loader2, Search } from 'lucide-react'
 
 const formSchema = z.object({
-  cnpj: z.string().min(14, 'CNPJ inválido'),
+  cnpj: z.string().min(18, 'CNPJ incompleto').max(18, 'CNPJ incompleto'),
   razaoSocial: z.string().min(3, 'Razão social é obrigatória'),
-  nome: z.string().min(3, 'Nome é obrigatório'),
+  nome: z.string().min(3, 'Cliente é obrigatório'),
   colaboradorId: z.string().min(1, 'Selecione um colaborador'),
   solicitacaoId: z.string().min(1, 'Selecione uma solicitação'),
   statusId: z.string().min(1, 'Selecione um status'),
   categoriaId: z.string().min(1, 'Selecione uma categoria'),
+  dataCadastro: z.string().min(1, 'Data de cadastro é obrigatória'),
+  pgto: z.string().min(1, 'Pagamento é obrigatório'),
   obs: z.string().optional(),
 })
 
@@ -34,6 +36,16 @@ type FormData = z.infer<typeof formSchema>
 interface ClienteFormProps {
   initialData?: Client | null
   onSuccess: () => void
+}
+
+const applyCnpjMask = (value: string) => {
+  return value
+    .replace(/\D/g, '')
+    .replace(/^(\d{2})(\d)/, '$1.$2')
+    .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
+    .replace(/\.(\d{3})(\d)/, '.$1/$2')
+    .replace(/(\d{4})(\d)/, '$1-$2')
+    .substring(0, 18)
 }
 
 export function ClienteForm({ initialData, onSuccess }: ClienteFormProps) {
@@ -48,19 +60,26 @@ export function ClienteForm({ initialData, onSuccess }: ClienteFormProps) {
     formState: { errors },
   } = useForm<FormData>({
     resolver: zodResolver(formSchema),
-    defaultValues: initialData || {
-      cnpj: '',
-      razaoSocial: '',
-      nome: '',
-      colaboradorId: '',
-      solicitacaoId: '',
-      statusId: '',
-      categoriaId: '',
-      obs: '',
-    },
+    defaultValues: initialData
+      ? {
+          ...initialData,
+          dataCadastro: initialData.dataCadastro.split('T')[0],
+          pgto: initialData.pgto || '',
+        }
+      : {
+          cnpj: '',
+          razaoSocial: '',
+          nome: '',
+          colaboradorId: '',
+          solicitacaoId: '',
+          statusId: '',
+          categoriaId: '',
+          dataCadastro: new Date().toISOString().split('T')[0],
+          pgto: '',
+          obs: '',
+        },
   })
 
-  // Register selects manually since they aren't native inputs
   useEffect(() => {
     register('colaboradorId')
     register('solicitacaoId')
@@ -70,10 +89,14 @@ export function ClienteForm({ initialData, onSuccess }: ClienteFormProps) {
 
   const cnpjValue = watch('cnpj')
 
+  const handleCnpjChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const masked = applyCnpjMask(e.target.value)
+    setValue('cnpj', masked, { shouldValidate: true })
+  }
+
   const handleAutoFetch = async () => {
-    if (!cnpjValue || cnpjValue.length < 14) return
+    if (!cnpjValue || cnpjValue.length < 18) return
     setIsFetchingCnpj(true)
-    // Mock API call
     await new Promise((resolve) => setTimeout(resolve, 1000))
     setValue('razaoSocial', 'Empresa Auto-preenchida LTDA', { shouldValidate: true })
     setIsFetchingCnpj(false)
@@ -81,14 +104,18 @@ export function ClienteForm({ initialData, onSuccess }: ClienteFormProps) {
   }
 
   const onSubmit = (data: FormData) => {
+    const finalDataCadastro = initialData
+      ? new Date(data.dataCadastro).toISOString()
+      : new Date(data.dataCadastro).toISOString()
+
     if (initialData) {
-      updateClient({ ...initialData, ...data })
+      updateClient({ ...initialData, ...data, dataCadastro: finalDataCadastro })
       toast({ title: 'Sucesso', description: 'Cliente atualizado com sucesso!' })
     } else {
       addClient({
         id: `cli_${Date.now()}`,
         ...data,
-        dataCadastro: new Date().toISOString(),
+        dataCadastro: finalDataCadastro,
       })
       toast({ title: 'Sucesso', description: 'Cliente cadastrado com sucesso!' })
     }
@@ -99,19 +126,20 @@ export function ClienteForm({ initialData, onSuccess }: ClienteFormProps) {
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 pt-4">
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-2">
-          <Label htmlFor="cnpj">CNPJ</Label>
+          <Label htmlFor="cnpj">CNPJ *</Label>
           <div className="flex gap-2">
             <Input
               id="cnpj"
               placeholder="00.000.000/0000-00"
               {...register('cnpj')}
+              onChange={handleCnpjChange}
               className={errors.cnpj ? 'border-destructive' : ''}
             />
             <Button
               type="button"
               variant="secondary"
               onClick={handleAutoFetch}
-              disabled={isFetchingCnpj || !cnpjValue}
+              disabled={isFetchingCnpj || !cnpjValue || cnpjValue.length < 18}
             >
               {isFetchingCnpj ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -124,7 +152,7 @@ export function ClienteForm({ initialData, onSuccess }: ClienteFormProps) {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="razaoSocial">Razão Social</Label>
+          <Label htmlFor="razaoSocial">Razão Social *</Label>
           <Input
             id="razaoSocial"
             {...register('razaoSocial')}
@@ -136,7 +164,7 @@ export function ClienteForm({ initialData, onSuccess }: ClienteFormProps) {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="nome">Nome do Contato</Label>
+          <Label htmlFor="nome">Cliente *</Label>
           <Input
             id="nome"
             {...register('nome')}
@@ -146,7 +174,7 @@ export function ClienteForm({ initialData, onSuccess }: ClienteFormProps) {
         </div>
 
         <div className="space-y-2">
-          <Label>Colaborador Responsável</Label>
+          <Label>Colaborador Responsável *</Label>
           <Select
             onValueChange={(v) => setValue('colaboradorId', v, { shouldValidate: true })}
             defaultValue={initialData?.colaboradorId}
@@ -162,10 +190,13 @@ export function ClienteForm({ initialData, onSuccess }: ClienteFormProps) {
               ))}
             </SelectContent>
           </Select>
+          {errors.colaboradorId && (
+            <p className="text-xs text-destructive">{errors.colaboradorId.message}</p>
+          )}
         </div>
 
         <div className="space-y-2">
-          <Label>Solicitação</Label>
+          <Label>Solicitação *</Label>
           <Select
             onValueChange={(v) => setValue('solicitacaoId', v, { shouldValidate: true })}
             defaultValue={initialData?.solicitacaoId}
@@ -181,10 +212,13 @@ export function ClienteForm({ initialData, onSuccess }: ClienteFormProps) {
               ))}
             </SelectContent>
           </Select>
+          {errors.solicitacaoId && (
+            <p className="text-xs text-destructive">{errors.solicitacaoId.message}</p>
+          )}
         </div>
 
         <div className="space-y-2">
-          <Label>Status</Label>
+          <Label>Status *</Label>
           <Select
             onValueChange={(v) => setValue('statusId', v, { shouldValidate: true })}
             defaultValue={initialData?.statusId}
@@ -200,10 +234,11 @@ export function ClienteForm({ initialData, onSuccess }: ClienteFormProps) {
               ))}
             </SelectContent>
           </Select>
+          {errors.statusId && <p className="text-xs text-destructive">{errors.statusId.message}</p>}
         </div>
 
         <div className="space-y-2">
-          <Label>Categoria</Label>
+          <Label>Categoria *</Label>
           <Select
             onValueChange={(v) => setValue('categoriaId', v, { shouldValidate: true })}
             defaultValue={initialData?.categoriaId}
@@ -219,6 +254,33 @@ export function ClienteForm({ initialData, onSuccess }: ClienteFormProps) {
               ))}
             </SelectContent>
           </Select>
+          {errors.categoriaId && (
+            <p className="text-xs text-destructive">{errors.categoriaId.message}</p>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="pgto">Pgto *</Label>
+          <Input
+            id="pgto"
+            placeholder="Ex: Cartão, Boleto, Pix"
+            {...register('pgto')}
+            className={errors.pgto ? 'border-destructive' : ''}
+          />
+          {errors.pgto && <p className="text-xs text-destructive">{errors.pgto.message}</p>}
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="dataCadastro">Data Cadastro *</Label>
+          <Input
+            id="dataCadastro"
+            type="date"
+            {...register('dataCadastro')}
+            className={errors.dataCadastro ? 'border-destructive' : ''}
+          />
+          {errors.dataCadastro && (
+            <p className="text-xs text-destructive">{errors.dataCadastro.message}</p>
+          )}
         </div>
       </div>
 

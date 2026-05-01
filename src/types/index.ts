@@ -16,6 +16,7 @@ export interface Client {
   dataCadastro: string
   dataBaixa?: string
   obs?: string
+  pgto?: string
 }
 
 export interface AlertConfig {

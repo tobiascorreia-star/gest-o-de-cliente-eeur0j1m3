@@ -10,6 +10,7 @@ import Historico from './pages/Historico'
 import Auditoria from './pages/Auditoria'
 import Usuarios from './pages/Usuarios'
 import Concluidos from './pages/Concluidos'
+import Arquivo from './pages/Arquivo'
 import Relatorio from './pages/Relatorio'
 import Configuracao from './pages/Configuracao'
 import NotFound from './pages/NotFound'
@@ -28,6 +29,7 @@ const App = () => (
             <Route path="/auditoria" element={<Auditoria />} />
             <Route path="/usuarios" element={<Usuarios />} />
             <Route path="/concluidos" element={<Concluidos />} />
+            <Route path="/arquivo" element={<Arquivo />} />
             <Route path="/relatorio" element={<Relatorio />} />
             <Route path="/configuracao" element={<Configuracao />} />
           </Route>
