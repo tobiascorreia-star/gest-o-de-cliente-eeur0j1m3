@@ -13,9 +13,11 @@ import {
   mockUsers,
 } from '@/lib/mock-data'
 
+type ConfigListType = 'colaboradores' | 'solicitacoes' | 'statusList' | 'categorias' | 'pgtoTipos'
+
 interface AppContextType {
   currentUser: User | null
-  login: (email: string) => boolean
+  login: (email: string, password?: string) => boolean
   logout: () => void
   lastLoginTime: string | null
   clients: Client[]
@@ -37,17 +39,19 @@ interface AppContextType {
   reverseClientBaixa: (id: string) => void
   addUser: (user: Omit<User, 'id'>) => void
   updateUser: (user: User) => void
+  addConfigItem: (type: ConfigListType, name: string, color?: string) => void
+  deleteConfigItem: (type: ConfigListType, id: string) => void
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined)
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [clients, setClients] = useState<Client[]>(mockClients)
-  const [colaboradores] = useState<LookupItem[]>(mockColaboradores)
-  const [solicitacoes] = useState<LookupItem[]>(mockSolicitacoes)
-  const [statusList] = useState<LookupItem[]>(mockStatus)
-  const [categorias] = useState<LookupItem[]>(mockCategorias)
-  const [pgtoTipos] = useState<LookupItem[]>(mockPgtoTipos)
+  const [colaboradores, setColaboradores] = useState<LookupItem[]>(mockColaboradores)
+  const [solicitacoes, setSolicitacoes] = useState<LookupItem[]>(mockSolicitacoes)
+  const [statusList, setStatusList] = useState<LookupItem[]>(mockStatus)
+  const [categorias, setCategorias] = useState<LookupItem[]>(mockCategorias)
+  const [pgtoTipos, setPgtoTipos] = useState<LookupItem[]>(mockPgtoTipos)
   const [alertConfig, setAlertConfig] = useState<AlertConfig>(mockAlertConfig)
   const [history, setHistory] = useState<HistoryLog[]>(mockHistory)
   const [audit] = useState<AuditLog[]>(mockAudit)
@@ -62,7 +66,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return localStorage.getItem('previousLoginTime') || null
   })
 
-  const login = (email: string) => {
+  const login = (email: string, _password?: string) => {
     const foundUser = users.find((u) => u.email === email)
     if (foundUser) {
       setCurrentUser(foundUser)
@@ -176,6 +180,47 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setUsers((prev) => prev.map((u) => (u.id === updated.id ? updated : u)))
   }
 
+  const addConfigItem = (type: ConfigListType, name: string, color?: string) => {
+    const newItem = { id: `item_${Date.now()}`, name, color }
+    switch (type) {
+      case 'colaboradores':
+        setColaboradores((prev) => [...prev, newItem])
+        break
+      case 'solicitacoes':
+        setSolicitacoes((prev) => [...prev, newItem])
+        break
+      case 'statusList':
+        setStatusList((prev) => [...prev, newItem])
+        break
+      case 'categorias':
+        setCategorias((prev) => [...prev, newItem])
+        break
+      case 'pgtoTipos':
+        setPgtoTipos((prev) => [...prev, newItem])
+        break
+    }
+  }
+
+  const deleteConfigItem = (type: ConfigListType, id: string) => {
+    switch (type) {
+      case 'colaboradores':
+        setColaboradores((prev) => prev.filter((i) => i.id !== id))
+        break
+      case 'solicitacoes':
+        setSolicitacoes((prev) => prev.filter((i) => i.id !== id))
+        break
+      case 'statusList':
+        setStatusList((prev) => prev.filter((i) => i.id !== id))
+        break
+      case 'categorias':
+        setCategorias((prev) => prev.filter((i) => i.id !== id))
+        break
+      case 'pgtoTipos':
+        setPgtoTipos((prev) => prev.filter((i) => i.id !== id))
+        break
+    }
+  }
+
   return (
     <AppContext.Provider
       value={{
@@ -202,6 +247,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         reverseClientBaixa,
         addUser,
         updateUser,
+        addConfigItem,
+        deleteConfigItem,
       }}
     >
       {children}

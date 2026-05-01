@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,7 +6,7 @@
 
 @layer base {
   :root {
-    /* Soft Indigo Theme */
+    /* Sophisticated Navy Blue, Dark Gray & Gold Theme */
     --background: 210 40% 98%;
     --foreground: 222.2 84% 4.9%;
 
@@ -16,8 +16,8 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
-    /* Indigo 500 */
-    --primary: 238 81% 67%;
+    /* Navy Blue */
+    --primary: 222 47% 11%;
     --primary-foreground: 210 40% 98%;
 
     --secondary: 210 40% 96%;
@@ -26,33 +26,33 @@
     --muted: 210 40% 96%;
     --muted-foreground: 215.4 16.3% 46.9%;
 
-    --accent: 210 40% 96%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    /* Gold Accent */
+    --accent: 43 96% 56%;
+    --accent-foreground: 222 47% 11%;
 
-    /* Rose 500 */
-    --destructive: 346 87% 60%;
+    --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 238 81% 67%;
+    --ring: 222 47% 11%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
 
-    --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 222.2 84% 4.9%;
-    --sidebar-primary: 238 81% 67%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 210 40% 96%;
-    --sidebar-accent-foreground: 222.2 84% 4.9%;
-    --sidebar-border: 214.3 31.8% 91.4%;
-    --sidebar-ring: 238 81% 67%;
+    --sidebar-background: 222 47% 11%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 43 96% 56%;
+    --sidebar-primary-foreground: 222 47% 11%;
+    --sidebar-accent: 215 35% 20%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 215 35% 20%;
+    --sidebar-ring: 43 96% 56%;
 
-    --chart-1: 238 81% 67%;
-    --chart-2: 199 89% 48%;
-    --chart-3: 160 84% 39%;
-    --chart-4: 43 100% 50%;
-    --chart-5: 346 87% 60%;
+    --chart-1: 222 47% 11%;
+    --chart-2: 43 96% 56%;
+    --chart-3: 215 35% 40%;
+    --chart-4: 35 90% 60%;
+    --chart-5: 0 84% 60%;
   }
 
   .dark {
@@ -65,8 +65,8 @@
     --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 238 81% 67%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 43 96% 56%;
+    --primary-foreground: 222 47% 11%;
 
     --secondary: 217.2 32.6% 17.5%;
     --secondary-foreground: 210 40% 98%;
@@ -77,27 +77,21 @@
     --accent: 217.2 32.6% 17.5%;
     --accent-foreground: 210 40% 98%;
 
-    --destructive: 346 87% 60%;
+    --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
 
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
-    --ring: 238 81% 67%;
+    --ring: 43 96% 56%;
 
     --sidebar-background: 222.2 84% 4.9%;
     --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 238 81% 67%;
-    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-primary: 43 96% 56%;
+    --sidebar-primary-foreground: 222 47% 11%;
     --sidebar-accent: 217.2 32.6% 17.5%;
     --sidebar-accent-foreground: 210 40% 98%;
     --sidebar-border: 217.2 32.6% 17.5%;
-    --sidebar-ring: 238 81% 67%;
-
-    --chart-1: 238 81% 67%;
-    --chart-2: 199 89% 48%;
-    --chart-3: 160 84% 39%;
-    --chart-4: 43 100% 50%;
-    --chart-5: 346 87% 60%;
+    --sidebar-ring: 43 96% 56%;
   }
 
   * {
@@ -110,6 +104,27 @@
   section[aria-label='Notifications alt+T'] {
     padding: 0 !important;
     margin: 0 !important;
+  }
+
+  @media print {
+    body * {
+      visibility: hidden;
+    }
+    #printable-report,
+    #printable-report * {
+      visibility: visible;
+    }
+    #printable-report {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      background: white;
+      padding: 20px;
+    }
+    .print-hidden {
+      display: none !important;
+    }
   }
 }
 
@@ -156,16 +171,6 @@
       opacity: 1;
     }
   }
-  @keyframes fade-in-down {
-    from {
-      transform: translateY(-10px);
-      opacity: 0;
-    }
-    to {
-      transform: translateY(0);
-      opacity: 1;
-    }
-  }
   @keyframes slide-up {
     from {
       transform: translateY(10px);
@@ -191,9 +196,6 @@
   }
   .animate-fade-in-up {
     animation: fade-in-up 0.6s ease-out;
-  }
-  .animate-fade-in-down {
-    animation: fade-in-down 0.6s ease-out;
   }
   .animate-slide-up {
     animation: slide-up 0.6s ease-out;

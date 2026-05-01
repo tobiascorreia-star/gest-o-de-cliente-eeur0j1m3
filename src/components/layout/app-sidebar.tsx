@@ -51,19 +51,19 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible={isMobile ? 'offcanvas' : 'icon'} variant="sidebar">
-      <SidebarHeader className="border-b border-sidebar-border h-14 flex items-center justify-center px-4">
+      <SidebarHeader className="border-b border-white/5 h-14 flex items-center justify-center px-4">
         <div className="flex items-center gap-2 w-full overflow-hidden">
-          <div className="bg-primary/10 p-1.5 rounded-lg shrink-0">
-            <Building2 className="w-5 h-5 text-primary" />
+          <div className="bg-accent text-primary p-1.5 rounded-lg shrink-0">
+            <Building2 className="w-5 h-5" />
           </div>
-          <span className="font-semibold text-sm truncate group-data-[collapsible=icon]:hidden">
+          <span className="font-bold tracking-wide text-sm truncate group-data-[collapsible=icon]:hidden text-sidebar-foreground">
             Gestão de Cliente
           </span>
         </div>
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel className="group-data-[collapsible=icon]:hidden">
+          <SidebarGroupLabel className="group-data-[collapsible=icon]:hidden text-sidebar-foreground/50">
             Menu Principal
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -72,7 +72,12 @@ export function AppSidebar() {
                 const isActive = location.pathname === item.href
                 return (
                   <SidebarMenuItem key={item.name}>
-                    <SidebarMenuButton asChild isActive={isActive} tooltip={item.name}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isActive}
+                      tooltip={item.name}
+                      className="data-[active=true]:bg-accent data-[active=true]:text-primary data-[active=true]:font-medium transition-colors"
+                    >
                       <Link to={item.href}>
                         <item.icon className="w-4 h-4" />
                         <span>{item.name}</span>
@@ -85,15 +90,24 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter>
+      <SidebarFooter className="border-t border-white/5 pb-2">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton onClick={logout} tooltip="Sair da Conta">
+            <SidebarMenuButton
+              onClick={logout}
+              tooltip="Sair da Conta"
+              className="hover:bg-destructive hover:text-destructive-foreground transition-colors"
+            >
               <LogOut className="w-4 h-4" />
-              <span>Sair</span>
+              <span>Sair do Sistema</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
+        <div className="mt-2 text-center group-data-[collapsible=icon]:hidden">
+          <span className="text-[10px] text-sidebar-foreground/40 font-mono tracking-widest">
+            v1.2.5 - STABLE
+          </span>
+        </div>
       </SidebarFooter>
     </Sidebar>
   )

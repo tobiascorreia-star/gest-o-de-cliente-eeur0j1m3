@@ -23,6 +23,8 @@ export interface Client {
 export interface AlertConfig {
   moderateDays: number
   criticalDays: number
+  oldDays: number
+  veryCriticalDays: number
 }
 
 export interface HistoryLog {

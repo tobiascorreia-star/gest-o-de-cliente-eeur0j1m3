@@ -93,6 +93,8 @@ export const mockClients: Client[] = [
 export const mockAlertConfig: AlertConfig = {
   moderateDays: 7,
   criticalDays: 14,
+  oldDays: 30,
+  veryCriticalDays: 45,
 }
 
 export const mockHistory: HistoryLog[] = [
