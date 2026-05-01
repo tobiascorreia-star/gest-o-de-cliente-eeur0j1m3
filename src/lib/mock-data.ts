@@ -53,7 +53,7 @@ export const mockUsers: User[] = [
   {
     id: 'u1',
     name: 'Administrador',
-    email: 'tobias@megafllex',
+    email: 'tobias@megafllex.com',
     role: 'Admin',
     avatarUrl: 'https://img.usecurling.com/ppl/thumbnail?gender=male&seed=1',
     password: 'Fui3G35@',
