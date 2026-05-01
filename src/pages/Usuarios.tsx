@@ -31,6 +31,7 @@ export default function Usuarios() {
 
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [role, setRole] = useState<'Admin' | 'Operator'>('Operator')
 
   const openForm = (u?: User) => {
@@ -38,18 +39,20 @@ export default function Usuarios() {
       setEditingUser(u)
       setName(u.name)
       setEmail(u.email)
+      setPassword(u.password || '')
       setRole(u.role)
     } else {
       setEditingUser(null)
       setName('')
       setEmail('')
+      setPassword('')
       setRole('Operator')
     }
     setIsOpen(true)
   }
 
   const handleSave = () => {
-    if (!name || !email) {
+    if (!name || !email || (!editingUser && !password)) {
       toast({
         title: 'Erro',
         description: 'Preencha os campos obrigatórios.',
@@ -59,13 +62,20 @@ export default function Usuarios() {
     }
 
     if (editingUser) {
-      updateUser({ ...editingUser, name, email, role })
+      updateUser({
+        ...editingUser,
+        name,
+        email,
+        role,
+        password: password || editingUser.password,
+      })
       toast({ title: 'Sucesso', description: 'Usuário atualizado com sucesso!' })
     } else {
       addUser({
         name,
         email,
         role,
+        password,
         avatarUrl: `https://img.usecurling.com/ppl/thumbnail?seed=${Date.now()}`,
       })
       toast({ title: 'Sucesso', description: 'Novo usuário criado!' })
@@ -148,6 +158,15 @@ export default function Usuarios() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="email@gestao.com"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>{editingUser ? 'Nova Senha (deixe em branco para manter)' : 'Senha *'}</Label>
+              <Input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
               />
             </div>
             <div className="space-y-2">

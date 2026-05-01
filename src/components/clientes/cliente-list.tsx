@@ -27,10 +27,26 @@ interface ClienteListProps {
   onDelete: (id: string) => void
   onBaixa: (id: string) => void
   onReverse?: (id: string) => void
+  isRestrictedArea?: boolean
 }
 
-export function ClienteList({ clients, onEdit, onDelete, onBaixa, onReverse }: ClienteListProps) {
-  const { colaboradores, solicitacoes, statusList, categorias, pgtoTipos, alertConfig } = useApp()
+export function ClienteList({
+  clients,
+  onEdit,
+  onDelete,
+  onBaixa,
+  onReverse,
+  isRestrictedArea = false,
+}: ClienteListProps) {
+  const {
+    currentUser,
+    colaboradores,
+    solicitacoes,
+    statusList,
+    categorias,
+    pgtoTipos,
+    alertConfig,
+  } = useApp()
   const baixaStatusId = statusList.find((s) => s.name === 'Baixa')?.id
 
   const getLookupName = (list: any[], id: string) =>
@@ -46,49 +62,74 @@ export function ClienteList({ clients, onEdit, onDelete, onBaixa, onReverse }: C
     return ''
   }
 
-  const renderActions = (client: Client) => (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-8 w-8">
-          <MoreHorizontal className="h-4 w-4" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-48">
-        <DropdownMenuItem onClick={() => onEdit(client)}>
-          <Edit className="mr-2 h-4 w-4" /> Editar Cliente
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => {}}>
-          <FileText className="mr-2 h-4 w-4" /> Gerar Relatório
-        </DropdownMenuItem>
+  const isOperator = currentUser?.role === 'Operator'
 
-        {client.statusId !== baixaStatusId && (
-          <DropdownMenuItem
-            onClick={() => onBaixa(client.id)}
-            className="text-emerald-600 focus:text-emerald-600"
-          >
-            <CheckCircle className="mr-2 h-4 w-4" /> Realizar Baixa
+  const renderActions = (client: Client) => {
+    if (isOperator && isRestrictedArea) {
+      return (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8">
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuItem onClick={() => {}}>
+              <FileText className="mr-2 h-4 w-4" /> Gerar Relatório
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )
+    }
+
+    return (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon" className="h-8 w-8">
+            <MoreHorizontal className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-48">
+          <DropdownMenuItem onClick={() => onEdit(client)}>
+            <Edit className="mr-2 h-4 w-4" /> Editar Cliente
           </DropdownMenuItem>
-        )}
-
-        {client.statusId === baixaStatusId && onReverse && (
-          <DropdownMenuItem
-            onClick={() => onReverse(client.id)}
-            className="text-orange-600 focus:text-orange-600"
-          >
-            <Undo2 className="mr-2 h-4 w-4" /> Estornar Baixa
+          <DropdownMenuItem onClick={() => {}}>
+            <FileText className="mr-2 h-4 w-4" /> Gerar Relatório
           </DropdownMenuItem>
-        )}
 
-        <DropdownMenuSeparator />
-        <DropdownMenuItem
-          onClick={() => onDelete(client.id)}
-          className="text-destructive focus:text-destructive"
-        >
-          <Trash2 className="mr-2 h-4 w-4" /> Excluir Registro
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  )
+          {client.statusId !== baixaStatusId && (
+            <DropdownMenuItem
+              onClick={() => onBaixa(client.id)}
+              className="text-emerald-600 focus:text-emerald-600"
+            >
+              <CheckCircle className="mr-2 h-4 w-4" /> Realizar Baixa
+            </DropdownMenuItem>
+          )}
+
+          {client.statusId === baixaStatusId && onReverse && !isOperator && (
+            <DropdownMenuItem
+              onClick={() => onReverse(client.id)}
+              className="text-orange-600 focus:text-orange-600"
+            >
+              <Undo2 className="mr-2 h-4 w-4" /> Estornar Baixa
+            </DropdownMenuItem>
+          )}
+
+          {!isOperator && (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => onDelete(client.id)}
+                className="text-destructive focus:text-destructive"
+              >
+                <Trash2 className="mr-2 h-4 w-4" /> Excluir Registro
+              </DropdownMenuItem>
+            </>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    )
+  }
 
   return (
     <>

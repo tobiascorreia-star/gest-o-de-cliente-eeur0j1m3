@@ -7,7 +7,7 @@ import { useNavigate } from 'react-router-dom'
 import { toast } from '@/hooks/use-toast'
 
 export default function Login() {
-  const { login } = useApp()
+  const { login, requestPasswordReset, users } = useApp()
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -63,12 +63,30 @@ export default function Login() {
               <button
                 type="button"
                 className="text-xs text-accent hover:text-white transition-colors"
-                onClick={() =>
-                  toast({
-                    title: 'Recuperação',
-                    description: 'Um e-mail foi enviado com as instruções.',
-                  })
-                }
+                onClick={() => {
+                  if (!email) {
+                    toast({
+                      title: 'Atenção',
+                      description: 'Digite seu e-mail de acesso para recuperar a senha.',
+                      variant: 'destructive',
+                    })
+                    return
+                  }
+
+                  const user = users.find((u) => u.email === email)
+                  if (user && user.role === 'Operator') {
+                    requestPasswordReset(email)
+                    toast({
+                      title: 'Solicitação Enviada',
+                      description: 'O Administrador foi notificado para redefinir sua senha.',
+                    })
+                  } else {
+                    toast({
+                      title: 'Recuperação',
+                      description: 'Um e-mail foi enviado com as instruções.',
+                    })
+                  }
+                }}
               >
                 Esqueceu a senha?
               </button>

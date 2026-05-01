@@ -29,6 +29,7 @@ const Concluidos = () => {
         onDelete={() => {}}
         onBaixa={() => {}}
         onReverse={reverseClientBaixa}
+        isRestrictedArea={true}
       />
     </div>
   )

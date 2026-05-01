@@ -155,6 +155,7 @@ const Relatorio = () => {
           onEdit={() => {}}
           onDelete={() => {}}
           onBaixa={() => {}}
+          isRestrictedArea={true}
         />
       </div>
 
@@ -167,6 +168,7 @@ const Relatorio = () => {
           onEdit={() => {}}
           onDelete={() => {}}
           onBaixa={() => {}}
+          isRestrictedArea={true}
         />
       </div>
     </div>

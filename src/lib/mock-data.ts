@@ -138,6 +138,7 @@ export const mockUsers: User[] = [
     email: 'admin@gestao.com',
     role: 'Admin',
     avatarUrl: 'https://img.usecurling.com/ppl/thumbnail?gender=male&seed=1',
+    password: 'admin',
   },
   {
     id: 'u2',
@@ -145,6 +146,7 @@ export const mockUsers: User[] = [
     email: 'ana@gestao.com',
     role: 'Operator',
     avatarUrl: 'https://img.usecurling.com/ppl/thumbnail?gender=female&seed=2',
+    password: '123',
   },
   {
     id: 'u3',
@@ -152,5 +154,6 @@ export const mockUsers: User[] = [
     email: 'carlos@gestao.com',
     role: 'Operator',
     avatarUrl: 'https://img.usecurling.com/ppl/thumbnail?gender=male&seed=3',
+    password: '123',
   },
 ]

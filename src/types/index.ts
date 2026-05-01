@@ -49,4 +49,12 @@ export interface User {
   email: string
   role: 'Admin' | 'Operator'
   avatarUrl?: string
+  password?: string
+}
+
+export interface PasswordResetRequest {
+  id: string
+  email: string
+  timestamp: string
+  status: 'pending' | 'resolved'
 }

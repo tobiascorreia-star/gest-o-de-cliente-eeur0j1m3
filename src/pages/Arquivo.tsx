@@ -52,6 +52,7 @@ const Arquivo = () => {
               onDelete={deleteClient}
               onBaixa={markClientAsCompleted}
               onReverse={reverseClientBaixa}
+              isRestrictedArea={true}
             />
           </div>
         ))

@@ -32,6 +32,9 @@ interface AppContextType {
   history: HistoryLog[]
   audit: AuditLog[]
   users: User[]
+  passwordResetRequests: PasswordResetRequest[]
+  requestPasswordReset: (email: string) => void
+  resolvePasswordReset: (id: string) => void
   addClient: (client: Client) => void
   updateClient: (client: Client) => void
   deleteClient: (id: string) => void
@@ -56,6 +59,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [history, setHistory] = useState<HistoryLog[]>(mockHistory)
   const [audit] = useState<AuditLog[]>(mockAudit)
   const [users, setUsers] = useState<User[]>(mockUsers)
+  const [passwordResetRequests, setPasswordResetRequests] = useState<PasswordResetRequest[]>([])
 
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
     const saved = localStorage.getItem('currentUser')
@@ -66,9 +70,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return localStorage.getItem('previousLoginTime') || null
   })
 
-  const login = (email: string, _password?: string) => {
+  const login = (email: string, password?: string) => {
     const foundUser = users.find((u) => u.email === email)
-    if (foundUser) {
+    if (foundUser && (!foundUser.password || foundUser.password === password)) {
       setCurrentUser(foundUser)
       const now = new Date().toISOString()
       const prev = localStorage.getItem('currentLoginTime') || now
@@ -180,6 +184,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setUsers((prev) => prev.map((u) => (u.id === updated.id ? updated : u)))
   }
 
+  const requestPasswordReset = (email: string) => {
+    setPasswordResetRequests((prev) => [
+      ...prev,
+      { id: Date.now().toString(), email, timestamp: new Date().toISOString(), status: 'pending' },
+    ])
+  }
+
+  const resolvePasswordReset = (id: string) => {
+    setPasswordResetRequests((prev) =>
+      prev.map((req) => (req.id === id ? { ...req, status: 'resolved' } : req)),
+    )
+  }
+
   const addConfigItem = (type: ConfigListType, name: string, color?: string) => {
     const newItem = { id: `item_${Date.now()}`, name, color }
     switch (type) {
@@ -249,6 +266,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         updateUser,
         addConfigItem,
         deleteConfigItem,
+        passwordResetRequests,
+        requestPasswordReset,
+        resolvePasswordReset,
       }}
     >
       {children}
