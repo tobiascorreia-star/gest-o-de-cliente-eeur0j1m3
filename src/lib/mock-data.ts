@@ -56,7 +56,7 @@ export const mockUsers: User[] = [
     email: 'tobiascorreia@gmail.com',
     role: 'Admin',
     avatarUrl: 'https://img.usecurling.com/ppl/thumbnail?gender=male&seed=1',
-    password: 'Fui3G35',
+    password: 'Skip@2026',
   },
   {
     id: 'u2',

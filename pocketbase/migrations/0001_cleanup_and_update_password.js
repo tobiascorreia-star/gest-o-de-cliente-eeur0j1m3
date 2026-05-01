@@ -3,7 +3,7 @@ migrate(
     // 1. Update administrator password to the new secure credential
     try {
       const admin = app.findAuthRecordByEmail('users', 'tobiascorreia@gmail.com')
-      admin.setPassword('Fui3G35')
+      admin.setPassword('Skip@2026')
       app.save(admin)
     } catch (_) {
       // Admin user not found, skip
