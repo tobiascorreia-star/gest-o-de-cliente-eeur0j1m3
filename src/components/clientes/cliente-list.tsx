@@ -328,7 +328,7 @@ export function ClienteList({
       </div>
 
       <Dialog open={!!reportClient} onOpenChange={(open) => !open && setReportClient(null)}>
-        <DialogContent className="sm:max-w-md print:w-full print:max-w-none print:shadow-none print:border-none print:p-0 bg-background">
+        <DialogContent className="printable-modal sm:max-w-md print:w-full print:max-w-none print:shadow-none print:border-none print:p-0 bg-background">
           <DialogHeader className="print:hidden">
             <DialogTitle>Relatório do Cliente</DialogTitle>
           </DialogHeader>
