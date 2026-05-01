@@ -249,11 +249,13 @@ export function ClienteForm({ initialData, onSuccess }: ClienteFormProps) {
               <SelectValue placeholder="Selecione" />
             </SelectTrigger>
             <SelectContent>
-              {statusList.map((s) => (
-                <SelectItem key={s.id} value={s.id}>
-                  {s.name}
-                </SelectItem>
-              ))}
+              {statusList
+                .filter((s) => isAdmin || s.name.toUpperCase() !== 'BAIXA')
+                .map((s) => (
+                  <SelectItem key={s.id} value={s.id}>
+                    {s.name}
+                  </SelectItem>
+                ))}
             </SelectContent>
           </Select>
           {errors.statusId && <p className="text-xs text-destructive">{errors.statusId.message}</p>}
@@ -286,6 +288,7 @@ export function ClienteForm({ initialData, onSuccess }: ClienteFormProps) {
           <Select
             onValueChange={(v) => setValue('pgtoId', v, { shouldValidate: true })}
             defaultValue={initialData?.pgtoId}
+            disabled={!isAdmin}
           >
             <SelectTrigger className={errors.pgtoId ? 'border-destructive' : ''}>
               <SelectValue placeholder="Selecione o tipo de pagamento" />
