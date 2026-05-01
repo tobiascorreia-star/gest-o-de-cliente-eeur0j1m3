@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { KpiCards } from '@/components/dashboard/kpi-cards'
 import { DashboardCharts } from '@/components/dashboard/charts'
 import { AlertsWidget } from '@/components/dashboard/alerts-widget'
+import { useApp } from '@/contexts/app-context'
 import {
   Dialog,
   DialogContent,
@@ -12,15 +13,23 @@ import {
 import { BellRing } from 'lucide-react'
 
 const Index = () => {
+  const { clients, lastLoginTime } = useApp()
   const [showLoginAlert, setShowLoginAlert] = useState(false)
 
   useEffect(() => {
-    const hasSeenAlert = sessionStorage.getItem('hasSeenNewClientsAlert')
-    if (!hasSeenAlert) {
-      setShowLoginAlert(true)
-      sessionStorage.setItem('hasSeenNewClientsAlert', 'true')
+    if (lastLoginTime) {
+      const hasSeenAlert = sessionStorage.getItem('hasSeenNewClientsAlert')
+      if (!hasSeenAlert) {
+        const hasNewClients = clients.some(
+          (c) => new Date(c.dataCadastro) > new Date(lastLoginTime),
+        )
+        if (hasNewClients) {
+          setShowLoginAlert(true)
+          sessionStorage.setItem('hasSeenNewClientsAlert', 'true')
+        }
+      }
     }
-  }, [])
+  }, [lastLoginTime, clients])
 
   return (
     <div className="space-y-2">

@@ -11,7 +11,7 @@ import {
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { MoreHorizontal, FileText, Trash2, Edit, CheckCircle } from 'lucide-react'
+import { MoreHorizontal, FileText, Trash2, Edit, CheckCircle, Undo2 } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,17 +20,17 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { format, differenceInDays } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
 
 interface ClienteListProps {
   clients: Client[]
   onEdit: (client: Client) => void
   onDelete: (id: string) => void
   onBaixa: (id: string) => void
+  onReverse?: (id: string) => void
 }
 
-export function ClienteList({ clients, onEdit, onDelete, onBaixa }: ClienteListProps) {
-  const { colaboradores, solicitacoes, statusList, categorias, alertConfig } = useApp()
+export function ClienteList({ clients, onEdit, onDelete, onBaixa, onReverse }: ClienteListProps) {
+  const { colaboradores, solicitacoes, statusList, categorias, pgtoTipos, alertConfig } = useApp()
   const baixaStatusId = statusList.find((s) => s.name === 'Baixa')?.id
 
   const getLookupName = (list: any[], id: string) =>
@@ -57,18 +57,22 @@ export function ClienteList({ clients, onEdit, onDelete, onBaixa }: ClienteListP
         <DropdownMenuItem onClick={() => onEdit(client)}>
           <Edit className="mr-2 h-4 w-4" /> Editar
         </DropdownMenuItem>
-        <DropdownMenuItem
-          onClick={() => {
-            /* Mock export */
-          }}
-        >
+        <DropdownMenuItem onClick={() => {}}>
           <FileText className="mr-2 h-4 w-4" /> Gerar Relatório
         </DropdownMenuItem>
+
         {client.statusId !== baixaStatusId && (
           <DropdownMenuItem onClick={() => onBaixa(client.id)} className="text-emerald-600">
             <CheckCircle className="mr-2 h-4 w-4" /> Dar Baixa
           </DropdownMenuItem>
         )}
+
+        {client.statusId === baixaStatusId && onReverse && (
+          <DropdownMenuItem onClick={() => onReverse(client.id)} className="text-orange-600">
+            <Undo2 className="mr-2 h-4 w-4" /> Estornar
+          </DropdownMenuItem>
+        )}
+
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => onDelete(client.id)} className="text-destructive">
           <Trash2 className="mr-2 h-4 w-4" /> Excluir
@@ -79,7 +83,6 @@ export function ClienteList({ clients, onEdit, onDelete, onBaixa }: ClienteListP
 
   return (
     <>
-      {/* Desktop View */}
       <div className="hidden md:block rounded-md border bg-card">
         <Table>
           <TableHeader>
@@ -127,7 +130,7 @@ export function ClienteList({ clients, onEdit, onDelete, onBaixa }: ClienteListP
                     {getLookupName(statusList, client.statusId)}
                   </span>
                 </TableCell>
-                <TableCell className="text-sm">{client.pgto || '-'}</TableCell>
+                <TableCell className="text-sm">{getLookupName(pgtoTipos, client.pgtoId)}</TableCell>
                 <TableCell className="text-sm text-muted-foreground">
                   {format(new Date(client.dataCadastro), 'dd/MM/yyyy')}
                 </TableCell>
@@ -138,7 +141,6 @@ export function ClienteList({ clients, onEdit, onDelete, onBaixa }: ClienteListP
         </Table>
       </div>
 
-      {/* Mobile View */}
       <div className="grid grid-cols-1 gap-4 md:hidden">
         {clients.length === 0 && (
           <div className="text-center py-8 text-muted-foreground bg-card border rounded-md">
@@ -178,7 +180,7 @@ export function ClienteList({ clients, onEdit, onDelete, onBaixa }: ClienteListP
                 </div>
                 <div className="col-span-1">
                   <span className="text-xs text-muted-foreground block">Pgto</span>
-                  <span className="truncate block">{client.pgto || '-'}</span>
+                  <span className="truncate block">{getLookupName(pgtoTipos, client.pgtoId)}</span>
                 </div>
                 <div className="col-span-1">
                   <span className="text-xs text-muted-foreground block">Data</span>

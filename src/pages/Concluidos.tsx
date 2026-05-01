@@ -3,7 +3,7 @@ import { ClienteList } from '@/components/clientes/cliente-list'
 import { startOfMonth } from 'date-fns'
 
 const Concluidos = () => {
-  const { clients, statusList } = useApp()
+  const { clients, statusList, reverseClientBaixa } = useApp()
   const baixaStatusId = statusList.find((s) => s.name === 'Baixa')?.id
 
   const thisMonthStart = startOfMonth(new Date())
@@ -28,6 +28,7 @@ const Concluidos = () => {
         onEdit={() => {}}
         onDelete={() => {}}
         onBaixa={() => {}}
+        onReverse={reverseClientBaixa}
       />
     </div>
   )

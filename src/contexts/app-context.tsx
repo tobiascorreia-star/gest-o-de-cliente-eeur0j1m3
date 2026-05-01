@@ -7,18 +7,24 @@ import {
   mockClients,
   mockColaboradores,
   mockHistory,
+  mockPgtoTipos,
   mockSolicitacoes,
   mockStatus,
   mockUsers,
 } from '@/lib/mock-data'
 
 interface AppContextType {
+  currentUser: User | null
+  login: (email: string) => boolean
+  logout: () => void
+  lastLoginTime: string | null
   clients: Client[]
   setClients: React.Dispatch<React.SetStateAction<Client[]>>
   colaboradores: LookupItem[]
   solicitacoes: LookupItem[]
   statusList: LookupItem[]
   categorias: LookupItem[]
+  pgtoTipos: LookupItem[]
   alertConfig: AlertConfig
   setAlertConfig: React.Dispatch<React.SetStateAction<AlertConfig>>
   history: HistoryLog[]
@@ -28,6 +34,9 @@ interface AppContextType {
   updateClient: (client: Client) => void
   deleteClient: (id: string) => void
   markClientAsCompleted: (id: string) => void
+  reverseClientBaixa: (id: string) => void
+  addUser: (user: Omit<User, 'id'>) => void
+  updateUser: (user: User) => void
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined)
@@ -38,10 +47,41 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [solicitacoes] = useState<LookupItem[]>(mockSolicitacoes)
   const [statusList] = useState<LookupItem[]>(mockStatus)
   const [categorias] = useState<LookupItem[]>(mockCategorias)
+  const [pgtoTipos] = useState<LookupItem[]>(mockPgtoTipos)
   const [alertConfig, setAlertConfig] = useState<AlertConfig>(mockAlertConfig)
   const [history, setHistory] = useState<HistoryLog[]>(mockHistory)
   const [audit] = useState<AuditLog[]>(mockAudit)
-  const [users] = useState<User[]>(mockUsers)
+  const [users, setUsers] = useState<User[]>(mockUsers)
+
+  const [currentUser, setCurrentUser] = useState<User | null>(() => {
+    const saved = localStorage.getItem('currentUser')
+    return saved ? JSON.parse(saved) : null
+  })
+
+  const [lastLoginTime, setLastLoginTime] = useState<string | null>(() => {
+    return localStorage.getItem('previousLoginTime') || null
+  })
+
+  const login = (email: string) => {
+    const foundUser = users.find((u) => u.email === email)
+    if (foundUser) {
+      setCurrentUser(foundUser)
+      const now = new Date().toISOString()
+      const prev = localStorage.getItem('currentLoginTime') || now
+
+      setLastLoginTime(prev)
+      localStorage.setItem('previousLoginTime', prev)
+      localStorage.setItem('currentLoginTime', now)
+      localStorage.setItem('currentUser', JSON.stringify(foundUser))
+      return true
+    }
+    return false
+  }
+
+  const logout = () => {
+    setCurrentUser(null)
+    localStorage.removeItem('currentUser')
+  }
 
   const addClient = (client: Client) => {
     setClients((prev) => [client, ...prev])
@@ -51,7 +91,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         clientId: client.id,
         action: 'Cliente Cadastrado',
         timestamp: new Date().toISOString(),
-        userId: 'u1',
+        userId: currentUser?.id || 'sys',
       },
       ...prev,
     ])
@@ -65,7 +105,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         clientId: updatedClient.id,
         action: 'Cliente Atualizado',
         timestamp: new Date().toISOString(),
-        userId: 'u1',
+        userId: currentUser?.id || 'sys',
       },
       ...prev,
     ])
@@ -81,7 +121,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     setClients((prev) =>
       prev.map((c) =>
-        c.id === id ? { ...c, statusId: baixaStatus, dataBaixa: new Date().toISOString() } : c,
+        c.id === id
+          ? {
+              ...c,
+              previousStatusId: c.statusId,
+              statusId: baixaStatus,
+              dataBaixa: new Date().toISOString(),
+            }
+          : c,
       ),
     )
     setHistory((prev) => [
@@ -90,21 +137,59 @@ export function AppProvider({ children }: { children: ReactNode }) {
         clientId: id,
         action: 'Realizou Baixa',
         timestamp: new Date().toISOString(),
-        userId: 'u1',
+        userId: currentUser?.id || 'sys',
       },
       ...prev,
     ])
   }
 
+  const reverseClientBaixa = (id: string) => {
+    const defaultStatus = statusList.find((s) => s.name === 'Em Aberto')?.id || statusList[0].id
+
+    setClients((prev) =>
+      prev.map((c) => {
+        if (c.id !== id) return c
+        const { dataBaixa, previousStatusId, ...rest } = c
+        return {
+          ...rest,
+          statusId: previousStatusId || defaultStatus,
+        }
+      }),
+    )
+    setHistory((prev) => [
+      {
+        id: Date.now().toString(),
+        clientId: id,
+        action: 'Estornou Baixa',
+        timestamp: new Date().toISOString(),
+        userId: currentUser?.id || 'sys',
+      },
+      ...prev,
+    ])
+  }
+
+  const addUser = (user: Omit<User, 'id'>) => {
+    setUsers((prev) => [...prev, { id: `u_${Date.now()}`, ...user }])
+  }
+
+  const updateUser = (updated: User) => {
+    setUsers((prev) => prev.map((u) => (u.id === updated.id ? updated : u)))
+  }
+
   return (
     <AppContext.Provider
       value={{
+        currentUser,
+        login,
+        logout,
+        lastLoginTime,
         clients,
         setClients,
         colaboradores,
         solicitacoes,
         statusList,
         categorias,
+        pgtoTipos,
         alertConfig,
         setAlertConfig,
         history,
@@ -114,6 +199,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         updateClient,
         deleteClient,
         markClientAsCompleted,
+        reverseClientBaixa,
+        addUser,
+        updateUser,
       }}
     >
       {children}

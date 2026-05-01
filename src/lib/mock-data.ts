@@ -25,6 +25,13 @@ export const mockCategorias: LookupItem[] = [
   { id: 'cat3', name: 'Novo', color: 'bg-teal-100 text-teal-800' },
 ]
 
+export const mockPgtoTipos: LookupItem[] = [
+  { id: 'p1', name: 'Pix' },
+  { id: 'p2', name: 'Boleto' },
+  { id: 'p3', name: 'Cartão de Crédito' },
+  { id: 'p4', name: 'Transferência' },
+]
+
 const today = new Date()
 const minusDays = (days: number) =>
   new Date(today.getTime() - days * 24 * 60 * 60 * 1000).toISOString()
@@ -41,7 +48,7 @@ export const mockClients: Client[] = [
     categoriaId: 'cat1',
     dataCadastro: minusDays(5),
     obs: 'Cliente solicitou urgência na renovação.',
-    pgto: 'Pix',
+    pgtoId: 'p1',
   },
   {
     id: 'cli2',
@@ -53,7 +60,7 @@ export const mockClients: Client[] = [
     statusId: 'st2',
     categoriaId: 'cat2',
     dataCadastro: minusDays(15),
-    pgto: 'Boleto',
+    pgtoId: 'p2',
   },
   {
     id: 'cli3',
@@ -65,7 +72,7 @@ export const mockClients: Client[] = [
     statusId: 'st1',
     categoriaId: 'cat3',
     dataCadastro: minusDays(2),
-    pgto: 'Cartão de Crédito',
+    pgtoId: 'p3',
   },
   {
     id: 'cli4',
@@ -78,7 +85,8 @@ export const mockClients: Client[] = [
     categoriaId: 'cat2',
     dataCadastro: minusDays(60),
     dataBaixa: minusDays(40),
-    pgto: 'Transferência',
+    pgtoId: 'p4',
+    previousStatusId: 'st1',
   },
 ]
 

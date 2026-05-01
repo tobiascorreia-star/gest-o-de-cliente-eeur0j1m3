@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Plus, Trash2 } from 'lucide-react'
 
 export function ConfigLists() {
-  const { colaboradores, solicitacoes, statusList, categorias } = useApp()
+  const { colaboradores, solicitacoes, statusList, categorias, pgtoTipos } = useApp()
 
   const renderList = (title: string, items: any[]) => (
     <Card className="border-border/50 shadow-sm">
@@ -46,11 +46,12 @@ export function ConfigLists() {
   )
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {renderList('Colaboradores', colaboradores)}
       {renderList('Solicitações', solicitacoes)}
       {renderList('Status', statusList)}
       {renderList('Categorias', categorias)}
+      {renderList('Tipos de Pagamento', pgtoTipos)}
     </div>
   )
 }

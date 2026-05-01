@@ -26,8 +26,8 @@ const formSchema = z.object({
   solicitacaoId: z.string().min(1, 'Selecione uma solicitação'),
   statusId: z.string().min(1, 'Selecione um status'),
   categoriaId: z.string().min(1, 'Selecione uma categoria'),
-  dataCadastro: z.string().min(1, 'Data de cadastro é obrigatória'),
-  pgto: z.string().min(1, 'Pagamento é obrigatório'),
+  dataCadastro: z.string().optional(),
+  pgtoId: z.string().min(1, 'Pagamento é obrigatório'),
   obs: z.string().optional(),
 })
 
@@ -49,7 +49,15 @@ const applyCnpjMask = (value: string) => {
 }
 
 export function ClienteForm({ initialData, onSuccess }: ClienteFormProps) {
-  const { colaboradores, solicitacoes, statusList, categorias, addClient, updateClient } = useApp()
+  const {
+    colaboradores,
+    solicitacoes,
+    statusList,
+    categorias,
+    pgtoTipos,
+    addClient,
+    updateClient,
+  } = useApp()
   const [isFetchingCnpj, setIsFetchingCnpj] = useState(false)
 
   const {
@@ -64,7 +72,6 @@ export function ClienteForm({ initialData, onSuccess }: ClienteFormProps) {
       ? {
           ...initialData,
           dataCadastro: initialData.dataCadastro.split('T')[0],
-          pgto: initialData.pgto || '',
         }
       : {
           cnpj: '',
@@ -75,7 +82,7 @@ export function ClienteForm({ initialData, onSuccess }: ClienteFormProps) {
           statusId: '',
           categoriaId: '',
           dataCadastro: new Date().toISOString().split('T')[0],
-          pgto: '',
+          pgtoId: '',
           obs: '',
         },
   })
@@ -85,6 +92,7 @@ export function ClienteForm({ initialData, onSuccess }: ClienteFormProps) {
     register('solicitacaoId')
     register('statusId')
     register('categoriaId')
+    register('pgtoId')
   }, [register])
 
   const cnpjValue = watch('cnpj')
@@ -104,18 +112,24 @@ export function ClienteForm({ initialData, onSuccess }: ClienteFormProps) {
   }
 
   const onSubmit = (data: FormData) => {
-    const finalDataCadastro = initialData
-      ? new Date(data.dataCadastro).toISOString()
-      : new Date(data.dataCadastro).toISOString()
+    const finalDataCadastro =
+      initialData && data.dataCadastro
+        ? new Date(data.dataCadastro).toISOString()
+        : new Date().toISOString()
+
+    const clientData = {
+      ...data,
+      dataCadastro: finalDataCadastro,
+      pgtoId: data.pgtoId,
+    }
 
     if (initialData) {
-      updateClient({ ...initialData, ...data, dataCadastro: finalDataCadastro })
+      updateClient({ ...initialData, ...clientData })
       toast({ title: 'Sucesso', description: 'Cliente atualizado com sucesso!' })
     } else {
       addClient({
         id: `cli_${Date.now()}`,
-        ...data,
-        dataCadastro: finalDataCadastro,
+        ...clientData,
       })
       toast({ title: 'Sucesso', description: 'Cliente cadastrado com sucesso!' })
     }
@@ -260,14 +274,23 @@ export function ClienteForm({ initialData, onSuccess }: ClienteFormProps) {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="pgto">Pgto *</Label>
-          <Input
-            id="pgto"
-            placeholder="Ex: Cartão, Boleto, Pix"
-            {...register('pgto')}
-            className={errors.pgto ? 'border-destructive' : ''}
-          />
-          {errors.pgto && <p className="text-xs text-destructive">{errors.pgto.message}</p>}
+          <Label>Pgto *</Label>
+          <Select
+            onValueChange={(v) => setValue('pgtoId', v, { shouldValidate: true })}
+            defaultValue={initialData?.pgtoId}
+          >
+            <SelectTrigger className={errors.pgtoId ? 'border-destructive' : ''}>
+              <SelectValue placeholder="Selecione o tipo de pagamento" />
+            </SelectTrigger>
+            <SelectContent>
+              {pgtoTipos.map((p) => (
+                <SelectItem key={p.id} value={p.id}>
+                  {p.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {errors.pgtoId && <p className="text-xs text-destructive">{errors.pgtoId.message}</p>}
         </div>
 
         <div className="space-y-2">
@@ -276,10 +299,16 @@ export function ClienteForm({ initialData, onSuccess }: ClienteFormProps) {
             id="dataCadastro"
             type="date"
             {...register('dataCadastro')}
-            className={errors.dataCadastro ? 'border-destructive' : ''}
+            disabled={!initialData}
+            className={errors.dataCadastro ? 'border-destructive' : 'disabled:opacity-70'}
           />
           {errors.dataCadastro && (
             <p className="text-xs text-destructive">{errors.dataCadastro.message}</p>
+          )}
+          {!initialData && (
+            <p className="text-[10px] text-muted-foreground">
+              Preenchimento automático na criação.
+            </p>
           )}
         </div>
       </div>

@@ -10,10 +10,12 @@ import {
   FileBarChart,
   Settings,
   Building2,
+  LogOut,
 } from 'lucide-react'
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
@@ -23,22 +25,29 @@ import {
   SidebarMenuItem,
 } from '@/components/ui/sidebar'
 import { useIsMobile } from '@/hooks/use-mobile'
+import { useApp } from '@/contexts/app-context'
 
 const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
   { name: 'Clientes', href: '/clientes', icon: Users },
   { name: 'Histórico', href: '/historico', icon: History },
   { name: 'Auditoria', href: '/auditoria', icon: ShieldAlert },
-  { name: 'Usuários', href: '/usuarios', icon: UserCog },
+  { name: 'Usuários', href: '/usuarios', icon: UserCog, adminOnly: true },
   { name: 'Concluídos do Mês', href: '/concluidos', icon: CheckSquare },
   { name: 'Arquivo', href: '/arquivo', icon: Archive },
   { name: 'Relatório', href: '/relatorio', icon: FileBarChart },
-  { name: 'Configuração', href: '/configuracao', icon: Settings },
+  { name: 'Configuração', href: '/configuracao', icon: Settings, adminOnly: true },
 ]
 
 export function AppSidebar() {
   const location = useLocation()
   const isMobile = useIsMobile()
+  const { currentUser, logout } = useApp()
+
+  const filteredNavigation = navigation.filter((item) => {
+    if (item.adminOnly && currentUser?.role !== 'Admin') return false
+    return true
+  })
 
   return (
     <Sidebar collapsible={isMobile ? 'offcanvas' : 'icon'} variant="sidebar">
@@ -59,7 +68,7 @@ export function AppSidebar() {
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navigation.map((item) => {
+              {filteredNavigation.map((item) => {
                 const isActive = location.pathname === item.href
                 return (
                   <SidebarMenuItem key={item.name}>
@@ -76,6 +85,16 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+      <SidebarFooter>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton onClick={logout} tooltip="Sair da Conta">
+              <LogOut className="w-4 h-4" />
+              <span>Sair</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarFooter>
     </Sidebar>
   )
 }
