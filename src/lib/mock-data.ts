@@ -134,11 +134,11 @@ export const mockAudit: AuditLog[] = [
 export const mockUsers: User[] = [
   {
     id: 'u1',
-    name: 'Admin User',
-    email: 'admin@gestao.com',
+    name: 'Tobias Correia',
+    email: 'tobiascorreia@gmail.com',
     role: 'Admin',
     avatarUrl: 'https://img.usecurling.com/ppl/thumbnail?gender=male&seed=1',
-    password: 'admin',
+    password: '12345678',
   },
   {
     id: 'u2',

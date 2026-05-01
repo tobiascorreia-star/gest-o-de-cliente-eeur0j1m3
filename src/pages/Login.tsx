@@ -37,7 +37,7 @@ export default function Login() {
           <div className="bg-gradient-to-tr from-accent to-yellow-300 w-16 h-16 rounded-2xl flex items-center justify-center mb-4 shadow-lg">
             <Building2 className="w-8 h-8 text-primary" />
           </div>
-          <h1 className="text-3xl font-bold text-white tracking-wide">Gestão de Cliente</h1>
+          <h1 className="text-3xl font-bold text-white tracking-wide">MEGA Ponto</h1>
           <p className="text-white/60 text-sm mt-2">SISTEMA DE GESTÃO EMPRESARIAL</p>
         </div>
 
@@ -48,7 +48,7 @@ export default function Login() {
               <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white/50" />
               <Input
                 type="email"
-                placeholder="admin@gestao.com"
+                placeholder="tobiascorreia@gmail.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -118,11 +118,24 @@ export default function Login() {
           </Button>
         </form>
 
-        <div className="mt-8 text-center text-xs text-white/40 border-t border-white/10 pt-4">
-          <p className="font-medium mb-1 text-white/60">Contas para teste:</p>
-          <p>admin@gestao.com (Administrador)</p>
-          <p>ana@gestao.com (Operador)</p>
+        <div className="mt-6 p-3 bg-blue-900/30 rounded-lg border border-blue-400/20 text-center">
+          <p className="text-xs text-blue-200/70 leading-relaxed">
+            Aviso: O sistema está funcionando com dados locais (Mock Data). Para persistência e
+            segurança reais, é necessário conectar um banco de dados.
+          </p>
         </div>
+
+        <div className="mt-6 text-center text-xs text-white/40 border-t border-white/10 pt-4">
+          <p className="font-medium mb-1 text-white/60">Contas para teste:</p>
+          <p>tobiascorreia@gmail.com / 12345678 (Administrador)</p>
+          <p>ana@gestao.com / 123 (Operador)</p>
+        </div>
+      </div>
+
+      <div className="absolute bottom-4 left-0 right-0 text-center z-10">
+        <p className="text-xs text-white/30">
+          © 2026 - MegaFllex Soluções - Todos os direitos reservados
+        </p>
       </div>
     </div>
   )

@@ -120,10 +120,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }
 
   const deleteClient = (id: string) => {
+    if (currentUser?.role !== 'Admin') return
     setClients((prev) => prev.filter((c) => c.id !== id))
   }
 
   const markClientAsCompleted = (id: string) => {
+    if (currentUser?.role !== 'Admin') return
     const baixaStatus = statusList.find((s) => s.name === 'Baixa')?.id
     if (!baixaStatus) return
 
@@ -152,6 +154,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }
 
   const reverseClientBaixa = (id: string) => {
+    if (currentUser?.role !== 'Admin') return
     const defaultStatus = statusList.find((s) => s.name === 'Em Aberto')?.id || statusList[0].id
 
     setClients((prev) =>
