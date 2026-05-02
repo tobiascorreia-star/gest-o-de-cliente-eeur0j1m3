@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Plus, Trash2 } from 'lucide-react'
+import { Plus, Trash2, Edit2, Check, X } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
 import pb from '@/lib/pocketbase/client'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -45,6 +45,13 @@ export function ConfigLists() {
     statusList: 'bg-blue-100 text-blue-800',
     categorias: 'bg-purple-100 text-purple-800',
     pgtoTipos: '',
+  })
+
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editData, setEditData] = useState<{ name: string; description: string; color: string }>({
+    name: '',
+    description: '',
+    color: '',
   })
 
   const fetchConfigs = async () => {
@@ -92,7 +99,6 @@ export function ConfigLists() {
       setNewDescriptions((prev) => ({ ...prev, [type]: '' }))
       setNewColors((prev) => ({ ...prev, [type]: '' }))
       toast({ title: 'Sucesso', description: 'Item adicionado com sucesso.' })
-      fetchConfigs()
     } catch (err) {
       toast({ title: 'Erro', description: getErrorMessage(err), variant: 'destructive' })
     }
@@ -102,9 +108,41 @@ export function ConfigLists() {
     try {
       await pb.collection('configurations').delete(id)
       toast({ title: 'Removido', description: 'O item foi removido.' })
-      fetchConfigs()
     } catch (err) {
       toast({ title: 'Erro', description: 'Falha ao remover item.', variant: 'destructive' })
+    }
+  }
+
+  const startEditing = (item: any) => {
+    setEditingId(item.id)
+    setEditData({ name: item.name, description: item.description || '', color: item.color || '' })
+  }
+
+  const cancelEditing = () => {
+    setEditingId(null)
+  }
+
+  const saveEditing = async () => {
+    if (!editingId) return
+    if (!editData.name.trim()) {
+      toast({
+        title: 'Atenção',
+        description: 'O nome não pode estar vazio.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    try {
+      await pb.collection('configurations').update(editingId, {
+        name: editData.name.trim(),
+        description: editData.description.trim(),
+        color: editData.color,
+      })
+      setEditingId(null)
+      toast({ title: 'Sucesso', description: 'Item atualizado.' })
+    } catch (err) {
+      toast({ title: 'Erro', description: getErrorMessage(err), variant: 'destructive' })
     }
   }
 
@@ -112,11 +150,11 @@ export function ConfigLists() {
     const items = getItemsByType(type)
 
     return (
-      <Card className="border-border/50 shadow-sm rounded-xl">
+      <Card className="border-border/50 shadow-sm rounded-xl flex flex-col h-full">
         <CardHeader className="pb-4">
           <CardTitle className="text-lg font-medium">{title}</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex flex-col flex-1">
           <div className="flex flex-col gap-2 mb-5">
             <div className="flex gap-2">
               <Input
@@ -180,35 +218,118 @@ export function ConfigLists() {
               onKeyDown={(e) => e.key === 'Enter' && handleAdd(type)}
             />
           </div>
-          <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2">
+          <div className="space-y-2 flex-1 overflow-y-auto pr-2 max-h-[400px]">
             {items.map((item) => (
               <div
                 key={item.id}
                 className="flex items-center justify-between p-2.5 rounded-lg bg-muted/40 hover:bg-muted transition-colors text-sm group"
               >
-                <div className="flex flex-col">
-                  <div className="flex items-center gap-3">
-                    {item.color && (
-                      <div
-                        className={`w-3 h-3 rounded-full shadow-inner ${item.color.split(' ')[0]}`}
+                {editingId === item.id ? (
+                  <div className="flex-1 flex flex-col gap-2 mr-2">
+                    <div className="flex gap-2">
+                      <Input
+                        value={editData.name}
+                        onChange={(e) => setEditData({ ...editData, name: e.target.value })}
+                        className="h-8 text-sm"
+                        placeholder="Nome"
                       />
-                    )}
-                    <span className="font-medium text-foreground/80">{item.name}</span>
+                      {hasColorPicker && (
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className="h-8 w-8 p-0 rounded-lg shrink-0 overflow-hidden"
+                            >
+                              <div
+                                className={`w-full h-full ${editData.color.split(' ')[0] || 'bg-gray-200'}`}
+                              />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-48 p-2">
+                            <div className="grid grid-cols-4 gap-2">
+                              {COLORS.map((c) => (
+                                <div
+                                  key={c.class}
+                                  title={c.label}
+                                  onClick={() => setEditData({ ...editData, color: c.class })}
+                                  className={`w-8 h-8 rounded-full cursor-pointer border-2 hover:scale-110 transition-transform ${c.class.split(' ')[0]} ${
+                                    editData.color === c.class
+                                      ? 'border-primary'
+                                      : 'border-transparent'
+                                  }`}
+                                />
+                              ))}
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                      )}
+                    </div>
+                    <Input
+                      value={editData.description}
+                      onChange={(e) => setEditData({ ...editData, description: e.target.value })}
+                      className="h-8 text-sm"
+                      placeholder="Descrição"
+                    />
                   </div>
-                  {item.description && (
-                    <span className="text-xs text-muted-foreground mt-0.5 ml-6">
-                      {item.description}
-                    </span>
+                ) : (
+                  <div className="flex flex-col flex-1">
+                    <div className="flex items-center gap-3">
+                      {item.color && (
+                        <div
+                          className={`w-3 h-3 rounded-full shadow-inner shrink-0 ${item.color.split(' ')[0]}`}
+                        />
+                      )}
+                      <span className="font-medium text-foreground/80 break-all">{item.name}</span>
+                    </div>
+                    {item.description && (
+                      <span className="text-xs text-muted-foreground mt-0.5 ml-6 break-all">
+                        {item.description}
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                <div className="flex items-center gap-1 shrink-0">
+                  {editingId === item.id ? (
+                    <>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={saveEditing}
+                        className="h-7 w-7 text-green-600 hover:bg-green-100 hover:text-green-700"
+                      >
+                        <Check className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={cancelEditing}
+                        className="h-7 w-7 text-muted-foreground hover:bg-muted-foreground/20"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => startEditing(item)}
+                        className="h-7 w-7 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity hover:bg-muted-foreground/20"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDelete(item.id)}
+                        className="h-7 w-7 text-destructive opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/10"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    </>
                   )}
                 </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => handleDelete(item.id)}
-                  className="h-7 w-7 text-destructive opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/10"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </Button>
               </div>
             ))}
             {items.length === 0 && (
@@ -223,7 +344,7 @@ export function ConfigLists() {
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 auto-rows-fr">
       {renderList('Colaboradores', 'colaboradores')}
       {renderList('Solicitações', 'solicitacoes')}
       {renderList('Status do Cliente', 'statusList', true)}

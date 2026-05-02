@@ -26,7 +26,7 @@ import {
 } from '@/components/ui/sidebar'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { useSidebar } from '@/components/ui/sidebar'
-import { useApp } from '@/contexts/app-context'
+import { useAuth } from '@/hooks/use-auth'
 
 const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
@@ -44,10 +44,10 @@ export function AppSidebar() {
   const location = useLocation()
   const isMobile = useIsMobile()
   const { setOpenMobile } = useSidebar()
-  const { currentUser, logout } = useApp()
+  const { user, signOut } = useAuth()
 
   const filteredNavigation = navigation.filter((item) => {
-    if (item.adminOnly && currentUser?.role?.toLowerCase() !== 'admin') return false
+    if (item.adminOnly && user?.role?.toLowerCase() !== 'admin') return false
     return true
   })
 
@@ -97,7 +97,7 @@ export function AppSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
-              onClick={logout}
+              onClick={signOut}
               tooltip="Sair da Conta"
               className="hover:bg-destructive hover:text-destructive-foreground transition-colors"
             >

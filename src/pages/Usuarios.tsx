@@ -145,10 +145,21 @@ export default function Usuarios() {
     } catch (err: any) {
       const errors = extractFieldErrors(err)
       setFieldErrors(errors)
+
+      const errorMessage = getErrorMessage(err)
+
       toast({
         title: 'Erro ao salvar',
-        description: getErrorMessage(err) || 'Verifique os campos e tente novamente.',
+        description: errorMessage || 'Verifique os campos e tente novamente.',
         variant: 'destructive',
+      })
+
+      Object.entries(errors).forEach(([field, message]) => {
+        toast({
+          title: `Erro em ${field}`,
+          description: message as string,
+          variant: 'destructive',
+        })
       })
     }
   }

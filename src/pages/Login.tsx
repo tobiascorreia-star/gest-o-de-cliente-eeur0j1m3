@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { useApp } from '@/contexts/app-context'
+import { useAuth } from '@/hooks/use-auth'
+import pb from '@/lib/pocketbase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Building2, Eye, EyeOff, KeyRound, Mail } from 'lucide-react'
@@ -7,15 +9,21 @@ import { useNavigate } from 'react-router-dom'
 import { toast } from '@/hooks/use-toast'
 
 export default function Login() {
-  const { login, requestPasswordReset, users } = useApp()
+  const { requestPasswordReset } = useApp()
+  const { signIn } = useAuth()
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (login(email, password)) {
+    setIsLoading(true)
+    const { error } = await signIn(email, password)
+    setIsLoading(false)
+
+    if (!error) {
       navigate('/')
     } else {
       toast({
@@ -73,17 +81,17 @@ export default function Login() {
                     return
                   }
 
-                  const user = users.find((u) => u.email === email)
-                  if (user && user.role === 'Operator') {
-                    requestPasswordReset(email)
-                    toast({
-                      title: 'Solicitação Enviada',
-                      description: 'O Administrador foi notificado para redefinir sua senha.',
-                    })
-                  } else {
+                  try {
+                    pb.collection('users').requestPasswordReset(email)
                     toast({
                       title: 'Recuperação',
-                      description: 'Um e-mail foi enviado com as instruções.',
+                      description: 'Um e-mail foi enviado com as instruções se a conta existir.',
+                    })
+                  } catch (err) {
+                    toast({
+                      title: 'Erro',
+                      description: 'Não foi possível solicitar a redefinição de senha.',
+                      variant: 'destructive',
                     })
                   }
                 }}

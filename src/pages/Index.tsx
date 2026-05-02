@@ -3,6 +3,7 @@ import { KpiCards } from '@/components/dashboard/kpi-cards'
 import { DashboardCharts } from '@/components/dashboard/charts'
 import { AlertsWidget } from '@/components/dashboard/alerts-widget'
 import { useApp } from '@/contexts/app-context'
+import { useAuth } from '@/hooks/use-auth'
 import {
   Dialog,
   DialogContent,
@@ -14,8 +15,8 @@ import { BellRing, KeyRound, CheckCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 const Index = () => {
-  const { clients, lastLoginTime, currentUser, passwordResetRequests, resolvePasswordReset } =
-    useApp()
+  const { clients, lastLoginTime, passwordResetRequests, resolvePasswordReset } = useApp()
+  const { user: currentUser } = useAuth()
   const [showLoginAlert, setShowLoginAlert] = useState(false)
   const pendingResets = passwordResetRequests.filter((req) => req.status === 'pending')
 
@@ -51,7 +52,7 @@ const Index = () => {
         </DialogContent>
       </Dialog>
 
-      {currentUser?.role === 'Admin' && pendingResets.length > 0 && (
+      {currentUser?.role?.toLowerCase() === 'admin' && pendingResets.length > 0 && (
         <div className="mb-6 bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4 animate-fade-in-down">
           <div className="flex items-start gap-3">
             <div className="bg-yellow-500/20 p-2 rounded-full mt-0.5">

@@ -3,6 +3,7 @@ import { Toaster } from '@/components/ui/toaster'
 import { Toaster as Sonner } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { AppProvider, useApp } from '@/contexts/app-context'
+import { AuthProvider, useAuth } from '@/hooks/use-auth'
 import Layout from './components/Layout'
 import { ErrorBoundary } from './components/error-boundary'
 import Index from './pages/Index'
@@ -18,14 +19,16 @@ import NotFound from './pages/NotFound'
 import Login from './pages/Login'
 
 const ProtectedRoute = () => {
-  const { currentUser } = useApp()
-  if (!currentUser) return <Navigate to="/login" replace />
+  const { user, loading } = useAuth()
+  if (loading) return null
+  if (!user) return <Navigate to="/login" replace />
   return <Outlet />
 }
 
 const AdminRoute = () => {
-  const { currentUser } = useApp()
-  if (currentUser?.role?.toLowerCase() !== 'admin') return <Navigate to="/" replace />
+  const { user, loading } = useAuth()
+  if (loading) return null
+  if (user?.role?.toLowerCase() !== 'admin') return <Navigate to="/" replace />
   return <Outlet />
 }
 
@@ -58,11 +61,13 @@ const App = () => (
   <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
     <ErrorBoundary>
       <TooltipProvider>
-        <AppProvider>
-          <Toaster />
-          <Sonner />
-          <AppRoutes />
-        </AppProvider>
+        <AuthProvider>
+          <AppProvider>
+            <Toaster />
+            <Sonner />
+            <AppRoutes />
+          </AppProvider>
+        </AuthProvider>
       </TooltipProvider>
     </ErrorBoundary>
   </BrowserRouter>

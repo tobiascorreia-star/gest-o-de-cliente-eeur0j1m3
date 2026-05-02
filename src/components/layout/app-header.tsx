@@ -6,6 +6,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { useLocation } from 'react-router-dom'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { useApp } from '@/contexts/app-context'
+import { useAuth } from '@/hooks/use-auth'
+import pb from '@/lib/pocketbase/client'
 import { differenceInDays } from 'date-fns'
 
 const routeNames: Record<string, string> = {
@@ -24,6 +26,7 @@ export function AppHeader() {
   const location = useLocation()
   const title = routeNames[location.pathname] || 'Gestão de Cliente'
   const { clients, statusList, alertConfig } = useApp()
+  const { user } = useAuth()
 
   const baixaStatusId = statusList.find((s) => s.name === 'Baixa')?.id
 
@@ -112,8 +115,14 @@ export function AppHeader() {
         </Popover>
 
         <Avatar className="w-8 h-8 ring-2 ring-background cursor-pointer hover:opacity-80 transition-opacity">
-          <AvatarImage src="https://img.usecurling.com/ppl/thumbnail?gender=male&seed=1" />
-          <AvatarFallback>AD</AvatarFallback>
+          <AvatarImage
+            src={
+              user?.avatar
+                ? pb.files.getURL(user, user.avatar)
+                : `https://img.usecurling.com/ppl/thumbnail?seed=${user?.id}`
+            }
+          />
+          <AvatarFallback>{user?.name?.charAt(0) || user?.email?.charAt(0) || 'U'}</AvatarFallback>
         </Avatar>
       </div>
     </header>
