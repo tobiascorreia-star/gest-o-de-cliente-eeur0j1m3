@@ -14,6 +14,7 @@ import {
   Trash2,
   Power,
   PowerOff,
+  Loader2,
 } from 'lucide-react'
 import {
   Dialog,
@@ -64,12 +65,14 @@ export default function Usuarios() {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [passwordConfirm, setPasswordConfirm] = useState('')
   const [phone, setPhone] = useState('')
   const [active, setActive] = useState(true)
   const [role, setRole] = useState<'admin' | 'operator'>('operator')
   const [showPassword, setShowPassword] = useState(false)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
+  const [isSaving, setIsSaving] = useState(false)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -98,6 +101,7 @@ export default function Usuarios() {
       setPhone(formatPhone(u.phone || ''))
       setActive(u.active !== false)
       setPassword('')
+      setPasswordConfirm('')
       setRole(u.role || 'operator')
       setAvatarPreview(u.avatar ? getFileUrl(u, u.avatar) : null)
       setAvatarFile(null)
@@ -108,11 +112,13 @@ export default function Usuarios() {
       setPhone('')
       setActive(true)
       setPassword('')
+      setPasswordConfirm('')
       setRole('operator')
       setAvatarPreview(null)
       setAvatarFile(null)
     }
     setShowPassword(false)
+    setIsSaving(false)
     setIsOpen(true)
   }
 
@@ -142,6 +148,16 @@ export default function Usuarios() {
       return
     }
 
+    if (password && password !== passwordConfirm) {
+      toast({
+        title: 'Erro de validação',
+        description: 'As senhas não coincidem. Verifique a confirmação de senha.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    setIsSaving(true)
     try {
       const formData = new FormData()
       formData.append('name', name)
@@ -152,7 +168,7 @@ export default function Usuarios() {
 
       if (password) {
         formData.append('password', password)
-        formData.append('passwordConfirm', password)
+        formData.append('passwordConfirm', passwordConfirm)
       }
 
       if (avatarFile) {
@@ -179,6 +195,8 @@ export default function Usuarios() {
         description: msg,
         variant: 'destructive',
       })
+    } finally {
+      setIsSaving(false)
     }
   }
 
@@ -304,7 +322,7 @@ export default function Usuarios() {
           </div>
         )}
 
-        <Dialog open={isOpen} onOpenChange={(v) => setIsOpen(v)}>
+        <Dialog open={isOpen} onOpenChange={(v) => !isSaving && setIsOpen(v)}>
           <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editingUser ? 'Editar Usuário' : 'Novo Usuário'}</DialogTitle>
@@ -403,6 +421,22 @@ export default function Usuarios() {
                   </Button>
                 </div>
               </div>
+              {(!editingUser || password.length > 0) && (
+                <div className="space-y-2 animate-in fade-in slide-in-from-top-1">
+                  <Label>Confirmar {editingUser ? 'Nova ' : ''}Senha *</Label>
+                  <div className="relative">
+                    <Input
+                      type={showPassword ? 'text' : 'password'}
+                      name="passwordConfirm"
+                      value={passwordConfirm}
+                      onChange={(e) => setPasswordConfirm(e.target.value)}
+                      placeholder="••••••••"
+                      className="pr-10"
+                      autoComplete="new-password"
+                    />
+                  </div>
+                </div>
+              )}
               <div className="space-y-2">
                 <Label>Perfil de Acesso *</Label>
                 <Select value={role} onValueChange={(v: 'admin' | 'operator') => setRole(v)}>
@@ -423,10 +457,19 @@ export default function Usuarios() {
               </div>
             </div>
             <div className="flex justify-end gap-2 pt-2">
-              <Button variant="outline" onClick={() => setIsOpen(false)}>
+              <Button variant="outline" onClick={() => setIsOpen(false)} disabled={isSaving}>
                 Cancelar
               </Button>
-              <Button onClick={handleSave}>Salvar</Button>
+              <Button onClick={handleSave} disabled={isSaving}>
+                {isSaving ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Salvando...
+                  </>
+                ) : (
+                  'Salvar'
+                )}
+              </Button>
             </div>
           </DialogContent>
         </Dialog>
