@@ -2,11 +2,12 @@ import { useState, useEffect, useMemo } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Plus, Trash2, Edit2, Search } from 'lucide-react'
+import { Plus, Trash2, Edit2, Search, Loader2 } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
 import pb from '@/lib/pocketbase/client'
 import { useRealtime } from '@/hooks/use-realtime'
 import { getErrorMessage } from '@/lib/pocketbase/errors'
+import { logAudit } from '@/services/audit'
 import {
   Table,
   TableBody,
@@ -54,6 +55,7 @@ interface ConfigDataTableProps {
 
 export function ConfigDataTable({ title, description, types }: ConfigDataTableProps) {
   const [configurations, setConfigurations] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState('all')
   const [open, setOpen] = useState(false)
@@ -70,10 +72,13 @@ export function ConfigDataTable({ title, description, types }: ConfigDataTablePr
 
   const fetchConfigs = async () => {
     try {
+      setLoading(true)
       const records = await pb.collection('configurations').getFullList({ sort: '-created' })
-      setConfigurations(records.filter((r) => typeValues.includes(r.type)))
+      setConfigurations((records || []).filter((r) => typeValues.includes(r.type)))
     } catch (err) {
       console.error(err)
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -124,9 +129,11 @@ export function ConfigDataTable({ title, description, types }: ConfigDataTablePr
     try {
       if (editingId) {
         await pb.collection('configurations').update(editingId, formData)
+        await logAudit('UPDATE_CONFIG', `Atualizada configuração: ${formData.name}`)
         toast({ title: 'Sucesso', description: 'Configuração atualizada com sucesso.' })
       } else {
         await pb.collection('configurations').create(formData)
+        await logAudit('CREATE_CONFIG', `Criada configuração: ${formData.name}`)
         toast({ title: 'Sucesso', description: 'Configuração criada com sucesso.' })
       }
       setOpen(false)
@@ -135,10 +142,11 @@ export function ConfigDataTable({ title, description, types }: ConfigDataTablePr
     }
   }
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: string, name: string) => {
     if (!window.confirm('Tem certeza que deseja excluir esta configuração?')) return
     try {
       await pb.collection('configurations').delete(id)
+      await logAudit('DELETE_CONFIG', `Removida configuração: ${name}`)
       toast({ title: 'Sucesso', description: 'Configuração removida.' })
     } catch (err) {
       toast({ title: 'Erro', description: getErrorMessage(err), variant: 'destructive' })
@@ -148,6 +156,10 @@ export function ConfigDataTable({ title, description, types }: ConfigDataTablePr
   const toggleStatus = async (item: any) => {
     try {
       await pb.collection('configurations').update(item.id, { active: !item.active })
+      await logAudit(
+        'TOGGLE_CONFIG_STATUS',
+        `Status da configuração ${item.name} alterado para ${!item.active ? 'Ativo' : 'Inativo'}`,
+      )
     } catch (err) {
       toast({ title: 'Erro', description: getErrorMessage(err), variant: 'destructive' })
     }
@@ -207,7 +219,15 @@ export function ConfigDataTable({ title, description, types }: ConfigDataTablePr
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredConfigs.length === 0 ? (
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="h-32 text-center">
+                    <div className="flex justify-center text-muted-foreground">
+                      <Loader2 className="w-6 h-6 animate-spin" />
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : filteredConfigs.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} className="h-32 text-center">
                     <div className="flex flex-col items-center justify-center py-4 space-y-3">
@@ -258,7 +278,7 @@ export function ConfigDataTable({ title, description, types }: ConfigDataTablePr
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => handleDelete(item.id)}
+                          onClick={() => handleDelete(item.id, item.name)}
                           className="h-8 w-8 text-destructive hover:bg-destructive/10"
                         >
                           <Trash2 className="w-4 h-4" />

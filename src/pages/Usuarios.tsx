@@ -3,7 +3,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Mail, Shield, Plus, Edit, Eye, EyeOff, Upload, Trash2 } from 'lucide-react'
+import { Mail, Shield, Plus, Edit, Eye, EyeOff, Upload, Trash2, Loader2 } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -25,9 +25,11 @@ import { toast } from '@/hooks/use-toast'
 import pb from '@/lib/pocketbase/client'
 import { useRealtime } from '@/hooks/use-realtime'
 import { extractFieldErrors, getErrorMessage, type FieldErrors } from '@/lib/pocketbase/errors'
+import { logAudit } from '@/services/audit'
 
 export default function Usuarios() {
   const [users, setUsers] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
   const [isOpen, setIsOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<any>(null)
   const [accessUser, setAccessUser] = useState<any>(null)
@@ -47,8 +49,9 @@ export default function Usuarios() {
 
   const fetchUsers = async () => {
     try {
+      setLoading(true)
       const records = await pb.collection('users').getFullList({ sort: '-created' })
-      setUsers(records)
+      setUsers(records || [])
     } catch (err: any) {
       if (!err.isAbort) {
         console.error(err)
@@ -58,6 +61,8 @@ export default function Usuarios() {
           variant: 'destructive',
         })
       }
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -78,7 +83,7 @@ export default function Usuarios() {
       setActive(u.active !== false)
       setPassword('')
       setRole(u.role || 'operator')
-      setAvatarPreview(u.avatar ? pb.files.getURL(u, u.avatar) : null)
+      setAvatarPreview(u.avatar ? pb.files.getUrl(u, u.avatar) : null)
     } else {
       setEditingUser(null)
       setName('')
@@ -157,7 +162,13 @@ export default function Usuarios() {
           : pb.collection('users').create(payload)
       }
 
-      await savePromise
+      const savedUser = await savePromise
+
+      await logAudit(
+        editingUser ? 'UPDATE_USER' : 'CREATE_USER',
+        `Usuário ${savedUser.email} ${editingUser ? 'atualizado' : 'criado'}.`,
+      )
+
       if (editingUser) {
         toast({ title: 'Sucesso', description: 'Usuário atualizado com sucesso!' })
       } else {
@@ -200,64 +211,77 @@ export default function Usuarios() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {users.map((user) => (
-          <Card
-            key={user.id}
-            className="overflow-hidden border-border/50 shadow-sm hover:shadow-md transition-shadow relative"
-          >
-            {!user.active && (
-              <div className="absolute top-2 right-2 flex items-center justify-center">
-                <Badge variant="destructive" className="text-[10px] shadow-sm">
-                  Inativo
-                </Badge>
-              </div>
-            )}
-            <CardContent className="p-6">
-              <div className="flex items-start justify-between">
-                <Avatar className="h-12 w-12 border-2 border-background shadow-sm">
-                  <AvatarImage
-                    src={
-                      user.avatar
-                        ? pb.files.getURL(user, user.avatar)
-                        : `https://img.usecurling.com/ppl/thumbnail?seed=${user.id}`
-                    }
-                  />
-                  <AvatarFallback>
-                    {(user.name || user.email || '?').charAt(0).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <Badge
-                  variant={user.role === 'admin' ? 'default' : 'secondary'}
-                  className="text-[10px]"
-                >
-                  {user.role === 'admin' ? 'Administrador' : 'Operador'}
-                </Badge>
-              </div>
-              <div className="mt-4">
-                <h3 className="font-semibold text-lg leading-tight">{user.name || 'Sem nome'}</h3>
-                <div className="flex items-center text-sm text-muted-foreground mt-1 gap-2">
-                  <Mail className="w-3.5 h-3.5" />
-                  <span className="truncate">{user.email}</span>
+      {loading ? (
+        <div className="flex justify-center items-center py-12 text-muted-foreground">
+          <Loader2 className="w-8 h-8 animate-spin" />
+        </div>
+      ) : users.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-12 px-4 text-center border rounded-lg bg-muted/20">
+          <p className="text-muted-foreground mb-4">Nenhum usuário encontrado.</p>
+          <Button onClick={() => openForm()} variant="outline">
+            Adicionar Primeiro Usuário
+          </Button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {users.map((user) => (
+            <Card
+              key={user.id}
+              className="overflow-hidden border-border/50 shadow-sm hover:shadow-md transition-shadow relative"
+            >
+              {!user.active && (
+                <div className="absolute top-2 right-2 flex items-center justify-center">
+                  <Badge variant="destructive" className="text-[10px] shadow-sm">
+                    Inativo
+                  </Badge>
                 </div>
-              </div>
-              <div className="mt-6 flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full"
-                  onClick={() => setAccessUser(user)}
-                >
-                  <Shield className="w-4 h-4 mr-2" /> Acessos
-                </Button>
-                <Button variant="secondary" size="sm" onClick={() => openForm(user)}>
-                  <Edit className="w-4 h-4" />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+              )}
+              <CardContent className="p-6">
+                <div className="flex items-start justify-between">
+                  <Avatar className="h-12 w-12 border-2 border-background shadow-sm">
+                    <AvatarImage
+                      src={
+                        user.avatar
+                          ? pb.files.getUrl(user, user.avatar)
+                          : `https://img.usecurling.com/ppl/thumbnail?seed=${user.id}`
+                      }
+                    />
+                    <AvatarFallback>
+                      {(user.name || user.email || '?').charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <Badge
+                    variant={user.role === 'admin' ? 'default' : 'secondary'}
+                    className="text-[10px]"
+                  >
+                    {user.role === 'admin' ? 'Administrador' : 'Operador'}
+                  </Badge>
+                </div>
+                <div className="mt-4">
+                  <h3 className="font-semibold text-lg leading-tight">{user.name || 'Sem nome'}</h3>
+                  <div className="flex items-center text-sm text-muted-foreground mt-1 gap-2">
+                    <Mail className="w-3.5 h-3.5" />
+                    <span className="truncate">{user.email}</span>
+                  </div>
+                </div>
+                <div className="mt-6 flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    onClick={() => setAccessUser(user)}
+                  >
+                    <Shield className="w-4 h-4 mr-2" /> Acessos
+                  </Button>
+                  <Button variant="secondary" size="sm" onClick={() => openForm(user)}>
+                    <Edit className="w-4 h-4" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
