@@ -74,7 +74,6 @@ export function ConfigDataTable({
     color: '',
     description: '',
     active: true,
-    days: '' as string | number,
   })
 
   const filteredConfigs = useMemo(() => {
@@ -99,7 +98,6 @@ export function ConfigDataTable({
       color: '',
       description: '',
       active: true,
-      days: '',
     })
     setOpen(true)
   }
@@ -112,7 +110,6 @@ export function ConfigDataTable({
       color: item.color || '',
       description: item.description || '',
       active: item.active !== false,
-      days: item.days ?? '',
     })
     setOpen(true)
   }
@@ -131,7 +128,6 @@ export function ConfigDataTable({
     try {
       const dataToSave = {
         ...formData,
-        days: formData.days === '' ? null : Number(formData.days),
       }
 
       if (editingId) {
@@ -239,7 +235,6 @@ export function ConfigDataTable({
                 <TableHead>Tipo</TableHead>
                 <TableHead className="hidden md:table-cell">Descrição</TableHead>
                 <TableHead>Cor</TableHead>
-                <TableHead className="w-[80px] text-right">Dias</TableHead>
                 <TableHead className="w-[80px] text-center">Ativo</TableHead>
                 <TableHead className="w-[100px] text-right">Ações</TableHead>
               </TableRow>
@@ -247,7 +242,7 @@ export function ConfigDataTable({
             <TableBody>
               {filteredConfigs.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="h-32 text-center">
+                  <TableCell colSpan={6} className="h-32 text-center">
                     <div className="flex flex-col items-center justify-center py-4 space-y-3">
                       <p className="text-muted-foreground">Nenhuma configuração encontrada.</p>
                       <Button onClick={handleOpenCreate} variant="outline" size="sm">
@@ -275,13 +270,6 @@ export function ConfigDataTable({
                         </Badge>
                       ) : (
                         <span className="text-muted-foreground text-sm">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {item.days !== null && item.days !== undefined && item.days !== '' ? (
-                        item.days
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
                       )}
                     </TableCell>
                     <TableCell className="text-center">
@@ -354,17 +342,6 @@ export function ConfigDataTable({
                 value={formData.name}
                 onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
                 placeholder="Ex: Alta Prioridade"
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="days">Dias (Duração / Prazo)</Label>
-              <Input
-                id="days"
-                type="number"
-                min="0"
-                value={formData.days}
-                onChange={(e) => setFormData((prev) => ({ ...prev, days: e.target.value }))}
-                placeholder="Ex: 7"
               />
             </div>
             <div className="grid gap-2">
