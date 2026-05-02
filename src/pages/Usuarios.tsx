@@ -70,6 +70,7 @@ export default function Usuarios() {
   const [active, setActive] = useState(true)
   const [role, setRole] = useState<'admin' | 'operator'>('operator')
   const [showPassword, setShowPassword] = useState(false)
+  const [showPasswordConfirm, setShowPasswordConfirm] = useState(false)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
   const [isSaving, setIsSaving] = useState(false)
@@ -118,6 +119,7 @@ export default function Usuarios() {
       setAvatarFile(null)
     }
     setShowPassword(false)
+    setShowPasswordConfirm(false)
     setIsSaving(false)
     setIsOpen(true)
   }
@@ -136,7 +138,10 @@ export default function Usuarios() {
   }
 
   const handleSave = async () => {
-    if (!name || !email || !role || (!editingUser && !password)) {
+    const pass = password.trim()
+    const confirm = passwordConfirm.trim()
+
+    if (!name.trim() || !email.trim() || !role || (!editingUser && !pass)) {
       toast({
         title: 'Erro de validação',
         description:
@@ -148,10 +153,10 @@ export default function Usuarios() {
       return
     }
 
-    if (password && password !== passwordConfirm) {
+    if (pass && pass !== confirm) {
       toast({
         title: 'Erro de validação',
-        description: 'As senhas não coincidem. Verifique a confirmação de senha.',
+        description: "Values don't match. As senhas não coincidem.",
         variant: 'destructive',
       })
       return
@@ -160,15 +165,15 @@ export default function Usuarios() {
     setIsSaving(true)
     try {
       const formData = new FormData()
-      formData.append('name', name)
-      formData.append('email', email)
+      formData.append('name', name.trim())
+      formData.append('email', email.trim())
       formData.append('role', role)
       formData.append('phone', phone)
       formData.append('active', active.toString())
 
-      if (password) {
-        formData.append('password', password)
-        formData.append('passwordConfirm', passwordConfirm)
+      if (pass) {
+        formData.append('password', pass)
+        formData.append('passwordConfirm', confirm)
       }
 
       if (avatarFile) {
@@ -426,7 +431,7 @@ export default function Usuarios() {
                   <Label>Confirmar {editingUser ? 'Nova ' : ''}Senha *</Label>
                   <div className="relative">
                     <Input
-                      type={showPassword ? 'text' : 'password'}
+                      type={showPasswordConfirm ? 'text' : 'password'}
                       name="passwordConfirm"
                       value={passwordConfirm}
                       onChange={(e) => setPasswordConfirm(e.target.value)}
@@ -434,6 +439,19 @@ export default function Usuarios() {
                       className="pr-10"
                       autoComplete="new-password"
                     />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-0 top-0 h-full w-10 text-muted-foreground hover:text-foreground hover:bg-transparent"
+                      onClick={() => setShowPasswordConfirm(!showPasswordConfirm)}
+                    >
+                      {showPasswordConfirm ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </Button>
                   </div>
                 </div>
               )}
