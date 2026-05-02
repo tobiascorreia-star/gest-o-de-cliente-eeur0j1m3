@@ -2,13 +2,13 @@ import pb from '@/lib/pocketbase/client'
 
 export const logAudit = async (action: string, details: string) => {
   try {
-    const user = pb.authStore.record?.id
+    if (!pb.authStore.isValid) return
     await pb.collection('audit_logs').create({
       action,
-      user,
       details,
+      user: pb.authStore.record?.id,
     })
   } catch (err) {
-    console.error('Failed to create audit log', err)
+    console.error('Failed to log audit:', err)
   }
 }

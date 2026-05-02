@@ -91,10 +91,12 @@ export function ConfigDataTable({ title, description, types }: ConfigDataTablePr
 
   const filteredConfigs = useMemo(() => {
     return configurations.filter((c) => {
+      const nameStr = c?.name || ''
+      const descStr = c?.description || ''
+      const searchStr = search.toLowerCase()
       const matchesSearch =
-        c.name.toLowerCase().includes(search.toLowerCase()) ||
-        (c.description && c.description.toLowerCase().includes(search.toLowerCase()))
-      const matchesType = typeFilter === 'all' || c.type === typeFilter
+        nameStr.toLowerCase().includes(searchStr) || descStr.toLowerCase().includes(searchStr)
+      const matchesType = typeFilter === 'all' || c?.type === typeFilter
       return matchesSearch && matchesType
     })
   }, [configurations, search, typeFilter])
@@ -129,14 +131,23 @@ export function ConfigDataTable({ title, description, types }: ConfigDataTablePr
     try {
       if (editingId) {
         await pb.collection('configurations').update(editingId, formData)
-        await logAudit('UPDATE_CONFIG', `Atualizada configuração: ${formData.name}`)
+        try {
+          await logAudit('UPDATE_CONFIG', `Atualizada configuração: ${formData.name}`)
+        } catch (e) {
+          console.error(e)
+        }
         toast({ title: 'Sucesso', description: 'Configuração atualizada com sucesso.' })
       } else {
         await pb.collection('configurations').create(formData)
-        await logAudit('CREATE_CONFIG', `Criada configuração: ${formData.name}`)
+        try {
+          await logAudit('CREATE_CONFIG', `Criada configuração: ${formData.name}`)
+        } catch (e) {
+          console.error(e)
+        }
         toast({ title: 'Sucesso', description: 'Configuração criada com sucesso.' })
       }
       setOpen(false)
+      fetchConfigs()
     } catch (err) {
       toast({ title: 'Erro', description: getErrorMessage(err), variant: 'destructive' })
     }
@@ -146,8 +157,13 @@ export function ConfigDataTable({ title, description, types }: ConfigDataTablePr
     if (!window.confirm('Tem certeza que deseja excluir esta configuração?')) return
     try {
       await pb.collection('configurations').delete(id)
-      await logAudit('DELETE_CONFIG', `Removida configuração: ${name}`)
+      try {
+        await logAudit('DELETE_CONFIG', `Removida configuração: ${name}`)
+      } catch (e) {
+        console.error(e)
+      }
       toast({ title: 'Sucesso', description: 'Configuração removida.' })
+      fetchConfigs()
     } catch (err) {
       toast({ title: 'Erro', description: getErrorMessage(err), variant: 'destructive' })
     }
@@ -156,10 +172,15 @@ export function ConfigDataTable({ title, description, types }: ConfigDataTablePr
   const toggleStatus = async (item: any) => {
     try {
       await pb.collection('configurations').update(item.id, { active: !item.active })
-      await logAudit(
-        'TOGGLE_CONFIG_STATUS',
-        `Status da configuração ${item.name} alterado para ${!item.active ? 'Ativo' : 'Inativo'}`,
-      )
+      try {
+        await logAudit(
+          'TOGGLE_CONFIG_STATUS',
+          `Status da configuração ${item.name} alterado para ${!item.active ? 'Ativo' : 'Inativo'}`,
+        )
+      } catch (e) {
+        console.error(e)
+      }
+      fetchConfigs()
     } catch (err) {
       toast({ title: 'Erro', description: getErrorMessage(err), variant: 'destructive' })
     }
@@ -241,12 +262,12 @@ export function ConfigDataTable({ title, description, types }: ConfigDataTablePr
               ) : (
                 filteredConfigs.map((item) => (
                   <TableRow key={item.id}>
-                    <TableCell className="font-medium">{item.name}</TableCell>
+                    <TableCell className="font-medium">{item.name || 'Sem nome'}</TableCell>
                     <TableCell>
                       <Badge variant="secondary" className="font-normal">
                         {getTypeLabel(item.type)}
                       </Badge>
-                    </TableCell>
+                    </TableCell>{' '}
                     <TableCell className="text-muted-foreground hidden md:table-cell truncate max-w-[200px]">
                       {item.description || '-'}
                     </TableCell>

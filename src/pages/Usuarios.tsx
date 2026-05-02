@@ -3,7 +3,19 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Mail, Shield, Plus, Edit, Eye, EyeOff, Upload, Trash2, Loader2 } from 'lucide-react'
+import {
+  Mail,
+  Shield,
+  Plus,
+  Edit,
+  Eye,
+  EyeOff,
+  Upload,
+  Trash2,
+  Loader2,
+  Power,
+  PowerOff,
+} from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -50,6 +62,7 @@ export default function Usuarios() {
   const [isOpen, setIsOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<any>(null)
   const [accessUser, setAccessUser] = useState<any>(null)
+  const [isSaving, setIsSaving] = useState(false)
 
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -66,7 +79,6 @@ export default function Usuarios() {
 
   const fetchUsers = async () => {
     try {
-      setLoading(true)
       const records = await pb.collection('users').getFullList({ sort: '-created' })
       setUsers(records || [])
     } catch (err: any) {
@@ -92,6 +104,7 @@ export default function Usuarios() {
   })
 
   const openForm = (u?: any) => {
+    setFieldErrors({})
     if (u) {
       setEditingUser(u)
       setName(u.name || '')
@@ -111,7 +124,6 @@ export default function Usuarios() {
       setRole('operator')
       setAvatarPreview(null)
     }
-    setFieldErrors({})
     setAvatarFile(null)
     setShowPassword(false)
     setIsOpen(true)
@@ -143,6 +155,7 @@ export default function Usuarios() {
     }
 
     try {
+      setIsSaving(true)
       const payload: any = {
         name: name || '',
         email: email || '',
@@ -162,11 +175,14 @@ export default function Usuarios() {
         payload.avatar = null
       }
 
-      const savePromise = editingUser
-        ? pb.collection('users').update(editingUser.id, payload)
-        : pb.collection('users').create(payload)
-
-      const savedUser = await savePromise
+      let savedUser
+      if (editingUser) {
+        savedUser = await pb.collection('users').update(editingUser.id, payload)
+        setUsers((prev) => prev.map((u) => (u.id === savedUser.id ? savedUser : u)))
+      } else {
+        savedUser = await pb.collection('users').create(payload)
+        setUsers((prev) => [savedUser, ...prev])
+      }
 
       try {
         await logAudit(
@@ -177,14 +193,12 @@ export default function Usuarios() {
         console.error('Failed to log audit:', auditErr)
       }
 
-      if (editingUser) {
-        toast({ title: 'Sucesso', description: 'Usuário atualizado com sucesso!' })
-      } else {
-        toast({ title: 'Sucesso', description: 'Novo usuário criado!' })
-      }
+      toast({
+        title: 'Sucesso',
+        description: editingUser ? 'Usuário atualizado com sucesso!' : 'Novo usuário criado!',
+      })
 
       setIsOpen(false)
-      fetchUsers()
     } catch (err: any) {
       const errors = extractFieldErrors(err)
       setFieldErrors(errors)
@@ -196,14 +210,29 @@ export default function Usuarios() {
         description: errorMessage || 'Verifique os campos e tente novamente.',
         variant: 'destructive',
       })
+    } finally {
+      setIsSaving(false)
+    }
+  }
 
-      Object.entries(errors).forEach(([field, message]) => {
-        toast({
-          title: `Erro em ${field}`,
-          description: message as string,
-          variant: 'destructive',
-        })
+  const handleToggleStatus = async (user: any) => {
+    try {
+      const updated = await pb.collection('users').update(user.id, { active: !user.active })
+      setUsers((prev) => prev.map((u) => (u.id === user.id ? updated : u)))
+      try {
+        await logAudit(
+          'TOGGLE_USER_STATUS',
+          `Status do usuário ${user.email} alterado para ${!user.active ? 'Ativo' : 'Inativo'}`,
+        )
+      } catch {
+        /* intentionally ignored */
+      }
+      toast({
+        title: 'Sucesso',
+        description: `Usuário ${updated.active ? 'ativado' : 'inativado'} com sucesso.`,
       })
+    } catch (err: any) {
+      toast({ title: 'Erro', description: getErrorMessage(err), variant: 'destructive' })
     }
   }
 
@@ -236,7 +265,7 @@ export default function Usuarios() {
             {users.map((user) => (
               <Card
                 key={user.id}
-                className="overflow-hidden border-border/50 shadow-sm hover:shadow-md transition-shadow relative"
+                className={`overflow-hidden border-border/50 shadow-sm hover:shadow-md transition-shadow relative ${!user.active ? 'opacity-80' : ''}`}
               >
                 {!user.active && (
                   <div className="absolute top-2 right-2 flex items-center justify-center">
@@ -247,7 +276,9 @@ export default function Usuarios() {
                 )}
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between">
-                    <Avatar className="h-12 w-12 border-2 border-background shadow-sm">
+                    <Avatar
+                      className={`h-12 w-12 border-2 border-background shadow-sm ${!user.active ? 'grayscale' : ''}`}
+                    >
                       <AvatarImage
                         src={
                           user?.avatar
@@ -267,11 +298,11 @@ export default function Usuarios() {
                     </Badge>
                   </div>
                   <div className="mt-4">
-                    <h3 className="font-semibold text-lg leading-tight">
+                    <h3 className="font-semibold text-lg leading-tight truncate">
                       {user.name || 'Sem nome'}
                     </h3>
                     <div className="flex items-center text-sm text-muted-foreground mt-1 gap-2">
-                      <Mail className="w-3.5 h-3.5" />
+                      <Mail className="w-3.5 h-3.5 flex-shrink-0" />
                       <span className="truncate">{user.email}</span>
                     </div>
                   </div>
@@ -279,13 +310,30 @@ export default function Usuarios() {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="w-full"
+                      className="flex-1"
                       onClick={() => setAccessUser(user)}
                     >
                       <Shield className="w-4 h-4 mr-2" /> Acessos
                     </Button>
                     <Button variant="secondary" size="sm" onClick={() => openForm(user)}>
                       <Edit className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant={user.active ? 'secondary' : 'default'}
+                      size="sm"
+                      onClick={() => handleToggleStatus(user)}
+                      title={user.active ? 'Inativar Usuário' : 'Ativar Usuário'}
+                      className={
+                        user.active
+                          ? 'text-destructive hover:text-destructive hover:bg-destructive/10'
+                          : 'bg-emerald-500 hover:bg-emerald-600 text-white'
+                      }
+                    >
+                      {user.active ? (
+                        <PowerOff className="w-4 h-4" />
+                      ) : (
+                        <Power className="w-4 h-4" />
+                      )}
                     </Button>
                   </div>
                 </CardContent>
@@ -294,7 +342,7 @@ export default function Usuarios() {
           </div>
         )}
 
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <Dialog open={isOpen} onOpenChange={(v) => !isSaving && setIsOpen(v)}>
           <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editingUser ? 'Editar Usuário' : 'Novo Usuário'}</DialogTitle>
@@ -312,7 +360,12 @@ export default function Usuarios() {
                   )}
                 </Avatar>
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isSaving}
+                  >
                     <Upload className="w-4 h-4 mr-2" />
                     Foto
                   </Button>
@@ -322,6 +375,7 @@ export default function Usuarios() {
                       size="sm"
                       onClick={handleRemoveAvatar}
                       className="text-destructive"
+                      disabled={isSaving}
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>
@@ -344,6 +398,7 @@ export default function Usuarios() {
                   placeholder="Ex: Ana Silva"
                   className={fieldErrors.name ? 'border-destructive' : ''}
                   autoComplete="off"
+                  disabled={isSaving}
                 />
                 {fieldErrors.name && <p className="text-xs text-destructive">{fieldErrors.name}</p>}
               </div>
@@ -355,7 +410,9 @@ export default function Usuarios() {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="email@gestao.com"
                   className={fieldErrors.email ? 'border-destructive' : ''}
-                  autoComplete="off"
+                  autoComplete="new-password"
+                  role="presentation"
+                  disabled={isSaving}
                 />
                 {fieldErrors.email && (
                   <p className="text-xs text-destructive">{fieldErrors.email}</p>
@@ -369,7 +426,8 @@ export default function Usuarios() {
                   onChange={(e) => setPhone(formatPhone(e.target.value))}
                   placeholder="(00) 00000-0000"
                   className={fieldErrors.phone ? 'border-destructive' : ''}
-                  autoComplete="off"
+                  autoComplete="new-password"
+                  disabled={isSaving}
                 />
                 {fieldErrors.phone && (
                   <p className="text-xs text-destructive">{fieldErrors.phone}</p>
@@ -387,6 +445,7 @@ export default function Usuarios() {
                     placeholder="••••••••"
                     className={`pr-10 ${fieldErrors.password ? 'border-destructive' : ''}`}
                     autoComplete="new-password"
+                    disabled={isSaving}
                   />
                   <Button
                     type="button"
@@ -394,6 +453,7 @@ export default function Usuarios() {
                     size="icon"
                     className="absolute right-0 top-0 h-full w-10 text-muted-foreground hover:text-foreground hover:bg-transparent"
                     onClick={() => setShowPassword(!showPassword)}
+                    disabled={isSaving}
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </Button>
@@ -404,7 +464,11 @@ export default function Usuarios() {
               </div>
               <div className="space-y-2">
                 <Label>Perfil de Acesso *</Label>
-                <Select value={role} onValueChange={(v: 'admin' | 'operator') => setRole(v)}>
+                <Select
+                  value={role}
+                  onValueChange={(v: 'admin' | 'operator') => setRole(v)}
+                  disabled={isSaving}
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -415,17 +479,25 @@ export default function Usuarios() {
                 </Select>
               </div>
               <div className="flex items-center space-x-2 pt-2">
-                <Switch id="active-user" checked={active} onCheckedChange={setActive} />
+                <Switch
+                  id="active-user"
+                  checked={active}
+                  onCheckedChange={setActive}
+                  disabled={isSaving}
+                />
                 <Label htmlFor="active-user" className="cursor-pointer">
                   Usuário Ativo
                 </Label>
               </div>
             </div>
             <div className="flex justify-end gap-2 pt-2">
-              <Button variant="outline" onClick={() => setIsOpen(false)}>
+              <Button variant="outline" onClick={() => setIsOpen(false)} disabled={isSaving}>
                 Cancelar
               </Button>
-              <Button onClick={handleSave}>Salvar</Button>
+              <Button onClick={handleSave} disabled={isSaving}>
+                {isSaving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                Salvar
+              </Button>
             </div>
           </DialogContent>
         </Dialog>
