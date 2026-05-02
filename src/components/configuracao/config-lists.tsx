@@ -74,20 +74,19 @@ export function ConfigDataTable({
     active: true,
   })
 
-  const typeValues = types.map((t) => t.value)
-
   const filteredConfigs = useMemo(() => {
+    const typeValues = types.map((t) => t.value)
     return data.filter((c) => {
-      if (!typeValues.includes(c.type)) return false
-      const nameStr = c?.name || ''
-      const descStr = c?.description || ''
+      if (!c || !c.type || !typeValues.includes(c.type)) return false
+      const nameStr = c.name || ''
+      const descStr = c.description || ''
       const searchStr = search.toLowerCase()
       const matchesSearch =
         nameStr.toLowerCase().includes(searchStr) || descStr.toLowerCase().includes(searchStr)
-      const matchesType = typeFilter === 'all' || c?.type === typeFilter
+      const matchesType = typeFilter === 'all' || c.type === typeFilter
       return matchesSearch && matchesType
     })
-  }, [data, search, typeFilter, typeValues])
+  }, [data, search, typeFilter, types])
 
   const handleOpenCreate = () => {
     setEditingId(null)

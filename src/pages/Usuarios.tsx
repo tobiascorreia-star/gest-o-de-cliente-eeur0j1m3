@@ -45,14 +45,14 @@ const formatPhone = (val: string) => {
   if (!val) return ''
   let value = val.replace(/\D/g, '')
   if (value.length > 11) value = value.slice(0, 11)
-  if (value.length > 2 && value.length <= 6) {
-    value = `(${value.slice(0, 2)}) ${value.slice(2)}`
-  } else if (value.length > 6 && value.length <= 10) {
-    value = `(${value.slice(0, 2)}) ${value.slice(2, 6)}-${value.slice(6)}`
-  } else if (value.length > 10) {
-    value = `(${value.slice(0, 2)}) ${value.slice(2, 7)}-${value.slice(7)}`
+  if (value.length > 10) {
+    return `(${value.slice(0, 2)}) ${value.slice(2, 7)}-${value.slice(7)}`
+  } else if (value.length > 6) {
+    return `(${value.slice(0, 2)}) ${value.slice(2, 6)}-${value.slice(6)}`
+  } else if (value.length > 2) {
+    return `(${value.slice(0, 2)}) ${value.slice(2)}`
   } else if (value.length > 0) {
-    value = `(${value}`
+    return `(${value}`
   }
   return value
 }
@@ -401,12 +401,12 @@ export default function Usuarios() {
               <div className="space-y-2">
                 <Label>Nome Completo</Label>
                 <Input
-                  name="user_name_field_no_autofill"
+                  name="name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Ex: Ana Silva"
                   className={fieldErrors.name ? 'border-destructive' : ''}
-                  autoComplete="off"
+                  autoComplete="name"
                   disabled={isSaving}
                 />
                 {fieldErrors.name && <p className="text-xs text-destructive">{fieldErrors.name}</p>}
@@ -415,13 +415,12 @@ export default function Usuarios() {
                 <Label>E-mail (Login) *</Label>
                 <Input
                   type="email"
-                  name="user_email_field_no_autofill"
+                  name="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="email@gestao.com"
                   className={fieldErrors.email ? 'border-destructive' : ''}
-                  autoComplete="off"
-                  role="presentation"
+                  autoComplete="email"
                   disabled={isSaving}
                 />
                 {fieldErrors.email && (
@@ -431,13 +430,13 @@ export default function Usuarios() {
               <div className="space-y-2">
                 <Label>Telefone</Label>
                 <Input
-                  type="text"
-                  name="user_phone_field_no_autofill"
+                  type="tel"
+                  name="phone"
                   value={phone}
                   onChange={(e) => setPhone(formatPhone(e.target.value))}
                   placeholder="(00) 00000-0000"
                   className={fieldErrors.phone ? 'border-destructive' : ''}
-                  autoComplete="off"
+                  autoComplete="tel"
                   disabled={isSaving}
                 />
                 {fieldErrors.phone && (
@@ -451,7 +450,7 @@ export default function Usuarios() {
                 <div className="relative">
                   <Input
                     type={showPassword ? 'text' : 'password'}
-                    name="user_password_field_no_autofill"
+                    name="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
