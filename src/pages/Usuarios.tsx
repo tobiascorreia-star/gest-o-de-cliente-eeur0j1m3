@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
@@ -35,6 +35,9 @@ import { Switch } from '@/components/ui/switch'
 import { toast } from '@/hooks/use-toast'
 import { logAudit } from '@/services/audit'
 import { ErrorBoundary } from '@/components/error-boundary'
+import { useRealtime } from '@/hooks/use-realtime'
+import { getUsers, createUser, updateUser, getFileUrl } from '@/services/users'
+import { getErrorMessage } from '@/lib/pocketbase/errors'
 
 const formatPhone = (val: string) => {
   if (!val) return ''
@@ -52,31 +55,8 @@ const formatPhone = (val: string) => {
   return value
 }
 
-const MOCK_USERS = [
-  {
-    id: 'u1',
-    name: 'Administrador',
-    email: 'tobiascorreia@gmail.com',
-    role: 'admin',
-    active: true,
-    phone: '(11) 99999-9999',
-    created: new Date().toISOString(),
-    avatar: null,
-  },
-  {
-    id: 'u2',
-    name: 'Operador Padrão',
-    email: 'operador@gestao.com',
-    role: 'operator',
-    active: true,
-    phone: '(11) 88888-8888',
-    created: new Date().toISOString(),
-    avatar: null,
-  },
-]
-
 export default function Usuarios() {
-  const [users, setUsers] = useState<any[]>(MOCK_USERS)
+  const [users, setUsers] = useState<any[]>([])
   const [isOpen, setIsOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<any>(null)
   const [accessUser, setAccessUser] = useState<any>(null)
@@ -89,8 +69,26 @@ export default function Usuarios() {
   const [role, setRole] = useState<'admin' | 'operator'>('operator')
   const [showPassword, setShowPassword] = useState(false)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
+  const [avatarFile, setAvatarFile] = useState<File | null>(null)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const loadUsers = async () => {
+    try {
+      const data = await getUsers()
+      setUsers(data)
+    } catch (e) {
+      console.error('Error loading users:', e)
+    }
+  }
+
+  useEffect(() => {
+    loadUsers()
+  }, [])
+
+  useRealtime('users', () => {
+    loadUsers()
+  })
 
   const openForm = (u?: any) => {
     if (u) {
@@ -101,7 +99,8 @@ export default function Usuarios() {
       setActive(u.active !== false)
       setPassword('')
       setRole(u.role || 'operator')
-      setAvatarPreview(u.avatar || null)
+      setAvatarPreview(u.avatar ? getFileUrl(u, u.avatar) : null)
+      setAvatarFile(null)
     } else {
       setEditingUser(null)
       setName('')
@@ -111,6 +110,7 @@ export default function Usuarios() {
       setPassword('')
       setRole('operator')
       setAvatarPreview(null)
+      setAvatarFile(null)
     }
     setShowPassword(false)
     setIsOpen(true)
@@ -119,62 +119,87 @@ export default function Usuarios() {
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0]
+      setAvatarFile(file)
       setAvatarPreview(URL.createObjectURL(file))
     }
   }
 
   const handleRemoveAvatar = () => {
     setAvatarPreview(null)
+    setAvatarFile(null)
   }
 
-  const handleSave = () => {
-    if (!email || !role || (!editingUser && !password)) {
+  const handleSave = async () => {
+    if (!name || !email || !role || (!editingUser && !password)) {
       toast({
         title: 'Erro de validação',
-        description: 'Por favor, preencha todos os campos obrigatórios.',
+        description:
+          'Por favor, preencha todos os campos obrigatórios (Nome, E-mail, Perfil' +
+          (!editingUser ? ' e Senha' : '') +
+          ').',
         variant: 'destructive',
       })
       return
     }
 
-    const payload = {
-      name,
-      email,
-      role,
-      phone,
-      active,
-      avatar: avatarPreview,
-      updated: new Date().toISOString(),
-    }
+    try {
+      const formData = new FormData()
+      formData.append('name', name)
+      formData.append('email', email)
+      formData.append('role', role)
+      formData.append('phone', phone)
+      formData.append('active', active.toString())
 
-    if (editingUser) {
-      setUsers((prev) => prev.map((u) => (u.id === editingUser.id ? { ...u, ...payload } : u)))
-      logAudit('UPDATE_USER', `Usuário ${email} atualizado.`)
-      toast({ title: 'Sucesso', description: 'Usuário atualizado com sucesso!' })
-    } else {
-      const newUser = {
-        id: `u_${Date.now()}`,
-        created: new Date().toISOString(),
-        ...payload,
+      if (password) {
+        formData.append('password', password)
+        formData.append('passwordConfirm', password)
       }
-      setUsers((prev) => [newUser, ...prev])
-      logAudit('CREATE_USER', `Usuário ${email} criado.`)
-      toast({ title: 'Sucesso', description: 'Novo usuário criado!' })
-    }
 
-    setIsOpen(false)
+      if (avatarFile) {
+        formData.append('avatar', avatarFile)
+      } else if (!avatarPreview && editingUser?.avatar) {
+        formData.append('avatar', '')
+      }
+
+      if (editingUser) {
+        await updateUser(editingUser.id, formData)
+        logAudit('UPDATE_USER', `Usuário ${email} atualizado.`)
+        toast({ title: 'Sucesso', description: 'Usuário atualizado com sucesso!' })
+      } else {
+        await createUser(formData)
+        logAudit('CREATE_USER', `Usuário ${email} criado.`)
+        toast({ title: 'Sucesso', description: 'Novo usuário criado!' })
+      }
+
+      setIsOpen(false)
+    } catch (error) {
+      const msg = getErrorMessage(error)
+      toast({
+        title: 'Erro ao salvar',
+        description: msg,
+        variant: 'destructive',
+      })
+    }
   }
 
-  const handleToggleStatus = (user: any) => {
-    setUsers((prev) => prev.map((u) => (u.id === user.id ? { ...u, active: !user.active } : u)))
-    logAudit(
-      'TOGGLE_USER_STATUS',
-      `Status do usuário ${user.email} alterado para ${!user.active ? 'Ativo' : 'Inativo'}`,
-    )
-    toast({
-      title: 'Sucesso',
-      description: `Usuário ${!user.active ? 'ativado' : 'inativado'} com sucesso.`,
-    })
+  const handleToggleStatus = async (user: any) => {
+    try {
+      await updateUser(user.id, { active: !user.active })
+      logAudit(
+        'TOGGLE_USER_STATUS',
+        `Status do usuário ${user.email} alterado para ${!user.active ? 'Ativo' : 'Inativo'}`,
+      )
+      toast({
+        title: 'Sucesso',
+        description: `Usuário ${!user.active ? 'ativado' : 'inativado'} com sucesso.`,
+      })
+    } catch (error) {
+      toast({
+        title: 'Erro',
+        description: getErrorMessage(error),
+        variant: 'destructive',
+      })
+    }
   }
 
   return (
@@ -218,8 +243,9 @@ export default function Usuarios() {
                     >
                       <AvatarImage
                         src={
-                          user?.avatar ||
-                          `https://img.usecurling.com/ppl/thumbnail?seed=${user?.id || 'default'}`
+                          user?.avatar
+                            ? getFileUrl(user, user.avatar)
+                            : `https://img.usecurling.com/ppl/thumbnail?seed=${user?.id || 'default'}`
                         }
                       />
                       <AvatarFallback>
@@ -321,7 +347,7 @@ export default function Usuarios() {
               </div>
 
               <div className="space-y-2">
-                <Label>Nome Completo</Label>
+                <Label>Nome Completo *</Label>
                 <Input
                   name="name"
                   value={name}
