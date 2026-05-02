@@ -111,7 +111,7 @@ export default function Usuarios() {
   const handleSave = async () => {
     setFieldErrors({})
 
-    if (!name || !email || (!editingUser && !password)) {
+    if (!email || !role || (!editingUser && !password)) {
       toast({
         title: 'Erro de validação',
         description: 'Por favor, preencha todos os campos obrigatórios.',
@@ -300,7 +300,7 @@ export default function Usuarios() {
             </div>
 
             <div className="space-y-2">
-              <Label>Nome Completo *</Label>
+              <Label>Nome Completo</Label>
               <Input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
