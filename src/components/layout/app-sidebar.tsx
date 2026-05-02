@@ -25,6 +25,7 @@ import {
   SidebarMenuItem,
 } from '@/components/ui/sidebar'
 import { useIsMobile } from '@/hooks/use-mobile'
+import { useSidebar } from '@/components/ui/sidebar'
 import { useApp } from '@/contexts/app-context'
 
 const navigation = [
@@ -42,10 +43,11 @@ const navigation = [
 export function AppSidebar() {
   const location = useLocation()
   const isMobile = useIsMobile()
+  const { setOpenMobile } = useSidebar()
   const { currentUser, logout } = useApp()
 
   const filteredNavigation = navigation.filter((item) => {
-    if (item.adminOnly && currentUser?.role !== 'Admin') return false
+    if (item.adminOnly && currentUser?.role?.toLowerCase() !== 'admin') return false
     return true
   })
 
@@ -76,6 +78,7 @@ export function AppSidebar() {
                       asChild
                       isActive={isActive}
                       tooltip={item.name}
+                      onClick={() => isMobile && setOpenMobile(false)}
                       className="data-[active=true]:bg-accent data-[active=true]:text-primary data-[active=true]:font-medium transition-colors"
                     >
                       <Link to={item.href}>

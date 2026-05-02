@@ -4,6 +4,7 @@ import { Toaster as Sonner } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { AppProvider, useApp } from '@/contexts/app-context'
 import Layout from './components/Layout'
+import { ErrorBoundary } from './components/error-boundary'
 import Index from './pages/Index'
 import Clientes from './pages/Clientes'
 import Historico from './pages/Historico'
@@ -24,7 +25,7 @@ const ProtectedRoute = () => {
 
 const AdminRoute = () => {
   const { currentUser } = useApp()
-  if (currentUser?.role !== 'Admin') return <Navigate to="/" replace />
+  if (currentUser?.role?.toLowerCase() !== 'admin') return <Navigate to="/" replace />
   return <Outlet />
 }
 
@@ -54,14 +55,16 @@ const AppRoutes = () => {
 }
 
 const App = () => (
-  <BrowserRouter future={{ v7_startTransition: false, v7_relativeSplatPath: false }}>
-    <TooltipProvider>
-      <AppProvider>
-        <Toaster />
-        <Sonner />
-        <AppRoutes />
-      </AppProvider>
-    </TooltipProvider>
+  <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+    <ErrorBoundary>
+      <TooltipProvider>
+        <AppProvider>
+          <Toaster />
+          <Sonner />
+          <AppRoutes />
+        </AppProvider>
+      </TooltipProvider>
+    </ErrorBoundary>
   </BrowserRouter>
 )
 

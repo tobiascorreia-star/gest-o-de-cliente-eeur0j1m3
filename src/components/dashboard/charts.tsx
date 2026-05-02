@@ -24,8 +24,7 @@ export function DashboardCharts() {
       const d = subMonths(new Date(), i)
       const monthStr = format(d, 'MMM', { locale: ptBR })
       // mock counting
-      const count =
-        clients.filter((c) => new Date(c.dataCadastro) <= d).length + Math.floor(Math.random() * 10)
+      const count = clients.filter((c) => new Date(c.dataCadastro) <= d).length
       data.push({ month: monthStr, clientes: count })
     }
     return data

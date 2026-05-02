@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { CalendarIcon, Download, Printer } from 'lucide-react'
+import { CalendarIcon, Printer } from 'lucide-react'
 import { format, isWithinInterval } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { useState } from 'react'
@@ -125,9 +125,6 @@ const Relatorio = () => {
           <div className="flex gap-4 pt-6 border-t border-border/50">
             <Button onClick={handlePrint} className="w-full sm:w-auto rounded-lg">
               <Printer className="w-4 h-4 mr-2" /> Visualizar para PDF
-            </Button>
-            <Button variant="secondary" className="w-full sm:w-auto rounded-lg">
-              <Download className="w-4 h-4 mr-2" /> Exportar CSV
             </Button>
           </div>
         </CardContent>

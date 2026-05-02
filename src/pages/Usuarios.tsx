@@ -1,10 +1,9 @@
-import { useState } from 'react'
-import { useApp } from '@/contexts/app-context'
+import { useState, useEffect, useRef } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Mail, Shield, Plus, Edit } from 'lucide-react'
+import { Mail, Shield, Plus, Edit, Eye, EyeOff, Upload, Trash2 } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -21,39 +20,81 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { User } from '@/types'
 import { toast } from '@/hooks/use-toast'
+import pb from '@/lib/pocketbase/client'
 
 export default function Usuarios() {
-  const { users, addUser, updateUser } = useApp()
+  const [users, setUsers] = useState<any[]>([])
   const [isOpen, setIsOpen] = useState(false)
-  const [editingUser, setEditingUser] = useState<User | null>(null)
-
-  const [accessUser, setAccessUser] = useState<User | null>(null)
+  const [editingUser, setEditingUser] = useState<any>(null)
+  const [accessUser, setAccessUser] = useState<any>(null)
 
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [role, setRole] = useState<'Admin' | 'Operator'>('Operator')
+  const [role, setRole] = useState<'admin' | 'operator'>('operator')
+  const [showPassword, setShowPassword] = useState(false)
+  const [avatarFile, setAvatarFile] = useState<File | null>(null)
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
 
-  const openForm = (u?: User) => {
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const fetchUsers = async () => {
+    try {
+      const records = await pb.collection('users').getFullList({ sort: '-created' })
+      setUsers(records)
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  useEffect(() => {
+    fetchUsers()
+
+    const unsubscribePromise = pb.collection('users').subscribe('*', function () {
+      fetchUsers()
+    })
+
+    return () => {
+      unsubscribePromise.then(() => pb.collection('users').unsubscribe('*')).catch(() => {})
+    }
+  }, [])
+
+  const openForm = (u?: any) => {
     if (u) {
       setEditingUser(u)
-      setName(u.name)
-      setEmail(u.email)
-      setPassword(u.password || '')
-      setRole(u.role)
+      setName(u.name || '')
+      setEmail(u.email || '')
+      setPassword('')
+      setRole(u.role || 'operator')
+      setAvatarPreview(u.avatar ? pb.files.getURL(u, u.avatar) : null)
     } else {
       setEditingUser(null)
       setName('')
       setEmail('')
       setPassword('')
-      setRole('Operator')
+      setRole('operator')
+      setAvatarPreview(null)
     }
+    setAvatarFile(null)
+    setShowPassword(false)
     setIsOpen(true)
   }
 
-  const handleSave = () => {
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const file = e.target.files[0]
+      setAvatarFile(file)
+      setAvatarPreview(URL.createObjectURL(file))
+    }
+  }
+
+  const handleRemoveAvatar = () => {
+    setAvatarFile(null)
+    setAvatarPreview(null)
+  }
+
+  const handleSave = async () => {
     if (!name || !email || (!editingUser && !password)) {
       toast({
         title: 'Erro',
@@ -63,26 +104,40 @@ export default function Usuarios() {
       return
     }
 
-    if (editingUser) {
-      updateUser({
-        ...editingUser,
-        name,
-        email,
-        role,
-        password: password || editingUser.password,
+    try {
+      const formData = new FormData()
+      formData.append('name', name)
+      formData.append('email', email)
+      formData.append('role', role)
+
+      if (password) {
+        formData.append('password', password)
+        formData.append('passwordConfirm', password)
+      }
+
+      if (avatarFile) {
+        formData.append('avatar', avatarFile)
+      } else if (avatarPreview === null && editingUser?.avatar) {
+        formData.append('avatar', '')
+      }
+
+      if (editingUser) {
+        await pb.collection('users').update(editingUser.id, formData)
+        toast({ title: 'Sucesso', description: 'Usuário atualizado com sucesso!' })
+      } else {
+        await pb.collection('users').create(formData)
+        toast({ title: 'Sucesso', description: 'Novo usuário criado!' })
+      }
+
+      setIsOpen(false)
+      fetchUsers()
+    } catch (err: any) {
+      toast({
+        title: 'Erro ao salvar',
+        description: err.response?.message || 'Ocorreu um erro ao processar sua requisição.',
+        variant: 'destructive',
       })
-      toast({ title: 'Sucesso', description: 'Usuário atualizado com sucesso!' })
-    } else {
-      addUser({
-        name,
-        email,
-        role,
-        password,
-        avatarUrl: `https://img.usecurling.com/ppl/thumbnail?seed=${Date.now()}`,
-      })
-      toast({ title: 'Sucesso', description: 'Novo usuário criado!' })
     }
-    setIsOpen(false)
   }
 
   return (
@@ -106,18 +161,26 @@ export default function Usuarios() {
             <CardContent className="p-6">
               <div className="flex items-start justify-between">
                 <Avatar className="h-12 w-12 border-2 border-background shadow-sm">
-                  <AvatarImage src={user.avatarUrl} />
-                  <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                  <AvatarImage
+                    src={
+                      user.avatar
+                        ? pb.files.getURL(user, user.avatar)
+                        : `https://img.usecurling.com/ppl/thumbnail?seed=${user.id}`
+                    }
+                  />
+                  <AvatarFallback>
+                    {(user.name || user.email).charAt(0).toUpperCase()}
+                  </AvatarFallback>
                 </Avatar>
                 <Badge
-                  variant={user.role === 'Admin' ? 'default' : 'secondary'}
+                  variant={user.role === 'admin' ? 'default' : 'secondary'}
                   className="text-[10px]"
                 >
-                  {user.role === 'Admin' ? 'Administrador' : 'Operador'}
+                  {user.role === 'admin' ? 'Administrador' : 'Operador'}
                 </Badge>
               </div>
               <div className="mt-4">
-                <h3 className="font-semibold text-lg leading-tight">{user.name}</h3>
+                <h3 className="font-semibold text-lg leading-tight">{user.name || 'Sem nome'}</h3>
                 <div className="flex items-center text-sm text-muted-foreground mt-1 gap-2">
                   <Mail className="w-3.5 h-3.5" />
                   <span className="truncate">{user.email}</span>
@@ -142,14 +205,45 @@ export default function Usuarios() {
       </div>
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingUser ? 'Editar Usuário' : 'Novo Usuário'}</DialogTitle>
-            <DialogDescription>
-              Preencha os dados do usuário. O e-mail será usado para acesso ao sistema.
-            </DialogDescription>
+            <DialogDescription>Preencha os dados do usuário.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            <div className="flex flex-col items-center gap-3">
+              <Avatar className="h-20 w-20 border shadow-sm">
+                {avatarPreview ? (
+                  <AvatarImage src={avatarPreview} />
+                ) : (
+                  <AvatarFallback>{name.charAt(0) || email.charAt(0) || '?'}</AvatarFallback>
+                )}
+              </Avatar>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+                  <Upload className="w-4 h-4 mr-2" />
+                  Foto
+                </Button>
+                {avatarPreview && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleRemoveAvatar}
+                    className="text-destructive"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                )}
+              </div>
+              <input
+                type="file"
+                ref={fileInputRef}
+                className="hidden"
+                accept="image/*"
+                onChange={handleAvatarChange}
+              />
+            </div>
+
             <div className="space-y-2">
               <Label>Nome Completo *</Label>
               <Input
@@ -169,22 +263,33 @@ export default function Usuarios() {
             </div>
             <div className="space-y-2">
               <Label>{editingUser ? 'Nova Senha (deixe em branco para manter)' : 'Senha *'}</Label>
-              <Input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-              />
+              <div className="relative">
+                <Input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-1 top-1 h-7 w-7 text-muted-foreground hover:text-foreground"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
+              </div>
             </div>
             <div className="space-y-2">
               <Label>Perfil de Acesso *</Label>
-              <Select value={role} onValueChange={(v: 'Admin' | 'Operator') => setRole(v)}>
+              <Select value={role} onValueChange={(v: 'admin' | 'operator') => setRole(v)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Admin">Administrador (Acesso Total)</SelectItem>
-                  <SelectItem value="Operator">Operador (Acesso Restrito)</SelectItem>
+                  <SelectItem value="admin">Administrador (Acesso Total)</SelectItem>
+                  <SelectItem value="operator">Operador (Acesso Restrito)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -209,10 +314,9 @@ export default function Usuarios() {
           <div className="py-4 space-y-4">
             <div className="p-3 bg-muted rounded-md text-sm">
               <div className="flex justify-between items-center border-b border-border/50 pb-2 mb-2">
-                <span className="text-muted-foreground">Último Login</span>
+                <span className="text-muted-foreground">Criado em</span>
                 <span className="font-medium">
-                  {new Date().toLocaleDateString('pt-BR')} às{' '}
-                  {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                  {accessUser && new Date(accessUser.created).toLocaleDateString('pt-BR')}
                 </span>
               </div>
               <div className="flex justify-between items-center border-b border-border/50 pb-2 mb-2">
@@ -225,8 +329,8 @@ export default function Usuarios() {
                 </Badge>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Tentativas de Login Falhas</span>
-                <span className="font-medium text-destructive">0</span>
+                <span className="text-muted-foreground">Perfil</span>
+                <span className="font-medium capitalize">{accessUser?.role}</span>
               </div>
             </div>
           </div>
