@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useRef } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
@@ -12,10 +12,8 @@ import {
   EyeOff,
   Upload,
   Trash2,
-  Loader2,
   Power,
   PowerOff,
-  AlertCircle,
 } from 'lucide-react'
 import {
   Dialog,
@@ -35,9 +33,6 @@ import {
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { toast } from '@/hooks/use-toast'
-import pb from '@/lib/pocketbase/client'
-import { useRealtime } from '@/hooks/use-realtime'
-import { extractFieldErrors, getErrorMessage, type FieldErrors } from '@/lib/pocketbase/errors'
 import { logAudit } from '@/services/audit'
 import { ErrorBoundary } from '@/components/error-boundary'
 
@@ -57,14 +52,34 @@ const formatPhone = (val: string) => {
   return value
 }
 
+const MOCK_USERS = [
+  {
+    id: 'u1',
+    name: 'Administrador',
+    email: 'tobiascorreia@gmail.com',
+    role: 'admin',
+    active: true,
+    phone: '(11) 99999-9999',
+    created: new Date().toISOString(),
+    avatar: null,
+  },
+  {
+    id: 'u2',
+    name: 'Operador Padrão',
+    email: 'operador@gestao.com',
+    role: 'operator',
+    active: true,
+    phone: '(11) 88888-8888',
+    created: new Date().toISOString(),
+    avatar: null,
+  },
+]
+
 export default function Usuarios() {
-  const [users, setUsers] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [users, setUsers] = useState<any[]>(MOCK_USERS)
   const [isOpen, setIsOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<any>(null)
   const [accessUser, setAccessUser] = useState<any>(null)
-  const [isSaving, setIsSaving] = useState(false)
 
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -73,38 +88,11 @@ export default function Usuarios() {
   const [active, setActive] = useState(true)
   const [role, setRole] = useState<'admin' | 'operator'>('operator')
   const [showPassword, setShowPassword] = useState(false)
-  const [avatarFile, setAvatarFile] = useState<File | null>(null)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
-  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const fetchUsers = async () => {
-    try {
-      setLoading(true)
-      setError(null)
-      const records = await pb.collection('users').getFullList({ sort: '-created' })
-      setUsers(records || [])
-    } catch (err: any) {
-      if (!err.isAbort) {
-        console.error(err)
-        setError('Não foi possível listar os usuários.')
-      }
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  useEffect(() => {
-    fetchUsers()
-  }, [])
-
-  useRealtime('users', () => {
-    fetchUsers()
-  })
-
   const openForm = (u?: any) => {
-    setFieldErrors({})
     if (u) {
       setEditingUser(u)
       setName(u.name || '')
@@ -113,7 +101,7 @@ export default function Usuarios() {
       setActive(u.active !== false)
       setPassword('')
       setRole(u.role || 'operator')
-      setAvatarPreview(u.avatar ? pb.files.getUrl(u, u.avatar) : null)
+      setAvatarPreview(u.avatar || null)
     } else {
       setEditingUser(null)
       setName('')
@@ -124,7 +112,6 @@ export default function Usuarios() {
       setRole('operator')
       setAvatarPreview(null)
     }
-    setAvatarFile(null)
     setShowPassword(false)
     setIsOpen(true)
   }
@@ -132,19 +119,15 @@ export default function Usuarios() {
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0]
-      setAvatarFile(file)
       setAvatarPreview(URL.createObjectURL(file))
     }
   }
 
   const handleRemoveAvatar = () => {
-    setAvatarFile(null)
     setAvatarPreview(null)
   }
 
-  const handleSave = async () => {
-    setFieldErrors({})
-
+  const handleSave = () => {
     if (!email || !role || (!editingUser && !password)) {
       toast({
         title: 'Erro de validação',
@@ -154,86 +137,44 @@ export default function Usuarios() {
       return
     }
 
-    try {
-      setIsSaving(true)
-      const payload: any = {
-        name: name || '',
-        email: email || '',
-        role: role || '',
-        phone: phone || '',
-        active: active,
-      }
-
-      if (password) {
-        payload.password = password
-        payload.passwordConfirm = password
-      }
-
-      if (avatarFile) {
-        payload.avatar = avatarFile
-      } else if (avatarPreview === null && editingUser?.avatar) {
-        payload.avatar = null
-      }
-
-      let savedUser
-      if (editingUser) {
-        savedUser = await pb.collection('users').update(editingUser.id, payload)
-        setUsers((prev) => prev.map((u) => (u.id === savedUser.id ? savedUser : u)))
-      } else {
-        savedUser = await pb.collection('users').create(payload)
-        setUsers((prev) => [savedUser, ...prev])
-      }
-
-      try {
-        await logAudit(
-          editingUser ? 'UPDATE_USER' : 'CREATE_USER',
-          `Usuário ${savedUser.email} ${editingUser ? 'atualizado' : 'criado'}.`,
-        )
-      } catch (auditErr) {
-        console.error('Failed to log audit:', auditErr)
-      }
-
-      toast({
-        title: 'Sucesso',
-        description: editingUser ? 'Usuário atualizado com sucesso!' : 'Novo usuário criado!',
-      })
-
-      setIsOpen(false)
-    } catch (err: any) {
-      const errors = extractFieldErrors(err)
-      setFieldErrors(errors)
-
-      const errorMessage = getErrorMessage(err)
-
-      toast({
-        title: 'Erro ao salvar',
-        description: errorMessage || 'Verifique os campos e tente novamente.',
-        variant: 'destructive',
-      })
-    } finally {
-      setIsSaving(false)
+    const payload = {
+      name,
+      email,
+      role,
+      phone,
+      active,
+      avatar: avatarPreview,
+      updated: new Date().toISOString(),
     }
+
+    if (editingUser) {
+      setUsers((prev) => prev.map((u) => (u.id === editingUser.id ? { ...u, ...payload } : u)))
+      logAudit('UPDATE_USER', `Usuário ${email} atualizado.`)
+      toast({ title: 'Sucesso', description: 'Usuário atualizado com sucesso!' })
+    } else {
+      const newUser = {
+        id: `u_${Date.now()}`,
+        created: new Date().toISOString(),
+        ...payload,
+      }
+      setUsers((prev) => [newUser, ...prev])
+      logAudit('CREATE_USER', `Usuário ${email} criado.`)
+      toast({ title: 'Sucesso', description: 'Novo usuário criado!' })
+    }
+
+    setIsOpen(false)
   }
 
-  const handleToggleStatus = async (user: any) => {
-    try {
-      const updated = await pb.collection('users').update(user.id, { active: !user.active })
-      setUsers((prev) => prev.map((u) => (u.id === user.id ? updated : u)))
-      try {
-        await logAudit(
-          'TOGGLE_USER_STATUS',
-          `Status do usuário ${user.email} alterado para ${!user.active ? 'Ativo' : 'Inativo'}`,
-        )
-      } catch {
-        /* intentionally ignored */
-      }
-      toast({
-        title: 'Sucesso',
-        description: `Usuário ${updated.active ? 'ativado' : 'inativado'} com sucesso.`,
-      })
-    } catch (err: any) {
-      toast({ title: 'Erro', description: getErrorMessage(err), variant: 'destructive' })
-    }
+  const handleToggleStatus = (user: any) => {
+    setUsers((prev) => prev.map((u) => (u.id === user.id ? { ...u, active: !user.active } : u)))
+    logAudit(
+      'TOGGLE_USER_STATUS',
+      `Status do usuário ${user.email} alterado para ${!user.active ? 'Ativo' : 'Inativo'}`,
+    )
+    toast({
+      title: 'Sucesso',
+      description: `Usuário ${!user.active ? 'ativado' : 'inativado'} com sucesso.`,
+    })
   }
 
   return (
@@ -249,19 +190,7 @@ export default function Usuarios() {
           </Button>
         </div>
 
-        {error ? (
-          <div className="flex flex-col items-center justify-center py-12 px-4 text-center border rounded-lg bg-muted/20 mt-4">
-            <AlertCircle className="w-8 h-8 text-destructive mb-4" />
-            <p className="text-muted-foreground mb-4">{error}</p>
-            <Button onClick={() => fetchUsers()} variant="outline">
-              Tentar Novamente
-            </Button>
-          </div>
-        ) : loading ? (
-          <div className="flex justify-center items-center py-12 text-muted-foreground">
-            <Loader2 className="w-8 h-8 animate-spin" />
-          </div>
-        ) : users.length === 0 ? (
+        {users.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 px-4 text-center border rounded-lg bg-muted/20">
             <p className="text-muted-foreground mb-4">Nenhum usuário encontrado.</p>
             <Button onClick={() => openForm()} variant="outline">
@@ -289,9 +218,8 @@ export default function Usuarios() {
                     >
                       <AvatarImage
                         src={
-                          user?.avatar
-                            ? pb.files.getUrl(user, user.avatar)
-                            : `https://img.usecurling.com/ppl/thumbnail?seed=${user?.id || 'default'}`
+                          user?.avatar ||
+                          `https://img.usecurling.com/ppl/thumbnail?seed=${user?.id || 'default'}`
                         }
                       />
                       <AvatarFallback>
@@ -350,7 +278,7 @@ export default function Usuarios() {
           </div>
         )}
 
-        <Dialog open={isOpen} onOpenChange={(v) => !isSaving && setIsOpen(v)}>
+        <Dialog open={isOpen} onOpenChange={(v) => setIsOpen(v)}>
           <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editingUser ? 'Editar Usuário' : 'Novo Usuário'}</DialogTitle>
@@ -368,12 +296,7 @@ export default function Usuarios() {
                   )}
                 </Avatar>
                 <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={isSaving}
-                  >
+                  <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
                     <Upload className="w-4 h-4 mr-2" />
                     Foto
                   </Button>
@@ -383,7 +306,6 @@ export default function Usuarios() {
                       size="sm"
                       onClick={handleRemoveAvatar}
                       className="text-destructive"
-                      disabled={isSaving}
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>
@@ -405,11 +327,8 @@ export default function Usuarios() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Ex: Ana Silva"
-                  className={fieldErrors.name ? 'border-destructive' : ''}
                   autoComplete="name"
-                  disabled={isSaving}
                 />
-                {fieldErrors.name && <p className="text-xs text-destructive">{fieldErrors.name}</p>}
               </div>
               <div className="space-y-2">
                 <Label>E-mail (Login) *</Label>
@@ -419,13 +338,8 @@ export default function Usuarios() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="email@gestao.com"
-                  className={fieldErrors.email ? 'border-destructive' : ''}
                   autoComplete="email"
-                  disabled={isSaving}
                 />
-                {fieldErrors.email && (
-                  <p className="text-xs text-destructive">{fieldErrors.email}</p>
-                )}
               </div>
               <div className="space-y-2">
                 <Label>Telefone</Label>
@@ -435,13 +349,8 @@ export default function Usuarios() {
                   value={phone}
                   onChange={(e) => setPhone(formatPhone(e.target.value))}
                   placeholder="(00) 00000-0000"
-                  className={fieldErrors.phone ? 'border-destructive' : ''}
                   autoComplete="tel"
-                  disabled={isSaving}
                 />
-                {fieldErrors.phone && (
-                  <p className="text-xs text-destructive">{fieldErrors.phone}</p>
-                )}
               </div>
               <div className="space-y-2">
                 <Label>
@@ -454,9 +363,8 @@ export default function Usuarios() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className={`pr-10 ${fieldErrors.password ? 'border-destructive' : ''}`}
+                    className="pr-10"
                     autoComplete="new-password"
-                    disabled={isSaving}
                   />
                   <Button
                     type="button"
@@ -464,22 +372,14 @@ export default function Usuarios() {
                     size="icon"
                     className="absolute right-0 top-0 h-full w-10 text-muted-foreground hover:text-foreground hover:bg-transparent"
                     onClick={() => setShowPassword(!showPassword)}
-                    disabled={isSaving}
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </Button>
                 </div>
-                {fieldErrors.password && (
-                  <p className="text-xs text-destructive">{fieldErrors.password}</p>
-                )}
               </div>
               <div className="space-y-2">
                 <Label>Perfil de Acesso *</Label>
-                <Select
-                  value={role}
-                  onValueChange={(v: 'admin' | 'operator') => setRole(v)}
-                  disabled={isSaving}
-                >
+                <Select value={role} onValueChange={(v: 'admin' | 'operator') => setRole(v)}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -490,25 +390,17 @@ export default function Usuarios() {
                 </Select>
               </div>
               <div className="flex items-center space-x-2 pt-2">
-                <Switch
-                  id="active-user"
-                  checked={active}
-                  onCheckedChange={setActive}
-                  disabled={isSaving}
-                />
+                <Switch id="active-user" checked={active} onCheckedChange={setActive} />
                 <Label htmlFor="active-user" className="cursor-pointer">
                   Usuário Ativo
                 </Label>
               </div>
             </div>
             <div className="flex justify-end gap-2 pt-2">
-              <Button variant="outline" onClick={() => setIsOpen(false)} disabled={isSaving}>
+              <Button variant="outline" onClick={() => setIsOpen(false)}>
                 Cancelar
               </Button>
-              <Button onClick={handleSave} disabled={isSaving}>
-                {isSaving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                Salvar
-              </Button>
+              <Button onClick={handleSave}>Salvar</Button>
             </div>
           </DialogContent>
         </Dialog>

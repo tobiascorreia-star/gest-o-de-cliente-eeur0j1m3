@@ -1,12 +1,7 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { AlertCircle, Loader2 } from 'lucide-react'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { ConfigDataTable } from '@/components/configuracao/config-lists'
 import { ErrorBoundary } from '@/components/error-boundary'
-import pb from '@/lib/pocketbase/client'
-import { useRealtime } from '@/hooks/use-realtime'
-import { Button } from '@/components/ui/button'
 
 const LIST_TYPES = [
   { value: 'colaboradores', label: 'Colaboradores' },
@@ -21,33 +16,96 @@ const ALERT_TYPES = [
   { value: 'businessRule', label: 'Regra de Negócio' },
 ]
 
-const Configuracao = () => {
-  const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [configurations, setConfigurations] = useState<any[]>([])
+const MOCK_CONFIGURATIONS = [
+  {
+    id: '1',
+    type: 'colaboradores',
+    name: 'Ana Silva',
+    color: '',
+    active: true,
+    description: 'Analista Sênior',
+  },
+  {
+    id: '2',
+    type: 'colaboradores',
+    name: 'Carlos Santos',
+    color: '',
+    active: true,
+    description: 'Suporte',
+  },
+  {
+    id: '3',
+    type: 'solicitacoes',
+    name: 'Renovação de Contrato',
+    color: '',
+    active: true,
+    description: '',
+  },
+  {
+    id: '4',
+    type: 'statusList',
+    name: 'Em Aberto',
+    color: 'bg-blue-100 text-blue-800',
+    active: true,
+    description: '',
+  },
+  {
+    id: '5',
+    type: 'statusList',
+    name: 'Em Análise',
+    color: 'bg-yellow-100 text-yellow-800',
+    active: true,
+    description: '',
+  },
+  {
+    id: '6',
+    type: 'statusList',
+    name: 'Baixa',
+    color: 'bg-green-100 text-green-800',
+    active: true,
+    description: '',
+  },
+  {
+    id: '7',
+    type: 'categorias',
+    name: 'VIP',
+    color: 'bg-purple-100 text-purple-800',
+    active: true,
+    description: '',
+  },
+  {
+    id: '8',
+    type: 'categorias',
+    name: 'Regular',
+    color: 'bg-gray-100 text-gray-800',
+    active: true,
+    description: '',
+  },
+  { id: '9', type: 'pgtoTipos', name: 'Pix', color: '', active: true, description: '' },
+  {
+    id: '10',
+    type: 'pgtoTipos',
+    name: 'Cartão de Crédito',
+    color: '',
+    active: true,
+    description: '',
+  },
+]
 
-  const fetchConfigs = async () => {
-    try {
-      setLoading(true)
-      setError(null)
-      const records = await pb.collection('configurations').getFullList({ sort: '-created' })
-      setConfigurations(records || [])
-    } catch (err: any) {
-      if (!err.isAbort) {
-        setError('Falha ao carregar configurações.')
-      }
-    } finally {
-      setLoading(false)
-    }
+const Configuracao = () => {
+  const [configurations, setConfigurations] = useState<any[]>(MOCK_CONFIGURATIONS)
+
+  const handleUpdate = (id: string, data: any) => {
+    setConfigurations((prev) => prev.map((c) => (c.id === id ? { ...c, ...data } : c)))
   }
 
-  useEffect(() => {
-    fetchConfigs()
-  }, [])
+  const handleAdd = (data: any) => {
+    setConfigurations((prev) => [{ id: Date.now().toString(), ...data }, ...prev])
+  }
 
-  useRealtime('configurations', () => {
-    fetchConfigs()
-  })
+  const handleDelete = (id: string) => {
+    setConfigurations((prev) => prev.filter((c) => c.id !== id))
+  }
 
   return (
     <ErrorBoundary>
@@ -59,44 +117,34 @@ const Configuracao = () => {
           </p>
         </div>
 
-        {error ? (
-          <div className="flex flex-col items-center justify-center py-12 px-4 text-center border rounded-lg bg-muted/20 mt-4">
-            <AlertCircle className="w-8 h-8 text-destructive mb-4" />
-            <p className="text-muted-foreground mb-4">{error}</p>
-            <Button onClick={() => fetchConfigs()} variant="outline">
-              Tentar Novamente
-            </Button>
-          </div>
-        ) : loading ? (
-          <div className="flex justify-center items-center py-12 text-muted-foreground">
-            <Loader2 className="w-8 h-8 animate-spin" />
-          </div>
-        ) : (
-          <Tabs defaultValue="listas" className="mt-4">
-            <TabsList className="bg-muted/50 border">
-              <TabsTrigger value="listas">Dados Cadastrais</TabsTrigger>
-              <TabsTrigger value="alertas">Alertas e Regras</TabsTrigger>
-            </TabsList>
-            <TabsContent value="listas" className="mt-4">
-              <ConfigDataTable
-                title="Listas do Sistema"
-                description="Gerencie as opções disponíveis nos formulários."
-                types={LIST_TYPES}
-                data={configurations}
-                onRefresh={fetchConfigs}
-              />
-            </TabsContent>
-            <TabsContent value="alertas" className="mt-4">
-              <ConfigDataTable
-                title="Alertas e Regras"
-                description="Configure as regras de notificação e prazos do sistema."
-                types={ALERT_TYPES}
-                data={configurations}
-                onRefresh={fetchConfigs}
-              />
-            </TabsContent>
-          </Tabs>
-        )}
+        <Tabs defaultValue="listas" className="mt-4">
+          <TabsList className="bg-muted/50 border">
+            <TabsTrigger value="listas">Dados Cadastrais</TabsTrigger>
+            <TabsTrigger value="alertas">Alertas e Regras</TabsTrigger>
+          </TabsList>
+          <TabsContent value="listas" className="mt-4">
+            <ConfigDataTable
+              title="Listas do Sistema"
+              description="Gerencie as opções disponíveis nos formulários."
+              types={LIST_TYPES}
+              data={configurations}
+              onAdd={handleAdd}
+              onUpdate={handleUpdate}
+              onDelete={handleDelete}
+            />
+          </TabsContent>
+          <TabsContent value="alertas" className="mt-4">
+            <ConfigDataTable
+              title="Alertas e Regras"
+              description="Configure as regras de notificação e prazos do sistema."
+              types={ALERT_TYPES}
+              data={configurations}
+              onAdd={handleAdd}
+              onUpdate={handleUpdate}
+              onDelete={handleDelete}
+            />
+          </TabsContent>
+        </Tabs>
       </div>
     </ErrorBoundary>
   )

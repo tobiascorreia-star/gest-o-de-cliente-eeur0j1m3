@@ -1,9 +1,8 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
-import pb from '@/lib/pocketbase/client'
+import { createContext, useContext, useState, ReactNode } from 'react'
 
 interface AuthContextType {
   user: any
-  signIn: (email: string, password: string) => Promise<{ error: any }>
+  signIn: (email: string, password?: string) => Promise<{ error: any }>
   signOut: () => void
   loading: boolean
 }
@@ -17,32 +16,37 @@ export const useAuth = () => {
 }
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<any>(pb.authStore.record)
-  const [loading, setLoading] = useState(true)
+  const [user, setUser] = useState<any>(() => {
+    const saved = localStorage.getItem('currentUser')
+    return saved ? JSON.parse(saved) : null
+  })
+  const [loading, setLoading] = useState(false)
 
-  useEffect(() => {
-    setUser(pb.authStore.record)
-    const unsubscribe = pb.authStore.onChange((_token, record) => {
-      setUser(record)
-    })
+  const signIn = async (email: string, password?: string) => {
+    setLoading(true)
+    // Simulate network request
+    await new Promise((resolve) => setTimeout(resolve, 500))
     setLoading(false)
-    return () => {
-      unsubscribe()
-    }
-  }, [])
 
-  const signIn = async (email: string, password: string) => {
-    try {
-      await pb.collection('users').authWithPassword(email, password)
+    if (email) {
+      const mockUser = {
+        id: 'u1',
+        name: 'Administrador',
+        email,
+        role: 'admin',
+        avatarUrl: 'https://img.usecurling.com/ppl/thumbnail?gender=male&seed=1',
+        active: true,
+      }
+      setUser(mockUser)
+      localStorage.setItem('currentUser', JSON.stringify(mockUser))
       return { error: null }
-    } catch (error) {
-      return { error }
     }
+    return { error: new Error('Credenciais inválidas') }
   }
 
   const signOut = () => {
-    pb.authStore.clear()
     setUser(null)
+    localStorage.removeItem('currentUser')
   }
 
   return (

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useApp } from '@/contexts/app-context'
 import { useAuth } from '@/hooks/use-auth'
-import pb from '@/lib/pocketbase/client'
+
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Building2, Eye, EyeOff, KeyRound, Mail } from 'lucide-react'
@@ -81,19 +81,11 @@ export default function Login() {
                     return
                   }
 
-                  try {
-                    pb.collection('users').requestPasswordReset(email)
-                    toast({
-                      title: 'Recuperação',
-                      description: 'Um e-mail foi enviado com as instruções se a conta existir.',
-                    })
-                  } catch (err) {
-                    toast({
-                      title: 'Erro',
-                      description: 'Não foi possível solicitar a redefinição de senha.',
-                      variant: 'destructive',
-                    })
-                  }
+                  requestPasswordReset(email)
+                  toast({
+                    title: 'Recuperação',
+                    description: 'Um e-mail foi enviado com as instruções se a conta existir.',
+                  })
                 }}
               >
                 Esqueceu a senha?

@@ -1,12 +1,9 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useMemo } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Plus, Trash2, Edit2, Search, Loader2 } from 'lucide-react'
+import { Plus, Trash2, Edit2, Search } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
-import pb from '@/lib/pocketbase/client'
-import { useRealtime } from '@/hooks/use-realtime'
-import { getErrorMessage } from '@/lib/pocketbase/errors'
 import { logAudit } from '@/services/audit'
 import {
   Table,
@@ -52,7 +49,9 @@ interface ConfigDataTableProps {
   description: string
   types: { value: string; label: string }[]
   data: any[]
-  onRefresh: () => void
+  onAdd: (data: any) => void
+  onUpdate: (id: string, data: any) => void
+  onDelete: (id: string) => void
 }
 
 export function ConfigDataTable({
@@ -60,7 +59,9 @@ export function ConfigDataTable({
   description,
   types,
   data,
-  onRefresh,
+  onAdd,
+  onUpdate,
+  onDelete,
 }: ConfigDataTableProps) {
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState('all')
@@ -106,7 +107,7 @@ export function ConfigDataTable({
     setOpen(true)
   }
 
-  const handleSave = async () => {
+  const handleSave = () => {
     if (!formData.name.trim() || !formData.type) {
       toast({
         title: 'Atenção',
@@ -115,62 +116,32 @@ export function ConfigDataTable({
       })
       return
     }
-    try {
-      if (editingId) {
-        await pb.collection('configurations').update(editingId, formData)
-        try {
-          await logAudit('UPDATE_CONFIG', `Atualizada configuração: ${formData.name}`)
-        } catch (e) {
-          console.error(e)
-        }
-        toast({ title: 'Sucesso', description: 'Configuração atualizada com sucesso.' })
-      } else {
-        await pb.collection('configurations').create(formData)
-        try {
-          await logAudit('CREATE_CONFIG', `Criada configuração: ${formData.name}`)
-        } catch (e) {
-          console.error(e)
-        }
-        toast({ title: 'Sucesso', description: 'Configuração criada com sucesso.' })
-      }
-      setOpen(false)
-      onRefresh()
-    } catch (err) {
-      toast({ title: 'Erro', description: getErrorMessage(err), variant: 'destructive' })
+
+    if (editingId) {
+      onUpdate(editingId, formData)
+      logAudit('UPDATE_CONFIG', `Atualizada configuração: ${formData.name}`)
+      toast({ title: 'Sucesso', description: 'Configuração atualizada com sucesso.' })
+    } else {
+      onAdd(formData)
+      logAudit('CREATE_CONFIG', `Criada configuração: ${formData.name}`)
+      toast({ title: 'Sucesso', description: 'Configuração criada com sucesso.' })
     }
+    setOpen(false)
   }
 
-  const handleDelete = async (id: string, name: string) => {
+  const handleDeleteClick = (id: string, name: string) => {
     if (!window.confirm('Tem certeza que deseja excluir esta configuração?')) return
-    try {
-      await pb.collection('configurations').delete(id)
-      try {
-        await logAudit('DELETE_CONFIG', `Removida configuração: ${name}`)
-      } catch (e) {
-        console.error(e)
-      }
-      toast({ title: 'Sucesso', description: 'Configuração removida.' })
-      onRefresh()
-    } catch (err) {
-      toast({ title: 'Erro', description: getErrorMessage(err), variant: 'destructive' })
-    }
+    onDelete(id)
+    logAudit('DELETE_CONFIG', `Removida configuração: ${name}`)
+    toast({ title: 'Sucesso', description: 'Configuração removida.' })
   }
 
-  const toggleStatus = async (item: any) => {
-    try {
-      await pb.collection('configurations').update(item.id, { active: !item.active })
-      try {
-        await logAudit(
-          'TOGGLE_CONFIG_STATUS',
-          `Status da configuração ${item.name} alterado para ${!item.active ? 'Ativo' : 'Inativo'}`,
-        )
-      } catch (e) {
-        console.error(e)
-      }
-      onRefresh()
-    } catch (err) {
-      toast({ title: 'Erro', description: getErrorMessage(err), variant: 'destructive' })
-    }
+  const toggleStatus = (item: any) => {
+    onUpdate(item.id, { active: !item.active })
+    logAudit(
+      'TOGGLE_CONFIG_STATUS',
+      `Status da configuração ${item.name} alterado para ${!item.active ? 'Ativo' : 'Inativo'}`,
+    )
   }
 
   const getTypeLabel = (typeVal: string) => types.find((t) => t.value === typeVal)?.label || typeVal
@@ -278,7 +249,7 @@ export function ConfigDataTable({
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => handleDelete(item.id, item.name)}
+                          onClick={() => handleDeleteClick(item.id, item.name)}
                           className="h-8 w-8 text-destructive hover:bg-destructive/10"
                         >
                           <Trash2 className="w-4 h-4" />
