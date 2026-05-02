@@ -114,29 +114,46 @@ export default function Usuarios() {
     }
 
     try {
-      const formData = new FormData()
-      formData.append('name', name || '')
-      formData.append('email', email || '')
-      formData.append('role', role || '')
-      formData.append('phone', phone || '')
-      formData.append('active', active ? 'true' : 'false')
+      let payload: any = {
+        name: name || '',
+        email: email || '',
+        role: role || '',
+        phone: phone || '',
+        active: active,
+      }
 
       if (password) {
-        formData.append('password', password)
-        formData.append('passwordConfirm', password)
+        payload.password = password
+        payload.passwordConfirm = password
       }
 
-      if (avatarFile) {
-        formData.append('avatar', avatarFile)
-      } else if (avatarPreview === null && editingUser?.avatar) {
-        formData.append('avatar', '')
+      let savePromise
+      if (avatarFile || (avatarPreview === null && editingUser?.avatar)) {
+        const formData = new FormData()
+        Object.keys(payload).forEach((key) => {
+          formData.append(
+            key,
+            typeof payload[key] === 'boolean' ? (payload[key] ? 'true' : 'false') : payload[key],
+          )
+        })
+        if (avatarFile) {
+          formData.append('avatar', avatarFile)
+        } else if (avatarPreview === null && editingUser?.avatar) {
+          formData.append('avatar', '')
+        }
+        savePromise = editingUser
+          ? pb.collection('users').update(editingUser.id, formData)
+          : pb.collection('users').create(formData)
+      } else {
+        savePromise = editingUser
+          ? pb.collection('users').update(editingUser.id, payload)
+          : pb.collection('users').create(payload)
       }
 
+      await savePromise
       if (editingUser) {
-        await pb.collection('users').update(editingUser.id, formData)
         toast({ title: 'Sucesso', description: 'Usuário atualizado com sucesso!' })
       } else {
-        await pb.collection('users').create(formData)
         toast({ title: 'Sucesso', description: 'Novo usuário criado!' })
       }
 
