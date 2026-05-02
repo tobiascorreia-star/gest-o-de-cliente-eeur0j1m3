@@ -1,7 +1,15 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { ConfigDataTable } from '@/components/configuracao/config-lists'
 import { ErrorBoundary } from '@/components/error-boundary'
+import {
+  getConfigurations,
+  createConfiguration,
+  updateConfiguration,
+  deleteConfiguration,
+} from '@/services/configurations'
+import { useRealtime } from '@/hooks/use-realtime'
+import { toast } from '@/hooks/use-toast'
 
 const LIST_TYPES = [
   { value: 'colaboradores', label: 'Colaboradores' },
@@ -16,95 +24,51 @@ const ALERT_TYPES = [
   { value: 'businessRule', label: 'Regra de Negócio' },
 ]
 
-const MOCK_CONFIGURATIONS = [
-  {
-    id: '1',
-    type: 'colaboradores',
-    name: 'Ana Silva',
-    color: '',
-    active: true,
-    description: 'Analista Sênior',
-  },
-  {
-    id: '2',
-    type: 'colaboradores',
-    name: 'Carlos Santos',
-    color: '',
-    active: true,
-    description: 'Suporte',
-  },
-  {
-    id: '3',
-    type: 'solicitacoes',
-    name: 'Renovação de Contrato',
-    color: '',
-    active: true,
-    description: '',
-  },
-  {
-    id: '4',
-    type: 'statusList',
-    name: 'Em Aberto',
-    color: 'bg-blue-100 text-blue-800',
-    active: true,
-    description: '',
-  },
-  {
-    id: '5',
-    type: 'statusList',
-    name: 'Em Análise',
-    color: 'bg-yellow-100 text-yellow-800',
-    active: true,
-    description: '',
-  },
-  {
-    id: '6',
-    type: 'statusList',
-    name: 'Baixa',
-    color: 'bg-green-100 text-green-800',
-    active: true,
-    description: '',
-  },
-  {
-    id: '7',
-    type: 'categorias',
-    name: 'VIP',
-    color: 'bg-purple-100 text-purple-800',
-    active: true,
-    description: '',
-  },
-  {
-    id: '8',
-    type: 'categorias',
-    name: 'Regular',
-    color: 'bg-gray-100 text-gray-800',
-    active: true,
-    description: '',
-  },
-  { id: '9', type: 'pgtoTipos', name: 'Pix', color: '', active: true, description: '' },
-  {
-    id: '10',
-    type: 'pgtoTipos',
-    name: 'Cartão de Crédito',
-    color: '',
-    active: true,
-    description: '',
-  },
-]
-
 const Configuracao = () => {
-  const [configurations, setConfigurations] = useState<any[]>(MOCK_CONFIGURATIONS)
+  const [configurations, setConfigurations] = useState<any[]>([])
 
-  const handleUpdate = (id: string, data: any) => {
-    setConfigurations((prev) => prev.map((c) => (c.id === id ? { ...c, ...data } : c)))
+  const loadData = async () => {
+    try {
+      const data = await getConfigurations()
+      setConfigurations(data)
+    } catch (err) {
+      console.error(err)
+    }
   }
 
-  const handleAdd = (data: any) => {
-    setConfigurations((prev) => [{ id: Date.now().toString(), ...data }, ...prev])
+  useEffect(() => {
+    loadData()
+  }, [])
+
+  useRealtime('configurations', () => {
+    loadData()
+  })
+
+  const handleUpdate = async (id: string, data: any) => {
+    try {
+      await updateConfiguration(id, data)
+    } catch (err: any) {
+      toast({ title: 'Erro', description: err.message, variant: 'destructive' })
+      throw err
+    }
   }
 
-  const handleDelete = (id: string) => {
-    setConfigurations((prev) => prev.filter((c) => c.id !== id))
+  const handleAdd = async (data: any) => {
+    try {
+      await createConfiguration(data)
+    } catch (err: any) {
+      toast({ title: 'Erro', description: err.message, variant: 'destructive' })
+      throw err
+    }
+  }
+
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteConfiguration(id)
+    } catch (err: any) {
+      toast({ title: 'Erro', description: err.message, variant: 'destructive' })
+      throw err
+    }
   }
 
   return (
@@ -120,7 +84,7 @@ const Configuracao = () => {
         <Tabs defaultValue="listas" className="mt-4">
           <TabsList className="bg-muted/50 border">
             <TabsTrigger value="listas">Dados Cadastrais</TabsTrigger>
-            <TabsTrigger value="alertas">Alertas e Regras</TabsTrigger>
+            <TabsTrigger value="alertas">Área de Alerta</TabsTrigger>
           </TabsList>
           <TabsContent value="listas" className="mt-4">
             <ConfigDataTable
@@ -135,7 +99,7 @@ const Configuracao = () => {
           </TabsContent>
           <TabsContent value="alertas" className="mt-4">
             <ConfigDataTable
-              title="Alertas e Regras"
+              title="Área de Alerta"
               description="Configure as regras de notificação e prazos do sistema."
               types={ALERT_TYPES}
               data={configurations}

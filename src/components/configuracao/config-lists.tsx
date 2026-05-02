@@ -49,9 +49,9 @@ interface ConfigDataTableProps {
   description: string
   types: { value: string; label: string }[]
   data: any[]
-  onAdd: (data: any) => void
-  onUpdate: (id: string, data: any) => void
-  onDelete: (id: string) => void
+  onAdd: (data: any) => Promise<void> | void
+  onUpdate: (id: string, data: any) => Promise<void> | void
+  onDelete: (id: string) => Promise<void> | void
 }
 
 export function ConfigDataTable({
@@ -67,12 +67,14 @@ export function ConfigDataTable({
   const [typeFilter, setTypeFilter] = useState('all')
   const [open, setOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [isSaving, setIsSaving] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
     type: '',
     color: '',
     description: '',
     active: true,
+    days: '' as string | number,
   })
 
   const filteredConfigs = useMemo(() => {
@@ -91,7 +93,14 @@ export function ConfigDataTable({
 
   const handleOpenCreate = () => {
     setEditingId(null)
-    setFormData({ name: '', type: types[0]?.value || '', color: '', description: '', active: true })
+    setFormData({
+      name: '',
+      type: types[0]?.value || '',
+      color: '',
+      description: '',
+      active: true,
+      days: '',
+    })
     setOpen(true)
   }
 
@@ -103,11 +112,12 @@ export function ConfigDataTable({
       color: item.color || '',
       description: item.description || '',
       active: item.active !== false,
+      days: item.days ?? '',
     })
     setOpen(true)
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!formData.name.trim() || !formData.type) {
       toast({
         title: 'Atenção',
@@ -117,31 +127,67 @@ export function ConfigDataTable({
       return
     }
 
-    if (editingId) {
-      onUpdate(editingId, formData)
-      logAudit('UPDATE_CONFIG', `Atualizada configuração: ${formData.name}`)
-      toast({ title: 'Sucesso', description: 'Configuração atualizada com sucesso.' })
-    } else {
-      onAdd(formData)
-      logAudit('CREATE_CONFIG', `Criada configuração: ${formData.name}`)
-      toast({ title: 'Sucesso', description: 'Configuração criada com sucesso.' })
+    setIsSaving(true)
+    try {
+      const dataToSave = {
+        ...formData,
+        days: formData.days === '' ? null : Number(formData.days),
+      }
+
+      if (editingId) {
+        await onUpdate(editingId, dataToSave)
+        try {
+          logAudit('UPDATE_CONFIG', `Atualizada configuração: ${formData.name}`)
+        } catch {
+          /* intentionally ignored */
+        }
+        toast({ title: 'Sucesso', description: 'Configuração atualizada com sucesso.' })
+      } else {
+        await onAdd(dataToSave)
+        try {
+          logAudit('CREATE_CONFIG', `Criada configuração: ${formData.name}`)
+        } catch {
+          /* intentionally ignored */
+        }
+        toast({ title: 'Sucesso', description: 'Configuração criada com sucesso.' })
+      }
+      setOpen(false)
+    } catch (err) {
+      // Errors handled by parent component catching and toasting
+    } finally {
+      setIsSaving(false)
     }
-    setOpen(false)
   }
 
-  const handleDeleteClick = (id: string, name: string) => {
+  const handleDeleteClick = async (id: string, name: string) => {
     if (!window.confirm('Tem certeza que deseja excluir esta configuração?')) return
-    onDelete(id)
-    logAudit('DELETE_CONFIG', `Removida configuração: ${name}`)
-    toast({ title: 'Sucesso', description: 'Configuração removida.' })
+    try {
+      await onDelete(id)
+      try {
+        logAudit('DELETE_CONFIG', `Removida configuração: ${name}`)
+      } catch {
+        /* intentionally ignored */
+      }
+      toast({ title: 'Sucesso', description: 'Configuração removida.' })
+    } catch (err) {
+      // Errors handled by parent
+    }
   }
 
-  const toggleStatus = (item: any) => {
-    onUpdate(item.id, { active: !item.active })
-    logAudit(
-      'TOGGLE_CONFIG_STATUS',
-      `Status da configuração ${item.name} alterado para ${!item.active ? 'Ativo' : 'Inativo'}`,
-    )
+  const toggleStatus = async (item: any) => {
+    try {
+      await onUpdate(item.id, { active: !item.active })
+      try {
+        logAudit(
+          'TOGGLE_CONFIG_STATUS',
+          `Status da configuração ${item.name} alterado para ${!item.active ? 'Ativo' : 'Inativo'}`,
+        )
+      } catch {
+        /* intentionally ignored */
+      }
+    } catch (err) {
+      // Errors handled by parent
+    }
   }
 
   const getTypeLabel = (typeVal: string) => types.find((t) => t.value === typeVal)?.label || typeVal
@@ -193,6 +239,7 @@ export function ConfigDataTable({
                 <TableHead>Tipo</TableHead>
                 <TableHead className="hidden md:table-cell">Descrição</TableHead>
                 <TableHead>Cor</TableHead>
+                <TableHead className="w-[80px] text-right">Dias</TableHead>
                 <TableHead className="w-[80px] text-center">Ativo</TableHead>
                 <TableHead className="w-[100px] text-right">Ações</TableHead>
               </TableRow>
@@ -200,7 +247,7 @@ export function ConfigDataTable({
             <TableBody>
               {filteredConfigs.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="h-32 text-center">
+                  <TableCell colSpan={7} className="h-32 text-center">
                     <div className="flex flex-col items-center justify-center py-4 space-y-3">
                       <p className="text-muted-foreground">Nenhuma configuração encontrada.</p>
                       <Button onClick={handleOpenCreate} variant="outline" size="sm">
@@ -228,6 +275,13 @@ export function ConfigDataTable({
                         </Badge>
                       ) : (
                         <span className="text-muted-foreground text-sm">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {item.days !== null && item.days !== undefined && item.days !== '' ? (
+                        item.days
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
                       )}
                     </TableCell>
                     <TableCell className="text-center">
@@ -303,6 +357,17 @@ export function ConfigDataTable({
               />
             </div>
             <div className="grid gap-2">
+              <Label htmlFor="days">Dias (Duração / Prazo)</Label>
+              <Input
+                id="days"
+                type="number"
+                min="0"
+                value={formData.days}
+                onChange={(e) => setFormData((prev) => ({ ...prev, days: e.target.value }))}
+                placeholder="Ex: 7"
+              />
+            </div>
+            <div className="grid gap-2">
               <Label>Cor de Destaque</Label>
               <div className="flex flex-wrap gap-3 mt-1">
                 {COLORS.map((c) => (
@@ -353,10 +418,12 @@ export function ConfigDataTable({
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>
+            <Button variant="outline" onClick={() => setOpen(false)} disabled={isSaving}>
               Cancelar
             </Button>
-            <Button onClick={handleSave}>Salvar</Button>
+            <Button onClick={handleSave} disabled={isSaving}>
+              {isSaving ? 'Salvando...' : 'Salvar'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
