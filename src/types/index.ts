@@ -50,6 +50,8 @@ export interface User {
   role: 'Admin' | 'Operator'
   avatarUrl?: string
   password?: string
+  phone?: string
+  active?: boolean
 }
 
 export interface PasswordResetRequest {

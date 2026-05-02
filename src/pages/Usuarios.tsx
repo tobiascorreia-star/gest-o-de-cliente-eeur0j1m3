@@ -22,6 +22,8 @@ import {
 } from '@/components/ui/select'
 import { toast } from '@/hooks/use-toast'
 import pb from '@/lib/pocketbase/client'
+import { useRealtime } from '@/hooks/use-realtime'
+import { extractFieldErrors, getErrorMessage, type FieldErrors } from '@/lib/pocketbase/errors'
 
 export default function Usuarios() {
   const [users, setUsers] = useState<any[]>([])
@@ -32,10 +34,13 @@ export default function Usuarios() {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [phone, setPhone] = useState('')
+  const [active, setActive] = useState(true)
   const [role, setRole] = useState<'admin' | 'operator'>('operator')
   const [showPassword, setShowPassword] = useState(false)
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -50,21 +55,19 @@ export default function Usuarios() {
 
   useEffect(() => {
     fetchUsers()
-
-    const unsubscribePromise = pb.collection('users').subscribe('*', function () {
-      fetchUsers()
-    })
-
-    return () => {
-      unsubscribePromise.then(() => pb.collection('users').unsubscribe('*')).catch(() => {})
-    }
   }, [])
+
+  useRealtime('users', () => {
+    fetchUsers()
+  })
 
   const openForm = (u?: any) => {
     if (u) {
       setEditingUser(u)
       setName(u.name || '')
       setEmail(u.email || '')
+      setPhone(u.phone || '')
+      setActive(u.active !== false)
       setPassword('')
       setRole(u.role || 'operator')
       setAvatarPreview(u.avatar ? pb.files.getURL(u, u.avatar) : null)
@@ -72,10 +75,13 @@ export default function Usuarios() {
       setEditingUser(null)
       setName('')
       setEmail('')
+      setPhone('')
+      setActive(true)
       setPassword('')
       setRole('operator')
       setAvatarPreview(null)
     }
+    setFieldErrors({})
     setAvatarFile(null)
     setShowPassword(false)
     setIsOpen(true)
@@ -95,10 +101,12 @@ export default function Usuarios() {
   }
 
   const handleSave = async () => {
+    setFieldErrors({})
+
     if (!name || !email || (!editingUser && !password)) {
       toast({
-        title: 'Erro',
-        description: 'Preencha os campos obrigatórios.',
+        title: 'Erro de validação',
+        description: 'Por favor, preencha todos os campos obrigatórios.',
         variant: 'destructive',
       })
       return
@@ -109,6 +117,8 @@ export default function Usuarios() {
       formData.append('name', name)
       formData.append('email', email)
       formData.append('role', role)
+      formData.append('phone', phone)
+      formData.append('active', active ? 'true' : 'false')
 
       if (password) {
         formData.append('password', password)
@@ -132,9 +142,11 @@ export default function Usuarios() {
       setIsOpen(false)
       fetchUsers()
     } catch (err: any) {
+      const errors = extractFieldErrors(err)
+      setFieldErrors(errors)
       toast({
         title: 'Erro ao salvar',
-        description: err.response?.message || 'Ocorreu um erro ao processar sua requisição.',
+        description: getErrorMessage(err) || 'Verifique os campos e tente novamente.',
         variant: 'destructive',
       })
     }
@@ -250,7 +262,9 @@ export default function Usuarios() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Ex: Ana Silva"
+                className={fieldErrors.name ? 'border-destructive' : ''}
               />
+              {fieldErrors.name && <p className="text-xs text-destructive">{fieldErrors.name}</p>}
             </div>
             <div className="space-y-2">
               <Label>E-mail (Login) *</Label>
@@ -259,7 +273,20 @@ export default function Usuarios() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="email@gestao.com"
+                className={fieldErrors.email ? 'border-destructive' : ''}
               />
+              {fieldErrors.email && <p className="text-xs text-destructive">{fieldErrors.email}</p>}
+            </div>
+            <div className="space-y-2">
+              <Label>Telefone</Label>
+              <Input
+                type="text"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="(00) 00000-0000"
+                className={fieldErrors.phone ? 'border-destructive' : ''}
+              />
+              {fieldErrors.phone && <p className="text-xs text-destructive">{fieldErrors.phone}</p>}
             </div>
             <div className="space-y-2">
               <Label>{editingUser ? 'Nova Senha (deixe em branco para manter)' : 'Senha *'}</Label>
@@ -269,6 +296,7 @@ export default function Usuarios() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
+                  className={fieldErrors.password ? 'border-destructive' : ''}
                 />
                 <Button
                   type="button"
@@ -280,6 +308,9 @@ export default function Usuarios() {
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </Button>
               </div>
+              {fieldErrors.password && (
+                <p className="text-xs text-destructive">{fieldErrors.password}</p>
+              )}
             </div>
             <div className="space-y-2">
               <Label>Perfil de Acesso *</Label>

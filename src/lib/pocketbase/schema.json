@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-02T11:42:57.213Z",
+  "generatedAt": "2026-05-02T13:36:47.446Z",
   "collections": [
     {
       "name": "users",
@@ -44,6 +44,18 @@
           "required": false,
           "system": false,
           "selectValues": ["admin", "operator"]
+        },
+        {
+          "name": "phone",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "active",
+          "type": "bool",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [
@@ -93,6 +105,18 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "active",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": []

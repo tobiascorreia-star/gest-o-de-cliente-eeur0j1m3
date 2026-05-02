@@ -6,6 +6,8 @@ import { Plus, Trash2 } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
 import pb from '@/lib/pocketbase/client'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { useRealtime } from '@/hooks/use-realtime'
+import { getErrorMessage } from '@/lib/pocketbase/errors'
 
 type ConfigListType = 'colaboradores' | 'solicitacoes' | 'statusList' | 'categorias' | 'pgtoTipos'
 
@@ -50,11 +52,22 @@ export function ConfigLists() {
     fetchConfigs()
   }, [])
 
+  useRealtime('configurations', () => {
+    fetchConfigs()
+  })
+
   const getItemsByType = (type: string) => configurations.filter((c) => c.type === type)
 
   const handleAdd = async (type: ConfigListType) => {
     const val = newValues[type].trim()
-    if (!val) return
+    if (!val) {
+      toast({
+        title: 'Atenção',
+        description: 'O nome não pode estar vazio.',
+        variant: 'destructive',
+      })
+      return
+    }
 
     const color = newColors[type]
 
@@ -63,13 +76,15 @@ export function ConfigLists() {
         type,
         name: val,
         color: color || '',
+        active: true,
       })
 
       setNewValues((prev) => ({ ...prev, [type]: '' }))
+      setNewColors((prev) => ({ ...prev, [type]: '' }))
       toast({ title: 'Sucesso', description: 'Item adicionado com sucesso.' })
       fetchConfigs()
     } catch (err) {
-      toast({ title: 'Erro', description: 'Falha ao adicionar item.', variant: 'destructive' })
+      toast({ title: 'Erro', description: getErrorMessage(err), variant: 'destructive' })
     }
   }
 
