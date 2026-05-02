@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
@@ -36,9 +36,7 @@ import { Switch } from '@/components/ui/switch'
 import { toast } from '@/hooks/use-toast'
 import { logAudit } from '@/services/audit'
 import { ErrorBoundary } from '@/components/error-boundary'
-import { useRealtime } from '@/hooks/use-realtime'
-import { getUsers, createUser, updateUser, getFileUrl } from '@/services/users'
-import { getErrorMessage } from '@/lib/pocketbase/errors'
+import { useApp } from '@/contexts/app-context'
 
 const formatPhone = (val: string) => {
   if (!val) return ''
@@ -57,7 +55,7 @@ const formatPhone = (val: string) => {
 }
 
 export default function Usuarios() {
-  const [users, setUsers] = useState<any[]>([])
+  const { users, addUser, updateUser } = useApp()
   const [isOpen, setIsOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<any>(null)
   const [accessUser, setAccessUser] = useState<any>(null)
@@ -68,7 +66,7 @@ export default function Usuarios() {
   const [passwordConfirm, setPasswordConfirm] = useState('')
   const [phone, setPhone] = useState('')
   const [active, setActive] = useState(true)
-  const [role, setRole] = useState<'admin' | 'operator'>('operator')
+  const [role, setRole] = useState<'Admin' | 'Operador'>('Operador')
   const [showPassword, setShowPassword] = useState(false)
   const [showPasswordConfirm, setShowPasswordConfirm] = useState(false)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
@@ -76,23 +74,6 @@ export default function Usuarios() {
   const [isSaving, setIsSaving] = useState(false)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
-
-  const loadUsers = async () => {
-    try {
-      const data = await getUsers()
-      setUsers(data)
-    } catch (e) {
-      console.error('Error loading users:', e)
-    }
-  }
-
-  useEffect(() => {
-    loadUsers()
-  }, [])
-
-  useRealtime('users', () => {
-    loadUsers()
-  })
 
   const openForm = (u?: any) => {
     if (u) {
@@ -103,8 +84,8 @@ export default function Usuarios() {
       setActive(u.active !== false)
       setPassword('')
       setPasswordConfirm('')
-      setRole(u.role || 'operator')
-      setAvatarPreview(u.avatar ? getFileUrl(u, u.avatar) : null)
+      setRole((u.role as any) || 'Operador')
+      setAvatarPreview(u.avatarUrl || null)
       setAvatarFile(null)
     } else {
       setEditingUser(null)
@@ -114,7 +95,7 @@ export default function Usuarios() {
       setActive(true)
       setPassword('')
       setPasswordConfirm('')
-      setRole('operator')
+      setRole('Operador')
       setAvatarPreview(null)
       setAvatarFile(null)
     }
@@ -156,7 +137,7 @@ export default function Usuarios() {
     if (pass && pass !== confirm) {
       toast({
         title: 'Erro de validação',
-        description: "Values don't match. As senhas não coincidem.",
+        description: 'As senhas não coincidem.',
         variant: 'destructive',
       })
       return
@@ -164,40 +145,41 @@ export default function Usuarios() {
 
     setIsSaving(true)
     try {
-      const formData = new FormData()
-      formData.append('name', name.trim())
-      formData.append('email', email.trim())
-      formData.append('role', role)
-      formData.append('phone', phone)
-      formData.append('active', active.toString())
+      await new Promise((resolve) => setTimeout(resolve, 500))
 
-      if (pass) {
-        formData.append('password', pass)
-        formData.append('passwordConfirm', confirm)
+      const userData: any = {
+        name: name.trim(),
+        email: email.trim(),
+        role,
+        phone,
+        active,
       }
 
-      if (avatarFile) {
-        formData.append('avatar', avatarFile)
-      } else if (!avatarPreview && editingUser?.avatar) {
-        formData.append('avatar', '')
+      if (pass) {
+        userData.password = pass
+      }
+
+      if (avatarPreview) {
+        userData.avatarUrl = avatarPreview
+      } else if (!avatarPreview && editingUser?.avatarUrl) {
+        userData.avatarUrl = null
       }
 
       if (editingUser) {
-        await updateUser(editingUser.id, formData)
+        updateUser({ ...editingUser, ...userData })
         logAudit('UPDATE_USER', `Usuário ${email} atualizado.`)
         toast({ title: 'Sucesso', description: 'Usuário atualizado com sucesso!' })
       } else {
-        await createUser(formData)
+        addUser(userData)
         logAudit('CREATE_USER', `Usuário ${email} criado.`)
         toast({ title: 'Sucesso', description: 'Novo usuário criado!' })
       }
 
       setIsOpen(false)
-    } catch (error) {
-      const msg = getErrorMessage(error)
+    } catch (error: any) {
       toast({
         title: 'Erro ao salvar',
-        description: msg,
+        description: error.message || 'Erro inesperado.',
         variant: 'destructive',
       })
     } finally {
@@ -207,7 +189,7 @@ export default function Usuarios() {
 
   const handleToggleStatus = async (user: any) => {
     try {
-      await updateUser(user.id, { active: !user.active })
+      updateUser({ ...user, active: !user.active })
       logAudit(
         'TOGGLE_USER_STATUS',
         `Status do usuário ${user.email} alterado para ${!user.active ? 'Ativo' : 'Inativo'}`,
@@ -216,10 +198,10 @@ export default function Usuarios() {
         title: 'Sucesso',
         description: `Usuário ${!user.active ? 'ativado' : 'inativado'} com sucesso.`,
       })
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: 'Erro',
-        description: getErrorMessage(error),
+        description: error.message || 'Erro ao alterar status.',
         variant: 'destructive',
       })
     }
@@ -250,9 +232,9 @@ export default function Usuarios() {
             {users.map((user) => (
               <Card
                 key={user.id}
-                className={`overflow-hidden border-border/50 shadow-sm hover:shadow-md transition-shadow relative ${!user.active ? 'opacity-80' : ''}`}
+                className={`overflow-hidden border-border/50 shadow-sm hover:shadow-md transition-shadow relative ${user.active === false ? 'opacity-80' : ''}`}
               >
-                {!user.active && (
+                {user.active === false && (
                   <div className="absolute top-2 right-2 flex items-center justify-center">
                     <Badge variant="destructive" className="text-[10px] shadow-sm">
                       Inativo
@@ -262,12 +244,12 @@ export default function Usuarios() {
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between">
                     <Avatar
-                      className={`h-12 w-12 border-2 border-background shadow-sm ${!user.active ? 'grayscale' : ''}`}
+                      className={`h-12 w-12 border-2 border-background shadow-sm ${user.active === false ? 'grayscale' : ''}`}
                     >
                       <AvatarImage
                         src={
-                          user?.avatar
-                            ? getFileUrl(user, user.avatar)
+                          user?.avatarUrl
+                            ? user.avatarUrl
                             : `https://img.usecurling.com/ppl/thumbnail?seed=${user?.id || 'default'}`
                         }
                       />
@@ -276,10 +258,10 @@ export default function Usuarios() {
                       </AvatarFallback>
                     </Avatar>
                     <Badge
-                      variant={user.role === 'admin' ? 'default' : 'secondary'}
+                      variant={user.role?.toLowerCase() === 'admin' ? 'default' : 'secondary'}
                       className="text-[10px]"
                     >
-                      {user.role === 'admin' ? 'Administrador' : 'Operador'}
+                      {user.role?.toLowerCase() === 'admin' ? 'Administrador' : 'Operador'}
                     </Badge>
                   </div>
                   <div className="mt-4">
@@ -304,17 +286,17 @@ export default function Usuarios() {
                       <Edit className="w-4 h-4" />
                     </Button>
                     <Button
-                      variant={user.active ? 'secondary' : 'default'}
+                      variant={user.active !== false ? 'secondary' : 'default'}
                       size="sm"
                       onClick={() => handleToggleStatus(user)}
-                      title={user.active ? 'Inativar Usuário' : 'Ativar Usuário'}
+                      title={user.active !== false ? 'Inativar Usuário' : 'Ativar Usuário'}
                       className={
-                        user.active
+                        user.active !== false
                           ? 'text-destructive hover:text-destructive hover:bg-destructive/10'
                           : 'bg-emerald-500 hover:bg-emerald-600 text-white'
                       }
                     >
-                      {user.active ? (
+                      {user.active !== false ? (
                         <PowerOff className="w-4 h-4" />
                       ) : (
                         <Power className="w-4 h-4" />
@@ -457,13 +439,13 @@ export default function Usuarios() {
               )}
               <div className="space-y-2">
                 <Label>Perfil de Acesso *</Label>
-                <Select value={role} onValueChange={(v: 'admin' | 'operator') => setRole(v)}>
+                <Select value={role} onValueChange={(v: 'Admin' | 'Operador') => setRole(v)}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="admin">Administrador (Acesso Total)</SelectItem>
-                    <SelectItem value="operator">Operador (Acesso Restrito)</SelectItem>
+                    <SelectItem value="Admin">Administrador (Acesso Total)</SelectItem>
+                    <SelectItem value="Operador">Operador (Acesso Restrito)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -502,14 +484,6 @@ export default function Usuarios() {
             </DialogHeader>
             <div className="py-4 space-y-4">
               <div className="p-3 bg-muted rounded-md text-sm">
-                <div className="flex justify-between items-center border-b border-border/50 pb-2 mb-2">
-                  <span className="text-muted-foreground">Criado em</span>
-                  <span className="font-medium">
-                    {accessUser?.created
-                      ? new Date(accessUser.created).toLocaleDateString('pt-BR')
-                      : '-'}
-                  </span>
-                </div>
                 <div className="flex justify-between items-center border-b border-border/50 pb-2 mb-2">
                   <span className="text-muted-foreground">Status da Conta</span>
                   {accessUser?.active === false ? (
