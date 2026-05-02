@@ -1,63 +1,77 @@
-import { useState, useEffect } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { useState, useEffect, useMemo } from 'react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Plus, Trash2, Edit2, Check, X } from 'lucide-react'
+import { Plus, Trash2, Edit2, Search } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
 import pb from '@/lib/pocketbase/client'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { useRealtime } from '@/hooks/use-realtime'
 import { getErrorMessage } from '@/lib/pocketbase/errors'
-
-type ConfigListType = 'colaboradores' | 'solicitacoes' | 'statusList' | 'categorias' | 'pgtoTipos'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
+import { Textarea } from '@/components/ui/textarea'
+import { Badge } from '@/components/ui/badge'
+import { cn } from '@/lib/utils'
 
 const COLORS = [
-  { label: 'Cinza', class: 'bg-gray-100 text-gray-800' },
-  { label: 'Azul', class: 'bg-blue-100 text-blue-800' },
-  { label: 'Verde', class: 'bg-green-100 text-green-800' },
-  { label: 'Amarelo', class: 'bg-yellow-100 text-yellow-800' },
-  { label: 'Vermelho', class: 'bg-red-100 text-red-800' },
-  { label: 'Roxo', class: 'bg-purple-100 text-purple-800' },
-  { label: 'Teal', class: 'bg-teal-100 text-teal-800' },
+  { class: 'bg-gray-100 text-gray-800 border-gray-200', label: 'Cinza' },
+  { class: 'bg-blue-100 text-blue-800 border-blue-200', label: 'Azul' },
+  { class: 'bg-green-100 text-green-800 border-green-200', label: 'Verde' },
+  { class: 'bg-yellow-100 text-yellow-800 border-yellow-200', label: 'Amarelo' },
+  { class: 'bg-red-100 text-red-800 border-red-200', label: 'Vermelho' },
+  { class: 'bg-purple-100 text-purple-800 border-purple-200', label: 'Roxo' },
+  { class: 'bg-teal-100 text-teal-800 border-teal-200', label: 'Teal' },
 ]
 
-export function ConfigLists() {
+interface ConfigDataTableProps {
+  title: string
+  description: string
+  types: { value: string; label: string }[]
+}
+
+export function ConfigDataTable({ title, description, types }: ConfigDataTableProps) {
   const [configurations, setConfigurations] = useState<any[]>([])
-  const [newValues, setNewValues] = useState<Record<ConfigListType, string>>({
-    colaboradores: '',
-    solicitacoes: '',
-    statusList: '',
-    categorias: '',
-    pgtoTipos: '',
-  })
-
-  const [newDescriptions, setNewDescriptions] = useState<Record<ConfigListType, string>>({
-    colaboradores: '',
-    solicitacoes: '',
-    statusList: '',
-    categorias: '',
-    pgtoTipos: '',
-  })
-
-  const [newColors, setNewColors] = useState<Record<ConfigListType, string>>({
-    colaboradores: '',
-    solicitacoes: '',
-    statusList: 'bg-blue-100 text-blue-800',
-    categorias: 'bg-purple-100 text-purple-800',
-    pgtoTipos: '',
-  })
-
+  const [search, setSearch] = useState('')
+  const [typeFilter, setTypeFilter] = useState('all')
+  const [open, setOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [editData, setEditData] = useState<{ name: string; description: string; color: string }>({
+  const [formData, setFormData] = useState({
     name: '',
-    description: '',
+    type: '',
     color: '',
+    description: '',
+    active: true,
   })
+
+  const typeValues = types.map((t) => t.value)
 
   const fetchConfigs = async () => {
     try {
       const records = await pb.collection('configurations').getFullList({ sort: '-created' })
-      setConfigurations(records)
+      setConfigurations(records.filter((r) => typeValues.includes(r.type)))
     } catch (err) {
       console.error(err)
     }
@@ -66,290 +80,295 @@ export function ConfigLists() {
   useEffect(() => {
     fetchConfigs()
   }, [])
-
   useRealtime('configurations', () => {
     fetchConfigs()
   })
 
-  const getItemsByType = (type: string) => configurations.filter((c) => c.type === type)
+  const filteredConfigs = useMemo(() => {
+    return configurations.filter((c) => {
+      const matchesSearch =
+        c.name.toLowerCase().includes(search.toLowerCase()) ||
+        (c.description && c.description.toLowerCase().includes(search.toLowerCase()))
+      const matchesType = typeFilter === 'all' || c.type === typeFilter
+      return matchesSearch && matchesType
+    })
+  }, [configurations, search, typeFilter])
 
-  const handleAdd = async (type: ConfigListType) => {
-    const val = newValues[type].trim()
-    if (!val) {
+  const handleOpenCreate = () => {
+    setEditingId(null)
+    setFormData({ name: '', type: types[0]?.value || '', color: '', description: '', active: true })
+    setOpen(true)
+  }
+
+  const handleOpenEdit = (item: any) => {
+    setEditingId(item.id)
+    setFormData({
+      name: item.name,
+      type: item.type,
+      color: item.color || '',
+      description: item.description || '',
+      active: item.active !== false,
+    })
+    setOpen(true)
+  }
+
+  const handleSave = async () => {
+    if (!formData.name.trim() || !formData.type) {
       toast({
         title: 'Atenção',
-        description: 'O nome não pode estar vazio.',
+        description: 'Nome e Tipo são obrigatórios.',
         variant: 'destructive',
       })
       return
     }
-
-    const color = newColors[type]
-
     try {
-      await pb.collection('configurations').create({
-        type,
-        name: val,
-        color: color || '',
-        active: true,
-        description: newDescriptions[type] || '',
-      })
-
-      setNewValues((prev) => ({ ...prev, [type]: '' }))
-      setNewDescriptions((prev) => ({ ...prev, [type]: '' }))
-      setNewColors((prev) => ({ ...prev, [type]: '' }))
-      toast({ title: 'Sucesso', description: 'Item adicionado com sucesso.' })
+      if (editingId) {
+        await pb.collection('configurations').update(editingId, formData)
+        toast({ title: 'Sucesso', description: 'Configuração atualizada com sucesso.' })
+      } else {
+        await pb.collection('configurations').create(formData)
+        toast({ title: 'Sucesso', description: 'Configuração criada com sucesso.' })
+      }
+      setOpen(false)
     } catch (err) {
       toast({ title: 'Erro', description: getErrorMessage(err), variant: 'destructive' })
     }
   }
 
   const handleDelete = async (id: string) => {
+    if (!window.confirm('Tem certeza que deseja excluir esta configuração?')) return
     try {
       await pb.collection('configurations').delete(id)
-      toast({ title: 'Removido', description: 'O item foi removido.' })
-    } catch (err) {
-      toast({ title: 'Erro', description: 'Falha ao remover item.', variant: 'destructive' })
-    }
-  }
-
-  const startEditing = (item: any) => {
-    setEditingId(item.id)
-    setEditData({ name: item.name, description: item.description || '', color: item.color || '' })
-  }
-
-  const cancelEditing = () => {
-    setEditingId(null)
-  }
-
-  const saveEditing = async () => {
-    if (!editingId) return
-    if (!editData.name.trim()) {
-      toast({
-        title: 'Atenção',
-        description: 'O nome não pode estar vazio.',
-        variant: 'destructive',
-      })
-      return
-    }
-
-    try {
-      await pb.collection('configurations').update(editingId, {
-        name: editData.name.trim(),
-        description: editData.description.trim(),
-        color: editData.color,
-      })
-      setEditingId(null)
-      toast({ title: 'Sucesso', description: 'Item atualizado.' })
+      toast({ title: 'Sucesso', description: 'Configuração removida.' })
     } catch (err) {
       toast({ title: 'Erro', description: getErrorMessage(err), variant: 'destructive' })
     }
   }
 
-  const renderList = (title: string, type: ConfigListType, hasColorPicker = false) => {
-    const items = getItemsByType(type)
-
-    return (
-      <Card className="border-border/50 shadow-sm rounded-xl flex flex-col h-full">
-        <CardHeader className="pb-4">
-          <CardTitle className="text-lg font-medium">{title}</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col flex-1">
-          <div className="flex flex-col gap-2 mb-5">
-            <div className="flex gap-2">
-              <Input
-                placeholder="Adicionar novo..."
-                className="h-10 rounded-lg bg-muted/30 flex-1"
-                value={newValues[type]}
-                onChange={(e) => setNewValues((prev) => ({ ...prev, [type]: e.target.value }))}
-                onKeyDown={(e) => e.key === 'Enter' && handleAdd(type)}
-              />
-              <Input
-                placeholder="Descrição (opcional)"
-                className="h-10 rounded-lg bg-muted/30 flex-1 hidden sm:flex"
-                value={newDescriptions[type]}
-                onChange={(e) =>
-                  setNewDescriptions((prev) => ({ ...prev, [type]: e.target.value }))
-                }
-                onKeyDown={(e) => e.key === 'Enter' && handleAdd(type)}
-              />
-              {hasColorPicker && (
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="h-10 w-10 p-0 rounded-lg shrink-0 overflow-hidden"
-                    >
-                      <div
-                        className={`w-full h-full ${newColors[type].split(' ')[0] || 'bg-gray-200'}`}
-                      />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-48 p-2">
-                    <div className="grid grid-cols-4 gap-2">
-                      {COLORS.map((c) => (
-                        <div
-                          key={c.class}
-                          title={c.label}
-                          onClick={() => setNewColors((prev) => ({ ...prev, [type]: c.class }))}
-                          className={`w-8 h-8 rounded-full cursor-pointer border-2 hover:scale-110 transition-transform ${c.class.split(' ')[0]} ${
-                            newColors[type] === c.class ? 'border-primary' : 'border-transparent'
-                          }`}
-                        />
-                      ))}
-                    </div>
-                  </PopoverContent>
-                </Popover>
-              )}
-              <Button
-                size="icon"
-                variant="secondary"
-                className="shrink-0 h-10 w-10 rounded-lg"
-                onClick={() => handleAdd(type)}
-              >
-                <Plus className="w-4 h-4" />
-              </Button>
-            </div>
-            <Input
-              placeholder="Descrição (opcional)"
-              className="h-10 rounded-lg bg-muted/30 w-full sm:hidden"
-              value={newDescriptions[type]}
-              onChange={(e) => setNewDescriptions((prev) => ({ ...prev, [type]: e.target.value }))}
-              onKeyDown={(e) => e.key === 'Enter' && handleAdd(type)}
-            />
-          </div>
-          <div className="space-y-2 flex-1 overflow-y-auto pr-2 max-h-[400px]">
-            {items.map((item) => (
-              <div
-                key={item.id}
-                className="flex items-center justify-between p-2.5 rounded-lg bg-muted/40 hover:bg-muted transition-colors text-sm group"
-              >
-                {editingId === item.id ? (
-                  <div className="flex-1 flex flex-col gap-2 mr-2">
-                    <div className="flex gap-2">
-                      <Input
-                        value={editData.name}
-                        onChange={(e) => setEditData({ ...editData, name: e.target.value })}
-                        className="h-8 text-sm"
-                        placeholder="Nome"
-                      />
-                      {hasColorPicker && (
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button
-                              variant="outline"
-                              className="h-8 w-8 p-0 rounded-lg shrink-0 overflow-hidden"
-                            >
-                              <div
-                                className={`w-full h-full ${editData.color.split(' ')[0] || 'bg-gray-200'}`}
-                              />
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-48 p-2">
-                            <div className="grid grid-cols-4 gap-2">
-                              {COLORS.map((c) => (
-                                <div
-                                  key={c.class}
-                                  title={c.label}
-                                  onClick={() => setEditData({ ...editData, color: c.class })}
-                                  className={`w-8 h-8 rounded-full cursor-pointer border-2 hover:scale-110 transition-transform ${c.class.split(' ')[0]} ${
-                                    editData.color === c.class
-                                      ? 'border-primary'
-                                      : 'border-transparent'
-                                  }`}
-                                />
-                              ))}
-                            </div>
-                          </PopoverContent>
-                        </Popover>
-                      )}
-                    </div>
-                    <Input
-                      value={editData.description}
-                      onChange={(e) => setEditData({ ...editData, description: e.target.value })}
-                      className="h-8 text-sm"
-                      placeholder="Descrição"
-                    />
-                  </div>
-                ) : (
-                  <div className="flex flex-col flex-1">
-                    <div className="flex items-center gap-3">
-                      {item.color && (
-                        <div
-                          className={`w-3 h-3 rounded-full shadow-inner shrink-0 ${item.color.split(' ')[0]}`}
-                        />
-                      )}
-                      <span className="font-medium text-foreground/80 break-all">{item.name}</span>
-                    </div>
-                    {item.description && (
-                      <span className="text-xs text-muted-foreground mt-0.5 ml-6 break-all">
-                        {item.description}
-                      </span>
-                    )}
-                  </div>
-                )}
-
-                <div className="flex items-center gap-1 shrink-0">
-                  {editingId === item.id ? (
-                    <>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={saveEditing}
-                        className="h-7 w-7 text-green-600 hover:bg-green-100 hover:text-green-700"
-                      >
-                        <Check className="w-3.5 h-3.5" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={cancelEditing}
-                        className="h-7 w-7 text-muted-foreground hover:bg-muted-foreground/20"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </Button>
-                    </>
-                  ) : (
-                    <>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => startEditing(item)}
-                        className="h-7 w-7 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity hover:bg-muted-foreground/20"
-                      >
-                        <Edit2 className="w-3.5 h-3.5" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDelete(item.id)}
-                        className="h-7 w-7 text-destructive opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/10"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </Button>
-                    </>
-                  )}
-                </div>
-              </div>
-            ))}
-            {items.length === 0 && (
-              <p className="text-sm text-muted-foreground text-center py-4">
-                Nenhum item cadastrado.
-              </p>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-    )
+  const toggleStatus = async (item: any) => {
+    try {
+      await pb.collection('configurations').update(item.id, { active: !item.active })
+    } catch (err) {
+      toast({ title: 'Erro', description: getErrorMessage(err), variant: 'destructive' })
+    }
   }
 
+  const getTypeLabel = (typeVal: string) => types.find((t) => t.value === typeVal)?.label || typeVal
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 auto-rows-fr">
-      {renderList('Colaboradores', 'colaboradores')}
-      {renderList('Solicitações', 'solicitacoes')}
-      {renderList('Status do Cliente', 'statusList', true)}
-      {renderList('Categorias', 'categorias', true)}
-      {renderList('Tipos de Pagamento', 'pgtoTipos')}
-    </div>
+    <Card className="shadow-sm border-border/50">
+      <CardHeader className="pb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <CardTitle className="text-xl">{title}</CardTitle>
+            <CardDescription>{description}</CardDescription>
+          </div>
+          <Button onClick={handleOpenCreate}>
+            <Plus className="w-4 h-4 mr-2" /> Nova Configuração
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="flex flex-col sm:flex-row gap-4 mb-6">
+          <div className="relative flex-1">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por nome ou descrição..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-8 bg-muted/30"
+            />
+          </div>
+          <Select value={typeFilter} onValueChange={setTypeFilter}>
+            <SelectTrigger className="w-full sm:w-[220px] bg-muted/30">
+              <SelectValue placeholder="Filtrar por tipo" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os Tipos</SelectItem>
+              {types.map((t) => (
+                <SelectItem key={t.value} value={t.value}>
+                  {t.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="rounded-md border overflow-hidden">
+          <Table>
+            <TableHeader className="bg-muted/50">
+              <TableRow>
+                <TableHead>Nome</TableHead>
+                <TableHead>Tipo</TableHead>
+                <TableHead className="hidden md:table-cell">Descrição</TableHead>
+                <TableHead>Cor</TableHead>
+                <TableHead className="w-[80px] text-center">Ativo</TableHead>
+                <TableHead className="w-[100px] text-right">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredConfigs.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="h-32 text-center">
+                    <div className="flex flex-col items-center justify-center py-4 space-y-3">
+                      <p className="text-muted-foreground">Nenhuma configuração encontrada.</p>
+                      <Button onClick={handleOpenCreate} variant="outline" size="sm">
+                        <Plus className="w-4 h-4 mr-2" /> Adicionar Primeira Opção
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredConfigs.map((item) => (
+                  <TableRow key={item.id}>
+                    <TableCell className="font-medium">{item.name}</TableCell>
+                    <TableCell>
+                      <Badge variant="secondary" className="font-normal">
+                        {getTypeLabel(item.type)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground hidden md:table-cell truncate max-w-[200px]">
+                      {item.description || '-'}
+                    </TableCell>
+                    <TableCell>
+                      {item.color ? (
+                        <Badge variant="outline" className={cn('font-normal border', item.color)}>
+                          {COLORS.find((c) => c.class === item.color)?.label || 'Cor'}
+                        </Badge>
+                      ) : (
+                        <span className="text-muted-foreground text-sm">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Switch
+                        checked={item.active !== false}
+                        onCheckedChange={() => toggleStatus(item)}
+                      />
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleOpenEdit(item)}
+                          className="h-8 w-8 hover:bg-primary/10 hover:text-primary"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDelete(item.id)}
+                          className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </CardContent>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="sm:max-w-[450px]">
+          <DialogHeader>
+            <DialogTitle>{editingId ? 'Editar Configuração' : 'Nova Configuração'}</DialogTitle>
+            <DialogDescription>Preencha os detalhes para esta opção do sistema.</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="type" className="after:content-['*'] after:ml-0.5 after:text-red-500">
+                Tipo da Lista
+              </Label>
+              <Select
+                value={formData.type}
+                onValueChange={(val) => setFormData((prev) => ({ ...prev, type: val }))}
+              >
+                <SelectTrigger id="type">
+                  <SelectValue placeholder="Selecione o tipo" />
+                </SelectTrigger>
+                <SelectContent>
+                  {types.map((t) => (
+                    <SelectItem key={t.value} value={t.value}>
+                      {t.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="name" className="after:content-['*'] after:ml-0.5 after:text-red-500">
+                Nome
+              </Label>
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
+                placeholder="Ex: Alta Prioridade"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>Cor de Destaque</Label>
+              <div className="flex flex-wrap gap-3 mt-1">
+                {COLORS.map((c) => (
+                  <button
+                    key={c.class}
+                    type="button"
+                    onClick={() =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        color: prev.color === c.class ? '' : c.class,
+                      }))
+                    }
+                    className={cn(
+                      'w-8 h-8 rounded-full border-2 transition-all hover:scale-110',
+                      c.class.split(' ')[0],
+                      formData.color === c.class
+                        ? 'border-primary scale-110 ring-2 ring-primary/20 ring-offset-1'
+                        : 'border-transparent',
+                    )}
+                    title={c.label}
+                  />
+                ))}
+              </div>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="description">Descrição</Label>
+              <Textarea
+                id="description"
+                value={formData.description}
+                onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
+                placeholder="Opcional. Informação adicional..."
+                className="resize-none"
+                rows={3}
+              />
+            </div>
+            <div className="flex items-center justify-between pt-2 border-t mt-2">
+              <Label htmlFor="active" className="flex flex-col gap-1 cursor-pointer">
+                <span className="font-medium">Status Ativo</span>
+                <span className="text-xs text-muted-foreground font-normal">
+                  Habilita esta opção para uso no sistema.
+                </span>
+              </Label>
+              <Switch
+                id="active"
+                checked={formData.active}
+                onCheckedChange={(val) => setFormData((prev) => ({ ...prev, active: val }))}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSave}>Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </Card>
   )
 }

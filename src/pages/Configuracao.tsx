@@ -1,14 +1,27 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { AlertCircle } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { useState } from 'react'
+import { ConfigDataTable } from '@/components/configuracao/config-lists'
+
+const LIST_TYPES = [
+  { value: 'colaboradores', label: 'Colaboradores' },
+  { value: 'solicitacoes', label: 'Solicitações' },
+  { value: 'statusList', label: 'Status do Cliente' },
+  { value: 'categorias', label: 'Categorias' },
+  { value: 'pgtoTipos', label: 'Tipos de Pagamento' },
+]
+
+const ALERT_TYPES = [
+  { value: 'alertRule', label: 'Regra de Alerta (SLA)' },
+  { value: 'businessRule', label: 'Regra de Negócio' },
+]
 
 const Configuracao = () => {
   const [error] = useState<string | null>(null)
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold tracking-tight">Configurações do Sistema</h2>
         <p className="text-muted-foreground text-sm">
@@ -30,28 +43,18 @@ const Configuracao = () => {
           <TabsTrigger value="alertas">Alertas e Regras</TabsTrigger>
         </TabsList>
         <TabsContent value="listas" className="mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Listas do Sistema</CardTitle>
-              <CardDescription>Gerencie as opções disponíveis nos formulários.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                Módulo de dados cadastrais em desenvolvimento.
-              </p>
-            </CardContent>
-          </Card>
+          <ConfigDataTable
+            title="Listas do Sistema"
+            description="Gerencie as opções disponíveis nos formulários."
+            types={LIST_TYPES}
+          />
         </TabsContent>
         <TabsContent value="alertas" className="mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Alertas</CardTitle>
-              <CardDescription>Configure as regras de notificação.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">Módulo de alertas em desenvolvimento.</p>
-            </CardContent>
-          </Card>
+          <ConfigDataTable
+            title="Alertas e Regras"
+            description="Configure as regras de notificação e prazos do sistema."
+            types={ALERT_TYPES}
+          />
         </TabsContent>
       </Tabs>
     </div>
