@@ -20,6 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
 import { toast } from '@/hooks/use-toast'
 import pb from '@/lib/pocketbase/client'
 import { useRealtime } from '@/hooks/use-realtime'
@@ -114,10 +115,10 @@ export default function Usuarios() {
 
     try {
       const formData = new FormData()
-      formData.append('name', name)
-      formData.append('email', email)
-      formData.append('role', role)
-      formData.append('phone', phone)
+      formData.append('name', name || '')
+      formData.append('email', email || '')
+      formData.append('role', role || '')
+      formData.append('phone', phone || '')
       formData.append('active', active ? 'true' : 'false')
 
       if (password) {
@@ -168,8 +169,15 @@ export default function Usuarios() {
         {users.map((user) => (
           <Card
             key={user.id}
-            className="overflow-hidden border-border/50 shadow-sm hover:shadow-md transition-shadow"
+            className="overflow-hidden border-border/50 shadow-sm hover:shadow-md transition-shadow relative"
           >
+            {!user.active && (
+              <div className="absolute top-2 right-2 flex items-center justify-center">
+                <Badge variant="destructive" className="text-[10px] shadow-sm">
+                  Inativo
+                </Badge>
+              </div>
+            )}
             <CardContent className="p-6">
               <div className="flex items-start justify-between">
                 <Avatar className="h-12 w-12 border-2 border-background shadow-sm">
@@ -324,6 +332,12 @@ export default function Usuarios() {
                 </SelectContent>
               </Select>
             </div>
+            <div className="flex items-center space-x-2 pt-2">
+              <Switch id="active-user" checked={active} onCheckedChange={setActive} />
+              <Label htmlFor="active-user" className="cursor-pointer">
+                Usuário Ativo
+              </Label>
+            </div>
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="outline" onClick={() => setIsOpen(false)}>
@@ -352,12 +366,18 @@ export default function Usuarios() {
               </div>
               <div className="flex justify-between items-center border-b border-border/50 pb-2 mb-2">
                 <span className="text-muted-foreground">Status da Conta</span>
-                <Badge
-                  variant="default"
-                  className="bg-emerald-500 hover:bg-emerald-600 border-none"
-                >
-                  Ativa
-                </Badge>
+                {accessUser?.active === false ? (
+                  <Badge variant="destructive" className="border-none">
+                    Inativa
+                  </Badge>
+                ) : (
+                  <Badge
+                    variant="default"
+                    className="bg-emerald-500 hover:bg-emerald-600 border-none"
+                  >
+                    Ativa
+                  </Badge>
+                )}
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-muted-foreground">Perfil</span>

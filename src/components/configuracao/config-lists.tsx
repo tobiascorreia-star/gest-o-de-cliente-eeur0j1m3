@@ -31,6 +31,14 @@ export function ConfigLists() {
     pgtoTipos: '',
   })
 
+  const [newDescriptions, setNewDescriptions] = useState<Record<ConfigListType, string>>({
+    colaboradores: '',
+    solicitacoes: '',
+    statusList: '',
+    categorias: '',
+    pgtoTipos: '',
+  })
+
   const [newColors, setNewColors] = useState<Record<ConfigListType, string>>({
     colaboradores: '',
     solicitacoes: '',
@@ -77,9 +85,11 @@ export function ConfigLists() {
         name: val,
         color: color || '',
         active: true,
+        description: newDescriptions[type] || '',
       })
 
       setNewValues((prev) => ({ ...prev, [type]: '' }))
+      setNewDescriptions((prev) => ({ ...prev, [type]: '' }))
       setNewColors((prev) => ({ ...prev, [type]: '' }))
       toast({ title: 'Sucesso', description: 'Item adicionado com sucesso.' })
       fetchConfigs()
@@ -107,50 +117,68 @@ export function ConfigLists() {
           <CardTitle className="text-lg font-medium">{title}</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex gap-2 mb-5">
+          <div className="flex flex-col gap-2 mb-5">
+            <div className="flex gap-2">
+              <Input
+                placeholder="Adicionar novo..."
+                className="h-10 rounded-lg bg-muted/30 flex-1"
+                value={newValues[type]}
+                onChange={(e) => setNewValues((prev) => ({ ...prev, [type]: e.target.value }))}
+                onKeyDown={(e) => e.key === 'Enter' && handleAdd(type)}
+              />
+              <Input
+                placeholder="Descrição (opcional)"
+                className="h-10 rounded-lg bg-muted/30 flex-1 hidden sm:flex"
+                value={newDescriptions[type]}
+                onChange={(e) =>
+                  setNewDescriptions((prev) => ({ ...prev, [type]: e.target.value }))
+                }
+                onKeyDown={(e) => e.key === 'Enter' && handleAdd(type)}
+              />
+              {hasColorPicker && (
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="h-10 w-10 p-0 rounded-lg shrink-0 overflow-hidden"
+                    >
+                      <div
+                        className={`w-full h-full ${newColors[type].split(' ')[0] || 'bg-gray-200'}`}
+                      />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-48 p-2">
+                    <div className="grid grid-cols-4 gap-2">
+                      {COLORS.map((c) => (
+                        <div
+                          key={c.class}
+                          title={c.label}
+                          onClick={() => setNewColors((prev) => ({ ...prev, [type]: c.class }))}
+                          className={`w-8 h-8 rounded-full cursor-pointer border-2 hover:scale-110 transition-transform ${c.class.split(' ')[0]} ${
+                            newColors[type] === c.class ? 'border-primary' : 'border-transparent'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              )}
+              <Button
+                size="icon"
+                variant="secondary"
+                className="shrink-0 h-10 w-10 rounded-lg"
+                onClick={() => handleAdd(type)}
+              >
+                <Plus className="w-4 h-4" />
+              </Button>
+            </div>
             <Input
-              placeholder="Adicionar novo..."
-              className="h-10 rounded-lg bg-muted/30 flex-1"
-              value={newValues[type]}
-              onChange={(e) => setNewValues((prev) => ({ ...prev, [type]: e.target.value }))}
+              placeholder="Descrição (opcional)"
+              className="h-10 rounded-lg bg-muted/30 w-full sm:hidden"
+              value={newDescriptions[type]}
+              onChange={(e) => setNewDescriptions((prev) => ({ ...prev, [type]: e.target.value }))}
               onKeyDown={(e) => e.key === 'Enter' && handleAdd(type)}
             />
-            {hasColorPicker && (
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="h-10 w-10 p-0 rounded-lg shrink-0 overflow-hidden"
-                  >
-                    <div
-                      className={`w-full h-full ${newColors[type].split(' ')[0] || 'bg-gray-200'}`}
-                    />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-48 p-2">
-                  <div className="grid grid-cols-4 gap-2">
-                    {COLORS.map((c) => (
-                      <div
-                        key={c.class}
-                        title={c.label}
-                        onClick={() => setNewColors((prev) => ({ ...prev, [type]: c.class }))}
-                        className={`w-8 h-8 rounded-full cursor-pointer border-2 hover:scale-110 transition-transform ${c.class.split(' ')[0]} ${
-                          newColors[type] === c.class ? 'border-primary' : 'border-transparent'
-                        }`}
-                      />
-                    ))}
-                  </div>
-                </PopoverContent>
-              </Popover>
-            )}
-            <Button
-              size="icon"
-              variant="secondary"
-              className="shrink-0 h-10 w-10 rounded-lg"
-              onClick={() => handleAdd(type)}
-            >
-              <Plus className="w-4 h-4" />
-            </Button>
           </div>
           <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2">
             {items.map((item) => (
@@ -158,13 +186,20 @@ export function ConfigLists() {
                 key={item.id}
                 className="flex items-center justify-between p-2.5 rounded-lg bg-muted/40 hover:bg-muted transition-colors text-sm group"
               >
-                <div className="flex items-center gap-3">
-                  {item.color && (
-                    <div
-                      className={`w-3 h-3 rounded-full shadow-inner ${item.color.split(' ')[0]}`}
-                    />
+                <div className="flex flex-col">
+                  <div className="flex items-center gap-3">
+                    {item.color && (
+                      <div
+                        className={`w-3 h-3 rounded-full shadow-inner ${item.color.split(' ')[0]}`}
+                      />
+                    )}
+                    <span className="font-medium text-foreground/80">{item.name}</span>
+                  </div>
+                  {item.description && (
+                    <span className="text-xs text-muted-foreground mt-0.5 ml-6">
+                      {item.description}
+                    </span>
                   )}
-                  <span className="font-medium text-foreground/80">{item.name}</span>
                 </div>
                 <Button
                   variant="ghost"
