@@ -49,8 +49,15 @@ export default function Usuarios() {
     try {
       const records = await pb.collection('users').getFullList({ sort: '-created' })
       setUsers(records)
-    } catch (err) {
-      console.error(err)
+    } catch (err: any) {
+      if (!err.isAbort) {
+        console.error(err)
+        toast({
+          title: 'Erro ao carregar',
+          description: 'Não foi possível listar os usuários.',
+          variant: 'destructive',
+        })
+      }
     }
   }
 
@@ -217,7 +224,7 @@ export default function Usuarios() {
                     }
                   />
                   <AvatarFallback>
-                    {(user.name || user.email).charAt(0).toUpperCase()}
+                    {(user.name || user.email || '?').charAt(0).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
                 <Badge
@@ -264,7 +271,7 @@ export default function Usuarios() {
                 {avatarPreview ? (
                   <AvatarImage src={avatarPreview} />
                 ) : (
-                  <AvatarFallback>{name.charAt(0) || email.charAt(0) || '?'}</AvatarFallback>
+                  <AvatarFallback>{(name || email || '?').charAt(0).toUpperCase()}</AvatarFallback>
                 )}
               </Avatar>
               <div className="flex gap-2">

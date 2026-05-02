@@ -42,10 +42,12 @@ export default function Auditoria() {
       })
       setLogs(records)
     } catch (err: any) {
-      console.error(err)
-      setError(
-        'Não foi possível carregar os registros de auditoria. Verifique sua conexão ou permissões.',
-      )
+      if (!err.isAbort) {
+        console.error(err)
+        setError(
+          'Não foi possível carregar os registros de auditoria. Verifique sua conexão ou permissões.',
+        )
+      }
     } finally {
       setLoading(false)
     }
@@ -163,7 +165,9 @@ export default function Auditoria() {
                 logs.map((log) => (
                   <TableRow key={log.id}>
                     <TableCell className="text-sm text-muted-foreground">
-                      {log.created ? format(new Date(log.created), 'dd/MM/yyyy HH:mm') : '-'}
+                      {log.created && !isNaN(new Date(log.created).getTime())
+                        ? format(new Date(log.created), 'dd/MM/yyyy HH:mm')
+                        : '-'}
                     </TableCell>
                     <TableCell className="font-medium">
                       {log.expand?.user?.name || log.expand?.user?.email || 'Sistema'}
