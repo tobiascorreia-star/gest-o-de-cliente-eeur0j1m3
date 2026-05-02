@@ -51,11 +51,17 @@ interface ConfigDataTableProps {
   title: string
   description: string
   types: { value: string; label: string }[]
+  data: any[]
+  onRefresh: () => void
 }
 
-export function ConfigDataTable({ title, description, types }: ConfigDataTableProps) {
-  const [configurations, setConfigurations] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
+export function ConfigDataTable({
+  title,
+  description,
+  types,
+  data,
+  onRefresh,
+}: ConfigDataTableProps) {
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState('all')
   const [open, setOpen] = useState(false)
@@ -70,27 +76,9 @@ export function ConfigDataTable({ title, description, types }: ConfigDataTablePr
 
   const typeValues = types.map((t) => t.value)
 
-  const fetchConfigs = async () => {
-    try {
-      setLoading(true)
-      const records = await pb.collection('configurations').getFullList({ sort: '-created' })
-      setConfigurations((records || []).filter((r) => typeValues.includes(r.type)))
-    } catch (err) {
-      console.error(err)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  useEffect(() => {
-    fetchConfigs()
-  }, [])
-  useRealtime('configurations', () => {
-    fetchConfigs()
-  })
-
   const filteredConfigs = useMemo(() => {
-    return configurations.filter((c) => {
+    return data.filter((c) => {
+      if (!typeValues.includes(c.type)) return false
       const nameStr = c?.name || ''
       const descStr = c?.description || ''
       const searchStr = search.toLowerCase()
@@ -99,7 +87,7 @@ export function ConfigDataTable({ title, description, types }: ConfigDataTablePr
       const matchesType = typeFilter === 'all' || c?.type === typeFilter
       return matchesSearch && matchesType
     })
-  }, [configurations, search, typeFilter])
+  }, [data, search, typeFilter, typeValues])
 
   const handleOpenCreate = () => {
     setEditingId(null)
@@ -147,7 +135,7 @@ export function ConfigDataTable({ title, description, types }: ConfigDataTablePr
         toast({ title: 'Sucesso', description: 'Configuração criada com sucesso.' })
       }
       setOpen(false)
-      fetchConfigs()
+      onRefresh()
     } catch (err) {
       toast({ title: 'Erro', description: getErrorMessage(err), variant: 'destructive' })
     }
@@ -163,7 +151,7 @@ export function ConfigDataTable({ title, description, types }: ConfigDataTablePr
         console.error(e)
       }
       toast({ title: 'Sucesso', description: 'Configuração removida.' })
-      fetchConfigs()
+      onRefresh()
     } catch (err) {
       toast({ title: 'Erro', description: getErrorMessage(err), variant: 'destructive' })
     }
@@ -180,7 +168,7 @@ export function ConfigDataTable({ title, description, types }: ConfigDataTablePr
       } catch (e) {
         console.error(e)
       }
-      fetchConfigs()
+      onRefresh()
     } catch (err) {
       toast({ title: 'Erro', description: getErrorMessage(err), variant: 'destructive' })
     }
@@ -240,15 +228,7 @@ export function ConfigDataTable({ title, description, types }: ConfigDataTablePr
               </TableRow>
             </TableHeader>
             <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="h-32 text-center">
-                    <div className="flex justify-center text-muted-foreground">
-                      <Loader2 className="w-6 h-6 animate-spin" />
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ) : filteredConfigs.length === 0 ? (
+              {filteredConfigs.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} className="h-32 text-center">
                     <div className="flex flex-col items-center justify-center py-4 space-y-3">

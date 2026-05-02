@@ -15,6 +15,7 @@ import {
   Loader2,
   Power,
   PowerOff,
+  AlertCircle,
 } from 'lucide-react'
 import {
   Dialog,
@@ -59,6 +60,7 @@ const formatPhone = (val: string) => {
 export default function Usuarios() {
   const [users, setUsers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [isOpen, setIsOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<any>(null)
   const [accessUser, setAccessUser] = useState<any>(null)
@@ -79,16 +81,14 @@ export default function Usuarios() {
 
   const fetchUsers = async () => {
     try {
+      setLoading(true)
+      setError(null)
       const records = await pb.collection('users').getFullList({ sort: '-created' })
       setUsers(records || [])
     } catch (err: any) {
       if (!err.isAbort) {
         console.error(err)
-        toast({
-          title: 'Erro ao carregar',
-          description: 'Não foi possível listar os usuários.',
-          variant: 'destructive',
-        })
+        setError('Não foi possível listar os usuários.')
       }
     } finally {
       setLoading(false)
@@ -249,7 +249,15 @@ export default function Usuarios() {
           </Button>
         </div>
 
-        {loading ? (
+        {error ? (
+          <div className="flex flex-col items-center justify-center py-12 px-4 text-center border rounded-lg bg-muted/20 mt-4">
+            <AlertCircle className="w-8 h-8 text-destructive mb-4" />
+            <p className="text-muted-foreground mb-4">{error}</p>
+            <Button onClick={() => fetchUsers()} variant="outline">
+              Tentar Novamente
+            </Button>
+          </div>
+        ) : loading ? (
           <div className="flex justify-center items-center py-12 text-muted-foreground">
             <Loader2 className="w-8 h-8 animate-spin" />
           </div>
@@ -393,6 +401,7 @@ export default function Usuarios() {
               <div className="space-y-2">
                 <Label>Nome Completo</Label>
                 <Input
+                  name="user_name_field_no_autofill"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Ex: Ana Silva"
@@ -406,11 +415,12 @@ export default function Usuarios() {
                 <Label>E-mail (Login) *</Label>
                 <Input
                   type="email"
+                  name="user_email_field_no_autofill"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="email@gestao.com"
                   className={fieldErrors.email ? 'border-destructive' : ''}
-                  autoComplete="new-password"
+                  autoComplete="off"
                   role="presentation"
                   disabled={isSaving}
                 />
@@ -421,12 +431,13 @@ export default function Usuarios() {
               <div className="space-y-2">
                 <Label>Telefone</Label>
                 <Input
-                  type="tel"
+                  type="text"
+                  name="user_phone_field_no_autofill"
                   value={phone}
                   onChange={(e) => setPhone(formatPhone(e.target.value))}
                   placeholder="(00) 00000-0000"
                   className={fieldErrors.phone ? 'border-destructive' : ''}
-                  autoComplete="new-password"
+                  autoComplete="off"
                   disabled={isSaving}
                 />
                 {fieldErrors.phone && (
@@ -440,6 +451,7 @@ export default function Usuarios() {
                 <div className="relative">
                   <Input
                     type={showPassword ? 'text' : 'password'}
+                    name="user_password_field_no_autofill"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
