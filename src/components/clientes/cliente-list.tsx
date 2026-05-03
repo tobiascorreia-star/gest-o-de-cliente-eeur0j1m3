@@ -51,13 +51,13 @@ const ObservationBlock = ({
   isAdmin: boolean
   onMarkAsRead: (id: string) => void
 }) => {
-  if (!client.observacoes) return <span className="text-muted-foreground">-</span>
+  if (!client.observacoes) return null
 
   return (
-    <div className="flex flex-col gap-2 min-w-[200px] p-2.5 border rounded-xl bg-card shadow-sm print:shadow-none print:border-none print:p-0">
+    <div className="flex flex-col gap-2.5 min-w-[200px] p-3 border rounded-xl bg-card shadow-sm print:shadow-none print:border-none print:p-0">
       {!client.observacao_lida ? (
         <>
-          <div className="bg-amber-50 text-amber-700 border border-amber-200 px-2.5 py-0.5 rounded-full text-[10px] font-bold inline-flex items-center gap-1.5 w-fit uppercase tracking-wide">
+          <div className="bg-amber-50 text-amber-700 border border-amber-200 px-3 py-1 rounded-full text-[11px] font-semibold inline-flex items-center gap-1.5 w-fit tracking-wide">
             <AlertTriangle className="w-3.5 h-3.5" /> OBSERVAÇÃO PENDENTE
           </div>
           <div className="text-[13px] text-foreground whitespace-pre-wrap leading-snug px-0.5">
@@ -79,14 +79,14 @@ const ObservationBlock = ({
         </>
       ) : (
         <>
-          <div className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-0.5 rounded-full text-[10px] font-bold inline-flex items-center gap-1.5 w-fit uppercase tracking-wide">
+          <div className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full text-[11px] font-semibold inline-flex items-center gap-1.5 w-fit tracking-wide">
             <Check className="w-3.5 h-3.5" strokeWidth={2.5} /> OBSERVAÇÃO LIDA
           </div>
           <div className="text-[13px] text-foreground whitespace-pre-wrap leading-snug px-0.5">
             {client.observacoes}
           </div>
           {client.data_leitura_observacao && (
-            <div className="text-[10px] text-muted-foreground font-medium px-0.5">
+            <div className="text-[11px] text-muted-foreground font-medium px-0.5">
               Lida em {format(new Date(client.data_leitura_observacao), 'dd/MM/yyyy HH:mm')}
             </div>
           )}
