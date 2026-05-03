@@ -34,14 +34,17 @@ import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 
-const COLORS = [
-  { class: 'bg-gray-100 text-gray-800 border-gray-200', label: 'Cinza' },
-  { class: 'bg-blue-100 text-blue-800 border-blue-200', label: 'Azul' },
-  { class: 'bg-green-100 text-green-800 border-green-200', label: 'Verde' },
-  { class: 'bg-yellow-100 text-yellow-800 border-yellow-200', label: 'Amarelo' },
-  { class: 'bg-red-100 text-red-800 border-red-200', label: 'Vermelho' },
-  { class: 'bg-purple-100 text-purple-800 border-purple-200', label: 'Roxo' },
-  { class: 'bg-teal-100 text-teal-800 border-teal-200', label: 'Teal' },
+const HEX_COLORS = [
+  { hex: '#ef4444', label: 'Vermelho' },
+  { hex: '#f97316', label: 'Laranja' },
+  { hex: '#eab308', label: 'Amarelo' },
+  { hex: '#22c55e', label: 'Verde' },
+  { hex: '#06b6d4', label: 'Ciano' },
+  { hex: '#3b82f6', label: 'Azul' },
+  { hex: '#a855f7', label: 'Roxo' },
+  { hex: '#ec4899', label: 'Rosa' },
+  { hex: '#64748b', label: 'Cinza' },
+  { hex: '#000000', label: 'Preto' },
 ]
 
 interface ConfigDataTableProps {
@@ -72,6 +75,7 @@ export function ConfigDataTable({
     name: '',
     type: '',
     color: '',
+    days: 0,
     description: '',
     active: true,
   })
@@ -96,6 +100,7 @@ export function ConfigDataTable({
       name: '',
       type: types[0]?.value || '',
       color: '',
+      days: 0,
       description: '',
       active: true,
     })
@@ -105,9 +110,10 @@ export function ConfigDataTable({
   const handleOpenEdit = (item: any) => {
     setEditingId(item.id)
     setFormData({
-      name: item.name,
-      type: item.type,
+      name: item.name || '',
+      type: item.type || '',
       color: item.color || '',
+      days: item.days || 0,
       description: item.description || '',
       active: item.active !== false,
     })
@@ -128,6 +134,7 @@ export function ConfigDataTable({
     try {
       const dataToSave = {
         ...formData,
+        days: Number(formData.days) || 0,
       }
 
       if (editingId) {
@@ -135,7 +142,7 @@ export function ConfigDataTable({
         try {
           logAudit('UPDATE_CONFIG', `Atualizada configuração: ${formData.name}`)
         } catch {
-          /* intentionally ignored */
+          // intentionally ignored
         }
         toast({ title: 'Sucesso', description: 'Configuração atualizada com sucesso.' })
       } else {
@@ -143,7 +150,7 @@ export function ConfigDataTable({
         try {
           logAudit('CREATE_CONFIG', `Criada configuração: ${formData.name}`)
         } catch {
-          /* intentionally ignored */
+          // intentionally ignored
         }
         toast({ title: 'Sucesso', description: 'Configuração criada com sucesso.' })
       }
@@ -162,7 +169,7 @@ export function ConfigDataTable({
       try {
         logAudit('DELETE_CONFIG', `Removida configuração: ${name}`)
       } catch {
-        /* intentionally ignored */
+        // intentionally ignored
       }
       toast({ title: 'Sucesso', description: 'Configuração removida.' })
     } catch (err) {
@@ -179,7 +186,7 @@ export function ConfigDataTable({
           `Status da configuração ${item.name} alterado para ${!item.active ? 'Ativo' : 'Inativo'}`,
         )
       } catch {
-        /* intentionally ignored */
+        // intentionally ignored
       }
     } catch (err) {
       // Errors handled by parent
@@ -231,10 +238,10 @@ export function ConfigDataTable({
           <Table>
             <TableHeader className="bg-muted/50">
               <TableRow>
-                <TableHead>Nome</TableHead>
                 <TableHead>Tipo</TableHead>
-                <TableHead className="hidden md:table-cell">Descrição</TableHead>
+                <TableHead>Nome</TableHead>
                 <TableHead>Cor</TableHead>
+                <TableHead>Dias</TableHead>
                 <TableHead className="w-[80px] text-center">Ativo</TableHead>
                 <TableHead className="w-[100px] text-right">Ações</TableHead>
               </TableRow>
@@ -254,24 +261,24 @@ export function ConfigDataTable({
               ) : (
                 filteredConfigs.map((item) => (
                   <TableRow key={item.id}>
-                    <TableCell className="font-medium">{item.name || 'Sem nome'}</TableCell>
                     <TableCell>
                       <Badge variant="secondary" className="font-normal">
                         {getTypeLabel(item.type)}
                       </Badge>
-                    </TableCell>{' '}
-                    <TableCell className="text-muted-foreground hidden md:table-cell truncate max-w-[200px]">
-                      {item.description || '-'}
                     </TableCell>
+                    <TableCell className="font-medium">{item.name || 'Sem nome'}</TableCell>
                     <TableCell>
                       {item.color ? (
-                        <Badge variant="outline" className={cn('font-normal border', item.color)}>
-                          {COLORS.find((c) => c.class === item.color)?.label || 'Cor'}
-                        </Badge>
+                        <div
+                          className="w-5 h-5 rounded-full border border-black/10 shadow-sm"
+                          style={{ backgroundColor: item.color }}
+                          title={item.color}
+                        />
                       ) : (
                         <span className="text-muted-foreground text-sm">-</span>
                       )}
                     </TableCell>
+                    <TableCell>{item.days ?? 0}</TableCell>
                     <TableCell className="text-center">
                       <Switch
                         checked={item.active !== false}
@@ -347,27 +354,39 @@ export function ConfigDataTable({
             <div className="grid gap-2">
               <Label>Cor de Destaque</Label>
               <div className="flex flex-wrap gap-3 mt-1">
-                {COLORS.map((c) => (
+                {HEX_COLORS.map((c) => (
                   <button
-                    key={c.class}
+                    key={c.hex}
                     type="button"
                     onClick={() =>
                       setFormData((prev) => ({
                         ...prev,
-                        color: prev.color === c.class ? '' : c.class,
+                        color: prev.color === c.hex ? '' : c.hex,
                       }))
                     }
                     className={cn(
                       'w-8 h-8 rounded-full border-2 transition-all hover:scale-110',
-                      c.class.split(' ')[0],
-                      formData.color === c.class
+                      formData.color === c.hex
                         ? 'border-primary scale-110 ring-2 ring-primary/20 ring-offset-1'
-                        : 'border-transparent',
+                        : 'border-transparent shadow-sm',
                     )}
+                    style={{ backgroundColor: c.hex }}
                     title={c.label}
                   />
                 ))}
               </div>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="days">Dias</Label>
+              <Input
+                id="days"
+                type="number"
+                value={formData.days}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, days: Number(e.target.value) || 0 }))
+                }
+                placeholder="Ex: 5"
+              />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="description">Descrição</Label>

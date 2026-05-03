@@ -1,4 +1,3 @@
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useState, useEffect } from 'react'
 import { ConfigDataTable } from '@/components/configuracao/config-lists'
 import { ErrorBoundary } from '@/components/error-boundary'
@@ -11,17 +10,11 @@ import {
 import { useRealtime } from '@/hooks/use-realtime'
 import { toast } from '@/hooks/use-toast'
 
-const LIST_TYPES = [
-  { value: 'colaboradores', label: 'Colaboradores' },
-  { value: 'solicitacoes', label: 'Solicitações' },
-  { value: 'statusList', label: 'Status do Cliente' },
-  { value: 'categorias', label: 'Categorias' },
-  { value: 'pgtoTipos', label: 'Tipos de Pagamento' },
-]
-
-const ALERT_TYPES = [
-  { value: 'alertRule', label: 'Regra de Alerta (SLA)' },
-  { value: 'businessRule', label: 'Regra de Negócio' },
+const CONFIG_TYPES = [
+  { value: 'Status', label: 'Status' },
+  { value: 'Prioridade', label: 'Prioridade' },
+  { value: 'Categoria', label: 'Categoria' },
+  { value: 'Origem', label: 'Origem' },
 ]
 
 const Configuracao = () => {
@@ -81,34 +74,17 @@ const Configuracao = () => {
           </p>
         </div>
 
-        <Tabs defaultValue="listas" className="mt-4">
-          <TabsList className="bg-muted/50 border">
-            <TabsTrigger value="listas">Dados Cadastrais</TabsTrigger>
-            <TabsTrigger value="alertas">Área de Alerta</TabsTrigger>
-          </TabsList>
-          <TabsContent value="listas" className="mt-4">
-            <ConfigDataTable
-              title="Listas do Sistema"
-              description="Gerencie as opções disponíveis nos formulários."
-              types={LIST_TYPES}
-              data={configurations}
-              onAdd={handleAdd}
-              onUpdate={handleUpdate}
-              onDelete={handleDelete}
-            />
-          </TabsContent>
-          <TabsContent value="alertas" className="mt-4">
-            <ConfigDataTable
-              title="Área de Alerta"
-              description="Configure as regras de notificação e prazos do sistema."
-              types={ALERT_TYPES}
-              data={configurations}
-              onAdd={handleAdd}
-              onUpdate={handleUpdate}
-              onDelete={handleDelete}
-            />
-          </TabsContent>
-        </Tabs>
+        <div className="mt-4">
+          <ConfigDataTable
+            title="Listas do Sistema"
+            description="Gerencie as opções disponíveis nos formulários."
+            types={CONFIG_TYPES}
+            data={configurations}
+            onAdd={handleAdd}
+            onUpdate={handleUpdate}
+            onDelete={handleDelete}
+          />
+        </div>
       </div>
     </ErrorBoundary>
   )
