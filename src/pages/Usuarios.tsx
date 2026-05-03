@@ -37,6 +37,7 @@ import { toast } from '@/hooks/use-toast'
 import { logAudit } from '@/services/audit'
 import { ErrorBoundary } from '@/components/error-boundary'
 import { useApp } from '@/contexts/app-context'
+import { useAuth } from '@/hooks/use-auth'
 import pb from '@/lib/pocketbase/client'
 import { extractFieldErrors } from '@/lib/pocketbase/errors'
 
@@ -57,6 +58,7 @@ const formatPhone = (val: string) => {
 }
 
 export default function Usuarios() {
+  const { user } = useAuth()
   const { users, addUser, updateUser } = useApp()
   const [isOpen, setIsOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<any>(null)
@@ -64,6 +66,7 @@ export default function Usuarios() {
 
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
+  const [oldPassword, setOldPassword] = useState('')
   const [password, setPassword] = useState('')
   const [passwordConfirm, setPasswordConfirm] = useState('')
   const [phone, setPhone] = useState('')
@@ -84,6 +87,7 @@ export default function Usuarios() {
       setEmail(u.email || '')
       setPhone(formatPhone(u.phone || ''))
       setActive(u.active !== false)
+      setOldPassword('')
       setPassword('')
       setPasswordConfirm('')
       setRole((u.role as any) || 'operator')
@@ -95,6 +99,7 @@ export default function Usuarios() {
       setEmail('')
       setPhone('')
       setActive(true)
+      setOldPassword('')
       setPassword('')
       setPasswordConfirm('')
       setRole('operator')
@@ -160,6 +165,20 @@ export default function Usuarios() {
       if (pass) {
         userData.password = pass
         userData.passwordConfirm = pass
+
+        // PocketBase requires the oldPassword to change a user's own password
+        if (editingUser && editingUser.id === user?.id) {
+          if (!oldPassword.trim()) {
+            toast({
+              title: 'Erro de validação',
+              description: 'Para alterar sua própria senha, informe a senha atual.',
+              variant: 'destructive',
+            })
+            setIsSaving(false)
+            return
+          }
+          userData.oldPassword = oldPassword.trim()
+        }
       }
 
       if (avatarFile) {
@@ -189,6 +208,9 @@ export default function Usuarios() {
             if (field === 'email' && msg.toLowerCase().includes('unique')) {
               return 'Este e-mail já está em uso por outro usuário.'
             }
+            if (field === 'oldPassword') {
+              return 'Senha atual incorreta.'
+            }
             return `${field}: ${msg}`
           })
           .join(' | ')
@@ -198,9 +220,12 @@ export default function Usuarios() {
           variant: 'destructive',
         })
       } else {
+        const isNotFound = error.status === 404 || error.message?.includes("wasn't found")
         toast({
           title: 'Erro ao salvar',
-          description: error.message || 'Erro inesperado.',
+          description: isNotFound
+            ? 'Usuário não encontrado ou você não tem permissão para editá-lo.'
+            : error.message || 'Erro inesperado.',
           variant: 'destructive',
         })
       }
@@ -209,17 +234,19 @@ export default function Usuarios() {
     }
   }
 
-  const handleToggleStatus = async (user: any) => {
+  const handleToggleStatus = async (userToToggle: any) => {
     try {
-      const record = await pb.collection('users').update(user.id, { active: !user.active })
+      const record = await pb
+        .collection('users')
+        .update(userToToggle.id, { active: !userToToggle.active })
       updateUser(record)
       logAudit(
         'TOGGLE_USER_STATUS',
-        `Status do usuário ${user.email} alterado para ${!user.active ? 'Ativo' : 'Inativo'}`,
+        `Status do usuário ${userToToggle.email} alterado para ${!userToToggle.active ? 'Ativo' : 'Inativo'}`,
       )
       toast({
         title: 'Sucesso',
-        description: `Usuário ${!user.active ? 'ativado' : 'inativado'} com sucesso.`,
+        description: `Usuário ${!userToToggle.active ? 'ativado' : 'inativado'} com sucesso.`,
       })
     } catch (error: any) {
       toast({
@@ -252,12 +279,12 @@ export default function Usuarios() {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {users.map((user) => (
+            {users.map((u) => (
               <Card
-                key={user.id}
-                className={`overflow-hidden border-border/50 shadow-sm hover:shadow-md transition-shadow relative ${user.active === false ? 'opacity-80' : ''}`}
+                key={u.id}
+                className={`overflow-hidden border-border/50 shadow-sm hover:shadow-md transition-shadow relative ${u.active === false ? 'opacity-80' : ''}`}
               >
-                {user.active === false && (
+                {u.active === false && (
                   <div className="absolute top-2 right-2 flex items-center justify-center">
                     <Badge variant="destructive" className="text-[10px] shadow-sm">
                       Inativo
@@ -267,33 +294,33 @@ export default function Usuarios() {
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between">
                     <Avatar
-                      className={`h-12 w-12 border-2 border-background shadow-sm ${user.active === false ? 'grayscale' : ''}`}
+                      className={`h-12 w-12 border-2 border-background shadow-sm ${u.active === false ? 'grayscale' : ''}`}
                     >
                       <AvatarImage
                         src={
-                          user?.avatarUrl
-                            ? user.avatarUrl
-                            : `https://img.usecurling.com/ppl/thumbnail?seed=${user?.id || 'default'}`
+                          u?.avatarUrl
+                            ? u.avatarUrl
+                            : `https://img.usecurling.com/ppl/thumbnail?seed=${u?.id || 'default'}`
                         }
                       />
                       <AvatarFallback>
-                        {(user?.name || user?.email || '?').charAt(0).toUpperCase()}
+                        {(u?.name || u?.email || '?').charAt(0).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                     <Badge
-                      variant={user.role?.toLowerCase() === 'admin' ? 'default' : 'secondary'}
+                      variant={u.role?.toLowerCase() === 'admin' ? 'default' : 'secondary'}
                       className="text-[10px]"
                     >
-                      {user.role?.toLowerCase() === 'admin' ? 'Administrador' : 'Operador'}
+                      {u.role?.toLowerCase() === 'admin' ? 'Administrador' : 'Operador'}
                     </Badge>
                   </div>
                   <div className="mt-4">
                     <h3 className="font-semibold text-lg leading-tight truncate">
-                      {user.name || 'Sem nome'}
+                      {u.name || 'Sem nome'}
                     </h3>
                     <div className="flex items-center text-sm text-muted-foreground mt-1 gap-2">
                       <Mail className="w-3.5 h-3.5 flex-shrink-0" />
-                      <span className="truncate">{user.email}</span>
+                      <span className="truncate">{u.email}</span>
                     </div>
                   </div>
                   <div className="mt-6 flex gap-2">
@@ -301,25 +328,25 @@ export default function Usuarios() {
                       variant="outline"
                       size="sm"
                       className="flex-1"
-                      onClick={() => setAccessUser(user)}
+                      onClick={() => setAccessUser(u)}
                     >
                       <Shield className="w-4 h-4 mr-2" /> Acessos
                     </Button>
-                    <Button variant="secondary" size="sm" onClick={() => openForm(user)}>
+                    <Button variant="secondary" size="sm" onClick={() => openForm(u)}>
                       <Edit className="w-4 h-4" />
                     </Button>
                     <Button
-                      variant={user.active !== false ? 'secondary' : 'default'}
+                      variant={u.active !== false ? 'secondary' : 'default'}
                       size="sm"
-                      onClick={() => handleToggleStatus(user)}
-                      title={user.active !== false ? 'Inativar Usuário' : 'Ativar Usuário'}
+                      onClick={() => handleToggleStatus(u)}
+                      title={u.active !== false ? 'Inativar Usuário' : 'Ativar Usuário'}
                       className={
-                        user.active !== false
+                        u.active !== false
                           ? 'text-destructive hover:text-destructive hover:bg-destructive/10'
                           : 'bg-emerald-500 hover:bg-emerald-600 text-white'
                       }
                     >
-                      {user.active !== false ? (
+                      {u.active !== false ? (
                         <PowerOff className="w-4 h-4" />
                       ) : (
                         <Power className="w-4 h-4" />
@@ -406,6 +433,21 @@ export default function Usuarios() {
                   autoComplete="tel"
                 />
               </div>
+
+              {editingUser && editingUser.id === user?.id && (
+                <div className="space-y-2">
+                  <Label>Senha Atual (necessária apenas para alterar a senha)</Label>
+                  <Input
+                    type="password"
+                    name="oldPassword"
+                    value={oldPassword}
+                    onChange={(e) => setOldPassword(e.target.value)}
+                    placeholder="••••••••"
+                    autoComplete="current-password"
+                  />
+                </div>
+              )}
+
               <div className="space-y-2">
                 <Label>
                   {editingUser ? 'Nova Senha (deixe em branco para manter)' : 'Senha *'}
