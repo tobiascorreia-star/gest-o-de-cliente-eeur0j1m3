@@ -55,15 +55,30 @@ const ObservationBlock = ({
   if (!client.observacoes) return null
 
   return (
-    <div className="flex flex-col gap-1.5 min-w-[160px] p-2 border rounded-lg bg-card shadow-sm print:shadow-none print:border-none print:p-0">
+    <div className="flex flex-col gap-1 w-full min-w-[140px] p-1.5 border rounded-md bg-card shadow-sm print:shadow-none print:border-none print:p-0 overflow-hidden">
       {!client.observacao_lida ? (
         <>
-          <div className="bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full text-[10px] font-semibold inline-flex items-center gap-1 w-fit tracking-wide">
-            <AlertTriangle className="w-3 h-3" /> OBSERVAÇÃO PENDENTE
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div className="bg-amber-50 text-amber-700 border border-amber-200 px-1.5 py-0.5 rounded-full text-[9px] font-semibold inline-flex items-center gap-1 w-fit tracking-wide">
+              <AlertTriangle className="w-2.5 h-2.5" /> PENDENTE
+            </div>
+            {isAdmin && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onMarkAsRead(client.id)
+                }}
+                className="h-5 px-1.5 py-0 text-blue-600 hover:bg-blue-50 text-[9px] font-semibold w-fit transition-colors rounded-full"
+              >
+                <Check className="w-2.5 h-2.5 mr-1" strokeWidth={2.5} /> Marcar lida
+              </Button>
+            )}
           </div>
           <Tooltip>
             <TooltipTrigger asChild>
-              <div className="text-xs text-foreground line-clamp-2 leading-snug cursor-help text-left font-medium opacity-90 hover:opacity-100 transition-opacity">
+              <div className="text-xs text-foreground truncate cursor-help text-left font-medium opacity-90 hover:opacity-100 transition-opacity w-full block">
                 {client.observacoes}
               </div>
             </TooltipTrigger>
@@ -71,28 +86,22 @@ const ObservationBlock = ({
               {client.observacoes}
             </TooltipContent>
           </Tooltip>
-          {isAdmin && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation()
-                onMarkAsRead(client.id)
-              }}
-              className="h-6 px-2.5 text-blue-600 border-blue-200 bg-blue-50 hover:bg-blue-100 hover:text-blue-700 text-[10px] font-semibold w-fit transition-colors shadow-none rounded-full mt-0.5"
-            >
-              <Check className="w-3 h-3 mr-1.5" strokeWidth={2.5} /> Marcar como lida
-            </Button>
-          )}
         </>
       ) : (
         <>
-          <div className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full text-[10px] font-semibold inline-flex items-center gap-1 w-fit tracking-wide">
-            <Check className="w-3 h-3" strokeWidth={2.5} /> OBSERVAÇÃO LIDA
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-1.5 py-0.5 rounded-full text-[9px] font-semibold inline-flex items-center gap-1 w-fit tracking-wide">
+              <Check className="w-2.5 h-2.5" strokeWidth={2.5} /> (Obs. Lida)
+            </div>
+            {client.data_leitura_observacao && (
+              <div className="text-[9px] text-muted-foreground font-medium">
+                {format(new Date(client.data_leitura_observacao), 'dd/MM/yyyy HH:mm')}
+              </div>
+            )}
           </div>
           <Tooltip>
             <TooltipTrigger asChild>
-              <div className="text-xs text-foreground line-clamp-2 leading-snug cursor-help text-left font-medium opacity-80 hover:opacity-100 transition-opacity">
+              <div className="text-xs text-foreground truncate cursor-help text-left font-medium opacity-80 hover:opacity-100 transition-opacity w-full block">
                 {client.observacoes}
               </div>
             </TooltipTrigger>
@@ -100,11 +109,6 @@ const ObservationBlock = ({
               {client.observacoes}
             </TooltipContent>
           </Tooltip>
-          {client.data_leitura_observacao && (
-            <div className="text-[10px] text-muted-foreground font-medium mt-0.5">
-              Lida em {format(new Date(client.data_leitura_observacao), 'dd/MM/yyyy HH:mm')}
-            </div>
-          )}
         </>
       )}
     </div>
