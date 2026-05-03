@@ -1,5 +1,4 @@
 import { useState, useRef } from 'react'
-import { Card, CardContent } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -33,6 +32,14 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import { toast } from '@/hooks/use-toast'
 import { logAudit } from '@/services/audit'
 import { ErrorBoundary } from '@/components/error-boundary'
@@ -129,11 +136,11 @@ export default function Usuarios() {
     const pass = password.trim()
     const confirm = passwordConfirm.trim()
 
-    if (!name.trim() || !email.trim() || !role || (!editingUser && !pass)) {
+    if (!email.trim() || !role || (!editingUser && !pass)) {
       toast({
         title: 'Erro de validação',
         description:
-          'Por favor, preencha todos os campos obrigatórios (Nome, E-mail, Perfil' +
+          'Por favor, preencha todos os campos obrigatórios (E-mail, Perfil' +
           (!editingUser ? ' e Senha' : '') +
           ').',
         variant: 'destructive',
@@ -278,84 +285,109 @@ export default function Usuarios() {
             </Button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {users.map((u) => (
-              <Card
-                key={u.id}
-                className={`overflow-hidden border-border/50 shadow-sm hover:shadow-md transition-shadow relative ${u.active === false ? 'opacity-80' : ''}`}
-              >
-                {u.active === false && (
-                  <div className="absolute top-2 right-2 flex items-center justify-center">
-                    <Badge variant="destructive" className="text-[10px] shadow-sm">
-                      Inativo
-                    </Badge>
-                  </div>
-                )}
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between">
-                    <Avatar
-                      className={`h-12 w-12 border-2 border-background shadow-sm ${u.active === false ? 'grayscale' : ''}`}
-                    >
-                      <AvatarImage
-                        src={
-                          u?.avatarUrl
-                            ? u.avatarUrl
-                            : `https://img.usecurling.com/ppl/thumbnail?seed=${u?.id || 'default'}`
-                        }
-                      />
-                      <AvatarFallback>
-                        {(u?.name || u?.email || '?').charAt(0).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <Badge
-                      variant={u.role?.toLowerCase() === 'admin' ? 'default' : 'secondary'}
-                      className="text-[10px]"
-                    >
-                      {u.role?.toLowerCase() === 'admin' ? 'Administrador' : 'Operador'}
-                    </Badge>
-                  </div>
-                  <div className="mt-4">
-                    <h3 className="font-semibold text-lg leading-tight truncate">
-                      {u.name || 'Sem nome'}
-                    </h3>
-                    <div className="flex items-center text-sm text-muted-foreground mt-1 gap-2">
-                      <Mail className="w-3.5 h-3.5 flex-shrink-0" />
-                      <span className="truncate">{u.email}</span>
-                    </div>
-                  </div>
-                  <div className="mt-6 flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-1"
-                      onClick={() => setAccessUser(u)}
-                    >
-                      <Shield className="w-4 h-4 mr-2" /> Acessos
-                    </Button>
-                    <Button variant="secondary" size="sm" onClick={() => openForm(u)}>
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant={u.active !== false ? 'secondary' : 'default'}
-                      size="sm"
-                      onClick={() => handleToggleStatus(u)}
-                      title={u.active !== false ? 'Inativar Usuário' : 'Ativar Usuário'}
-                      className={
-                        u.active !== false
-                          ? 'text-destructive hover:text-destructive hover:bg-destructive/10'
-                          : 'bg-emerald-500 hover:bg-emerald-600 text-white'
-                      }
-                    >
+          <div className="border rounded-md bg-card">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Usuário</TableHead>
+                  <TableHead className="hidden md:table-cell">Contato</TableHead>
+                  <TableHead>Perfil</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {users.map((u) => (
+                  <TableRow key={u.id} className={u.active === false ? 'opacity-80' : ''}>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <Avatar
+                          className={`h-9 w-9 border shadow-sm ${u.active === false ? 'grayscale' : ''}`}
+                        >
+                          <AvatarImage
+                            src={
+                              u?.avatarUrl
+                                ? u.avatarUrl
+                                : `https://img.usecurling.com/ppl/thumbnail?seed=${u?.id || 'default'}`
+                            }
+                          />
+                          <AvatarFallback>
+                            {(u?.name || u?.email || '?').charAt(0).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex flex-col">
+                          <span className="font-medium truncate max-w-[120px] sm:max-w-[200px]">
+                            {u.name || 'Sem nome'}
+                          </span>
+                          <span className="text-xs text-muted-foreground truncate max-w-[120px] sm:max-w-[200px]">
+                            {u.email}
+                          </span>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      <div className="text-sm">{u.phone || '-'}</div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={u.role?.toLowerCase() === 'admin' ? 'default' : 'secondary'}
+                        className="text-[10px]"
+                      >
+                        {u.role?.toLowerCase() === 'admin' ? 'Administrador' : 'Operador'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
                       {u.active !== false ? (
-                        <PowerOff className="w-4 h-4" />
+                        <Badge className="bg-emerald-500 hover:bg-emerald-600 text-white text-[10px]">
+                          Ativo
+                        </Badge>
                       ) : (
-                        <Power className="w-4 h-4" />
+                        <Badge variant="destructive" className="text-[10px]">
+                          Inativo
+                        </Badge>
                       )}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-1 sm:gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setAccessUser(u)}
+                          title="Acessos"
+                        >
+                          <Shield className="w-4 h-4 text-muted-foreground" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => openForm(u)}
+                          title="Editar"
+                        >
+                          <Edit className="w-4 h-4 text-muted-foreground" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleToggleStatus(u)}
+                          title={u.active !== false ? 'Inativar Usuário' : 'Ativar Usuário'}
+                          className={
+                            u.active !== false
+                              ? 'text-destructive hover:text-destructive hover:bg-destructive/10'
+                              : 'text-emerald-500 hover:text-emerald-500 hover:bg-emerald-500/10'
+                          }
+                        >
+                          {u.active !== false ? (
+                            <PowerOff className="w-4 h-4" />
+                          ) : (
+                            <Power className="w-4 h-4" />
+                          )}
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </div>
         )}
 
@@ -402,7 +434,7 @@ export default function Usuarios() {
               </div>
 
               <div className="space-y-2">
-                <Label>Nome Completo *</Label>
+                <Label>Nome Completo</Label>
                 <Input
                   name="name"
                   value={name}
