@@ -127,7 +127,7 @@ export function ClienteForm({ initialData, onSuccess }: ClienteFormProps) {
 
     const clientData = {
       ...data,
-      pgto: data.pgto || '',
+      pgto: isAdmin ? data.pgto || '' : initialData?.pgto || '',
     }
 
     try {
@@ -291,26 +291,27 @@ export function ClienteForm({ initialData, onSuccess }: ClienteFormProps) {
           )}
         </div>
 
-        <div className="space-y-2">
-          <Label>Pgto *</Label>
-          <Select
-            onValueChange={(v) => setValue('pgto', v, { shouldValidate: true })}
-            defaultValue={initialData?.pgto}
-            disabled={!isAdmin}
-          >
-            <SelectTrigger className={errors.pgto ? 'border-destructive' : ''}>
-              <SelectValue placeholder="Selecione o tipo de pagamento" />
-            </SelectTrigger>
-            <SelectContent>
-              {pgtoTipos.map((p) => (
-                <SelectItem key={p.id} value={p.id}>
-                  {p.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {errors.pgto && <p className="text-xs text-destructive">{errors.pgto.message}</p>}
-        </div>
+        {isAdmin && (
+          <div className="space-y-2">
+            <Label>Pgto *</Label>
+            <Select
+              onValueChange={(v) => setValue('pgto', v, { shouldValidate: true })}
+              defaultValue={initialData?.pgto}
+            >
+              <SelectTrigger className={errors.pgto ? 'border-destructive' : ''}>
+                <SelectValue placeholder="Selecione o tipo de pagamento" />
+              </SelectTrigger>
+              <SelectContent>
+                {pgtoTipos.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>
+                    {p.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {errors.pgto && <p className="text-xs text-destructive">{errors.pgto.message}</p>}
+          </div>
+        )}
       </div>
 
       <div className="space-y-2">
