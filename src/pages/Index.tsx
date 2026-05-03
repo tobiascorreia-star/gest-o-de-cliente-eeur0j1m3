@@ -44,6 +44,15 @@ const Index = () => {
   const pendingClients = clients.filter((c) => c.status !== baixaStatusId)
   const totalPending = pendingClients.length
 
+  const getGreeting = () => {
+    const hour = new Date().getHours()
+    if (hour >= 5 && hour < 12) return 'Bom dia'
+    if (hour >= 12 && hour < 18) return 'Boa tarde'
+    return 'Boa noite'
+  }
+
+  const userName = currentUser?.name?.trim()
+
   let systemAlert = null
   if (alertSettings && !loading) {
     if (totalPending >= alertSettings.critical_threshold) {
@@ -132,7 +141,9 @@ const Index = () => {
       )}
 
       <div className="flex flex-col gap-1 mb-6">
-        <h2 className="text-2xl font-bold tracking-tight text-foreground">Visão Geral</h2>
+        <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">
+          {userName ? `${getGreeting()}, ${userName}!` : 'Bem-vindo(a)!'}
+        </h2>
         <p className="text-muted-foreground text-sm">Acompanhe as métricas e alertas do sistema.</p>
       </div>
 
