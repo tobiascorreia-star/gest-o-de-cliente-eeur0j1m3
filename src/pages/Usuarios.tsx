@@ -185,7 +185,12 @@ export default function Usuarios() {
       const fieldErrors = extractFieldErrors(error)
       if (Object.keys(fieldErrors).length > 0) {
         const messages = Object.entries(fieldErrors)
-          .map(([field, msg]) => `${field}: ${msg}`)
+          .map(([field, msg]) => {
+            if (field === 'email' && msg.toLowerCase().includes('unique')) {
+              return 'Este e-mail já está em uso por outro usuário.'
+            }
+            return `${field}: ${msg}`
+          })
           .join(' | ')
         toast({
           title: 'Erro de validação',

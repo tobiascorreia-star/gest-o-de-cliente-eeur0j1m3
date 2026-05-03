@@ -32,7 +32,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signIn = async (email: string, password?: string) => {
     try {
-      await pb.collection('users').authWithPassword(email, password || '')
+      const authData = await pb.collection('users').authWithPassword(email, password || '')
+
+      if (authData.record.active === false) {
+        pb.authStore.clear()
+        return { error: new Error('Sua conta está inativa. Por favor, contate o administrador.') }
+      }
+
       return { error: null }
     } catch (error) {
       return { error }

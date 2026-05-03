@@ -28,7 +28,10 @@ export default function Login() {
     } else {
       toast({
         title: 'Acesso Negado',
-        description: 'Credenciais inválidas.',
+        description:
+          error?.message === 'Sua conta está inativa. Por favor, contate o administrador.'
+            ? error.message
+            : 'E-mail ou senha incorretos.',
         variant: 'destructive',
       })
     }
