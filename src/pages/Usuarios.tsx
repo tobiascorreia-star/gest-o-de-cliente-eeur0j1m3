@@ -83,6 +83,7 @@ export default function Usuarios() {
   const [showPasswordConfirm, setShowPasswordConfirm] = useState(false)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
+  const [removeAvatar, setRemoveAvatar] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -98,8 +99,9 @@ export default function Usuarios() {
       setPassword('')
       setPasswordConfirm('')
       setRole((u.role as any) || 'operator')
-      setAvatarPreview(u.avatarUrl || null)
+      setAvatarPreview(u.avatarUrl || (u.avatar ? pb.files.getURL(u, u.avatar) : null))
       setAvatarFile(null)
+      setRemoveAvatar(false)
     } else {
       setEditingUser(null)
       setName('')
@@ -112,6 +114,7 @@ export default function Usuarios() {
       setRole('operator')
       setAvatarPreview(null)
       setAvatarFile(null)
+      setRemoveAvatar(false)
     }
     setShowPassword(false)
     setShowPasswordConfirm(false)
@@ -124,12 +127,17 @@ export default function Usuarios() {
       const file = e.target.files[0]
       setAvatarFile(file)
       setAvatarPreview(URL.createObjectURL(file))
+      setRemoveAvatar(false)
     }
   }
 
   const handleRemoveAvatar = () => {
     setAvatarPreview(null)
     setAvatarFile(null)
+    setRemoveAvatar(true)
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
   }
 
   const handleSave = async () => {
@@ -190,13 +198,16 @@ export default function Usuarios() {
 
       if (avatarFile) {
         userData.avatar = avatarFile
-      } else if (!avatarPreview && editingUser?.avatar) {
-        userData.avatar = null
+      } else if (removeAvatar) {
+        userData.avatar = ''
       }
 
       if (editingUser) {
         const record = await pb.collection('users').update(editingUser.id, userData)
         updateUser(record)
+        if (record.id === user?.id) {
+          pb.authStore.save(pb.authStore.token, record)
+        }
         logAudit('UPDATE_USER', `Usuário ${email} atualizado.`)
         toast({ title: 'Sucesso', description: 'Usuário atualizado com sucesso!' })
       } else {
@@ -306,9 +317,10 @@ export default function Usuarios() {
                         >
                           <AvatarImage
                             src={
-                              u?.avatarUrl
-                                ? u.avatarUrl
-                                : `https://img.usecurling.com/ppl/thumbnail?seed=${u?.id || 'default'}`
+                              u?.avatarUrl ||
+                              (u?.avatar
+                                ? pb.files.getURL(u, u.avatar)
+                                : `https://img.usecurling.com/ppl/thumbnail?seed=${u?.id || 'default'}`)
                             }
                           />
                           <AvatarFallback>

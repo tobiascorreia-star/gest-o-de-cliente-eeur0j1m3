@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useAuth } from '@/hooks/use-auth'
 import { SidebarTrigger } from '@/components/ui/sidebar'
 import {
@@ -9,10 +10,19 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { LogOut } from 'lucide-react'
+import { LogOut, User as UserIcon } from 'lucide-react'
+import pb from '@/lib/pocketbase/client'
+import { ProfileDialog } from '../profile-dialog'
 
 export function AppHeader() {
   const { user, signOut } = useAuth()
+  const [profileOpen, setProfileOpen] = useState(false)
+
+  const avatarUrl =
+    user?.avatarUrl ||
+    (user?.avatar
+      ? pb.files.getURL(user, user.avatar)
+      : `https://img.usecurling.com/ppl/thumbnail?seed=${user?.id || 'default'}`)
 
   return (
     <header className="sticky top-0 z-30 flex h-14 w-full items-center gap-4 border-b bg-background px-4 sm:px-6">
@@ -22,12 +32,7 @@ export function AppHeader() {
           <DropdownMenuTrigger asChild>
             <button className="flex items-center gap-2 outline-none hover:opacity-80 transition-opacity">
               <Avatar className="h-8 w-8">
-                <AvatarImage
-                  src={
-                    user?.avatarUrl ||
-                    `https://img.usecurling.com/ppl/thumbnail?seed=${user?.id || 'default'}`
-                  }
-                />
+                <AvatarImage src={avatarUrl} />
                 <AvatarFallback>{user?.name?.charAt(0)?.toUpperCase() || 'U'}</AvatarFallback>
               </Avatar>
             </button>
@@ -40,6 +45,10 @@ export function AppHeader() {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => setProfileOpen(true)} className="cursor-pointer">
+              <UserIcon className="mr-2 h-4 w-4" />
+              Meu Perfil
+            </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => signOut()}
               className="text-destructive focus:bg-destructive/10 focus:text-destructive cursor-pointer"
@@ -50,6 +59,7 @@ export function AppHeader() {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+      <ProfileDialog open={profileOpen} onOpenChange={setProfileOpen} />
     </header>
   )
 }
