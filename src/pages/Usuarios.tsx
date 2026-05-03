@@ -203,11 +203,41 @@ export default function Usuarios() {
       }
 
       if (editingUser) {
-        const record = await pb.collection('users').update(editingUser.id, userData)
-        updateUser(record)
-        if (record.id === user?.id) {
-          pb.authStore.save(pb.authStore.token, record)
+        let record
+
+        if (editingUser.id !== user?.id) {
+          // Admin updating another user -> Use custom endpoint to bypass oldPassword requirement
+          const formData = new FormData()
+          formData.append('name', userData.name || '')
+          formData.append('email', userData.email)
+          formData.append('role', userData.role)
+          formData.append('phone', userData.phone || '')
+          formData.append('active', String(userData.active))
+
+          if (userData.password) {
+            formData.append('password', userData.password)
+            formData.append('passwordConfirm', userData.passwordConfirm)
+          }
+
+          if (avatarFile) {
+            formData.append('avatar', avatarFile)
+          } else if (removeAvatar) {
+            formData.append('avatar', '')
+          }
+
+          record = await pb.send(`/backend/v1/users/${editingUser.id}/admin-update`, {
+            method: 'PATCH',
+            body: formData,
+          })
+        } else {
+          // Updating self -> use standard API
+          record = await pb.collection('users').update(editingUser.id, userData)
+          if (record.id === user?.id) {
+            pb.authStore.save(pb.authStore.token, record)
+          }
         }
+
+        updateUser(record)
         logAudit('UPDATE_USER', `Usuário ${email} atualizado.`)
         toast({ title: 'Sucesso', description: 'Usuário atualizado com sucesso!' })
       } else {
