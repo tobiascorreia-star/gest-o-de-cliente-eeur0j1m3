@@ -21,10 +21,13 @@ export function DashboardCharts() {
   }, [clients])
 
   const barData = useMemo(() => {
-    return categories.map((cat) => {
-      const count = clients.filter((c) => c.categoria === cat.id).length
-      return { category: cat.name, total: count, fill: cat.color || 'hsl(var(--primary))' }
-    })
+    const data = categories
+      .filter((cat) => cat.active !== false)
+      .map((cat) => {
+        const count = clients.filter((c) => c.categoria === cat.id).length
+        return { category: cat.name, total: count, fill: cat.color || 'hsl(var(--primary))' }
+      })
+    return data.length > 0 ? data : []
   }, [clients, categories])
 
   return (
@@ -67,37 +70,47 @@ export function DashboardCharts() {
           <CardTitle className="text-base font-medium">Solicitações por Categoria</CardTitle>
         </CardHeader>
         <CardContent className="pl-0">
-          <ChartContainer config={{ total: { label: 'Total' } }} className="h-[300px] w-full">
-            <BarChart
-              data={barData}
-              margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
-              layout="vertical"
-            >
-              <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="hsl(var(--border))" />
-              <XAxis
-                type="number"
-                tickLine={false}
-                axisLine={false}
-                tickMargin={10}
-                fontSize={12}
-              />
-              <YAxis
-                dataKey="category"
-                type="category"
-                tickLine={false}
-                axisLine={false}
-                tickMargin={10}
-                fontSize={12}
-                width={120}
-              />
-              <ChartTooltip content={<ChartTooltipContent />} />
-              <Bar dataKey="total" radius={[0, 4, 4, 0]} barSize={24}>
-                {barData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.fill} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ChartContainer>
+          {barData.length === 0 ? (
+            <div className="h-[300px] w-full flex items-center justify-center text-muted-foreground text-sm">
+              Nenhuma categoria ativa com dados encontrada.
+            </div>
+          ) : (
+            <ChartContainer config={{ total: { label: 'Total' } }} className="h-[300px] w-full">
+              <BarChart
+                data={barData}
+                margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                layout="vertical"
+              >
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  horizontal={false}
+                  stroke="hsl(var(--border))"
+                />
+                <XAxis
+                  type="number"
+                  tickLine={false}
+                  axisLine={false}
+                  tickMargin={10}
+                  fontSize={12}
+                />
+                <YAxis
+                  dataKey="category"
+                  type="category"
+                  tickLine={false}
+                  axisLine={false}
+                  tickMargin={10}
+                  fontSize={12}
+                  width={120}
+                />
+                <ChartTooltip content={<ChartTooltipContent />} />
+                <Bar dataKey="total" radius={[0, 4, 4, 0]} barSize={24}>
+                  {barData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.fill} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ChartContainer>
+          )}
         </CardContent>
       </Card>
     </div>

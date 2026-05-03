@@ -37,6 +37,8 @@ import { toast } from '@/hooks/use-toast'
 import { logAudit } from '@/services/audit'
 import { ErrorBoundary } from '@/components/error-boundary'
 import { useApp } from '@/contexts/app-context'
+import pb from '@/lib/pocketbase/client'
+import { extractFieldErrors } from '@/lib/pocketbase/errors'
 
 const formatPhone = (val: string) => {
   if (!val) return ''
@@ -66,7 +68,7 @@ export default function Usuarios() {
   const [passwordConfirm, setPasswordConfirm] = useState('')
   const [phone, setPhone] = useState('')
   const [active, setActive] = useState(true)
-  const [role, setRole] = useState<'Admin' | 'Operador'>('Operador')
+  const [role, setRole] = useState<'admin' | 'operator'>('operator')
   const [showPassword, setShowPassword] = useState(false)
   const [showPasswordConfirm, setShowPasswordConfirm] = useState(false)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
@@ -84,7 +86,7 @@ export default function Usuarios() {
       setActive(u.active !== false)
       setPassword('')
       setPasswordConfirm('')
-      setRole((u.role as any) || 'Operador')
+      setRole((u.role as any) || 'operator')
       setAvatarPreview(u.avatarUrl || null)
       setAvatarFile(null)
     } else {
@@ -95,7 +97,7 @@ export default function Usuarios() {
       setActive(true)
       setPassword('')
       setPasswordConfirm('')
-      setRole('Operador')
+      setRole('operator')
       setAvatarPreview(null)
       setAvatarFile(null)
     }
@@ -157,31 +159,46 @@ export default function Usuarios() {
 
       if (pass) {
         userData.password = pass
+        userData.passwordConfirm = pass
       }
 
-      if (avatarPreview) {
-        userData.avatarUrl = avatarPreview
-      } else if (!avatarPreview && editingUser?.avatarUrl) {
-        userData.avatarUrl = null
+      if (avatarFile) {
+        userData.avatar = avatarFile
+      } else if (!avatarPreview && editingUser?.avatar) {
+        userData.avatar = null
       }
 
       if (editingUser) {
-        updateUser({ ...editingUser, ...userData })
+        const record = await pb.collection('users').update(editingUser.id, userData)
+        updateUser(record)
         logAudit('UPDATE_USER', `Usuário ${email} atualizado.`)
         toast({ title: 'Sucesso', description: 'Usuário atualizado com sucesso!' })
       } else {
-        addUser(userData)
+        const record = await pb.collection('users').create(userData)
+        addUser(record)
         logAudit('CREATE_USER', `Usuário ${email} criado.`)
         toast({ title: 'Sucesso', description: 'Novo usuário criado!' })
       }
 
       setIsOpen(false)
     } catch (error: any) {
-      toast({
-        title: 'Erro ao salvar',
-        description: error.message || 'Erro inesperado.',
-        variant: 'destructive',
-      })
+      const fieldErrors = extractFieldErrors(error)
+      if (Object.keys(fieldErrors).length > 0) {
+        const messages = Object.entries(fieldErrors)
+          .map(([field, msg]) => `${field}: ${msg}`)
+          .join(' | ')
+        toast({
+          title: 'Erro de validação',
+          description: messages,
+          variant: 'destructive',
+        })
+      } else {
+        toast({
+          title: 'Erro ao salvar',
+          description: error.message || 'Erro inesperado.',
+          variant: 'destructive',
+        })
+      }
     } finally {
       setIsSaving(false)
     }
@@ -189,7 +206,8 @@ export default function Usuarios() {
 
   const handleToggleStatus = async (user: any) => {
     try {
-      updateUser({ ...user, active: !user.active })
+      const record = await pb.collection('users').update(user.id, { active: !user.active })
+      updateUser(record)
       logAudit(
         'TOGGLE_USER_STATUS',
         `Status do usuário ${user.email} alterado para ${!user.active ? 'Ativo' : 'Inativo'}`,
@@ -439,13 +457,13 @@ export default function Usuarios() {
               )}
               <div className="space-y-2">
                 <Label>Perfil de Acesso *</Label>
-                <Select value={role} onValueChange={(v: 'Admin' | 'Operador') => setRole(v)}>
+                <Select value={role} onValueChange={(v: 'admin' | 'operator') => setRole(v)}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Admin">Administrador (Acesso Total)</SelectItem>
-                    <SelectItem value="Operador">Operador (Acesso Restrito)</SelectItem>
+                    <SelectItem value="admin">Administrador (Acesso Total)</SelectItem>
+                    <SelectItem value="operator">Operador (Acesso Restrito)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

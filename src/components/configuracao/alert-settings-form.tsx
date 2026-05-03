@@ -68,7 +68,7 @@ export function AlertSettingsForm() {
             </label>
             <Input
               type="number"
-              className="w-24 text-center font-bold text-green-600 bg-white"
+              className="w-24 text-center font-bold text-green-600 bg-white focus-visible:ring-green-500"
               value={settings?.moderate_threshold || 0}
               onChange={(e) => setSettings({ ...settings, moderate_threshold: e.target.value })}
             />
@@ -81,7 +81,7 @@ export function AlertSettingsForm() {
             </label>
             <Input
               type="number"
-              className="w-24 text-center font-bold text-green-600 bg-white"
+              className="w-24 text-center font-bold text-green-600 bg-white focus-visible:ring-green-500"
               value={settings?.critical_threshold || 0}
               onChange={(e) => setSettings({ ...settings, critical_threshold: e.target.value })}
             />
@@ -94,7 +94,7 @@ export function AlertSettingsForm() {
             </label>
             <Input
               type="number"
-              className="w-24 text-center font-bold text-green-600 bg-white"
+              className="w-24 text-center font-bold text-green-600 bg-white focus-visible:ring-green-500"
               value={settings?.old_days || 0}
               onChange={(e) => setSettings({ ...settings, old_days: e.target.value })}
             />
@@ -107,7 +107,7 @@ export function AlertSettingsForm() {
             </label>
             <Input
               type="number"
-              className="w-24 text-center font-bold text-green-600 bg-white"
+              className="w-24 text-center font-bold text-green-600 bg-white focus-visible:ring-green-500"
               value={settings?.critical_days || 0}
               onChange={(e) => setSettings({ ...settings, critical_days: e.target.value })}
             />
@@ -118,7 +118,7 @@ export function AlertSettingsForm() {
           <Button
             onClick={handleSave}
             disabled={saving}
-            className="bg-green-600 hover:bg-green-700 text-white gap-2 font-semibold"
+            className="bg-green-500 hover:bg-green-600 text-white gap-2 font-semibold"
           >
             <span className="text-lg">💾</span>
             Salvar Configurações
