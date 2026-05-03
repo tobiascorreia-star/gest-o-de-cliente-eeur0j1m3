@@ -60,17 +60,17 @@ export function KpiCards() {
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       {cards.map((card, i) => (
-        <Card key={i} className="border-border/50 shadow-sm hover:shadow-md transition-shadow">
+        <Card key={i} className="hover:-translate-y-1 transition-transform duration-300">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              {card.title}
-            </CardTitle>
-            <div className={`p-2 rounded-full ${card.bg}`}>
+            <CardTitle className="text-sm font-medium text-slate-500">{card.title}</CardTitle>
+            <div className={`p-2 rounded-lg ${card.bg}`}>
               <card.icon className={`h-4 w-4 ${card.color}`} />
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{card.value}</div>
+            <div className="text-3xl font-medium text-slate-800 dark:text-slate-100">
+              {card.value}
+            </div>
           </CardContent>
         </Card>
       ))}

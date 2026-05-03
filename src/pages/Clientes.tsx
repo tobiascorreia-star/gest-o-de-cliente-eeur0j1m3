@@ -143,8 +143,10 @@ const Clientes = () => {
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Clientes</h2>
-          <p className="text-muted-foreground text-sm">
+          <h2 className="text-2xl font-medium tracking-tight text-slate-800 dark:text-slate-100">
+            Clientes
+          </h2>
+          <p className="text-slate-500 text-sm">
             Gerencie o cadastro e os status de seus clientes.
           </p>
         </div>

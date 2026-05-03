@@ -234,16 +234,20 @@ export function ConfigDataTable({
           </Select>
         </div>
 
-        <div className="rounded-md border overflow-hidden">
+        <div className="rounded-xl border border-slate-100 overflow-hidden dark:border-slate-800">
           <Table>
-            <TableHeader className="bg-muted/50">
+            <TableHeader className="bg-slate-50/50 dark:bg-slate-800/50">
               <TableRow>
-                <TableHead>Tipo</TableHead>
-                <TableHead>Nome</TableHead>
-                <TableHead>Cor</TableHead>
-                <TableHead>Dias</TableHead>
-                <TableHead className="w-[80px] text-center">Ativo</TableHead>
-                <TableHead className="w-[100px] text-right">Ações</TableHead>
+                <TableHead className="font-medium text-slate-500">Tipo</TableHead>
+                <TableHead className="font-medium text-slate-500">Nome</TableHead>
+                <TableHead className="font-medium text-slate-500">Cor</TableHead>
+                <TableHead className="font-medium text-slate-500">Dias</TableHead>
+                <TableHead className="w-[80px] text-center font-medium text-slate-500">
+                  Ativo
+                </TableHead>
+                <TableHead className="w-[100px] text-right font-medium text-slate-500">
+                  Ações
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

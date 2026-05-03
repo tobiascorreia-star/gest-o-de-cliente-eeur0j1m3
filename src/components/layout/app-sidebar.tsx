@@ -52,14 +52,18 @@ export function AppSidebar() {
   })
 
   return (
-    <Sidebar collapsible={isMobile ? 'offcanvas' : 'icon'} variant="sidebar">
-      <SidebarHeader className="border-b border-white/5 h-14 flex items-center justify-center px-4">
+    <Sidebar
+      collapsible={isMobile ? 'offcanvas' : 'icon'}
+      variant="sidebar"
+      className="border-r border-slate-100 shadow-sm dark:border-slate-800"
+    >
+      <SidebarHeader className="border-b border-slate-100 h-14 flex items-center justify-center px-4 bg-slate-50/50 dark:bg-slate-900/50 dark:border-slate-800">
         <div className="flex items-center gap-2 w-full overflow-hidden">
-          <div className="bg-accent text-primary p-1.5 rounded-lg shrink-0">
-            <Building2 className="w-5 h-5" />
+          <div className="bg-primary/10 text-primary p-1.5 rounded-lg shrink-0">
+            <Building2 className="w-4 h-4" />
           </div>
-          <span className="font-bold tracking-wide text-sm truncate group-data-[collapsible=icon]:hidden text-sidebar-foreground">
-            GESTÃO Cliente
+          <span className="font-medium tracking-wide text-sm truncate group-data-[collapsible=icon]:hidden text-sidebar-foreground">
+            Gestão Cliente
           </span>
         </div>
       </SidebarHeader>
@@ -79,7 +83,7 @@ export function AppSidebar() {
                       isActive={isActive}
                       tooltip={item.name}
                       onClick={() => isMobile && setOpenMobile(false)}
-                      className="data-[active=true]:bg-accent data-[active=true]:text-primary data-[active=true]:font-medium transition-colors"
+                      className="data-[active=true]:bg-primary/10 data-[active=true]:text-primary data-[active=true]:font-medium transition-all text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-800"
                     >
                       <Link to={item.href}>
                         <item.icon className="w-4 h-4" />
@@ -93,13 +97,13 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter className="border-t border-white/5 pb-2">
+      <SidebarFooter className="border-t border-slate-100 dark:border-slate-800 pb-2">
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
               onClick={signOut}
               tooltip="Sair da Conta"
-              className="hover:bg-destructive hover:text-destructive-foreground transition-colors"
+              className="hover:bg-destructive/10 hover:text-destructive text-slate-600 dark:text-slate-400 transition-colors"
             >
               <LogOut className="w-4 h-4" />
               <span>Sair do Sistema</span>

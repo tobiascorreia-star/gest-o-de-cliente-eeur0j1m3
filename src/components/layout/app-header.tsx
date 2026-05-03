@@ -25,7 +25,7 @@ export function AppHeader() {
       : `https://img.usecurling.com/ppl/thumbnail?seed=${user?.id || 'default'}`)
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 w-full items-center gap-4 border-b bg-background px-4 sm:px-6">
+    <header className="sticky top-0 z-30 flex h-14 w-full items-center gap-4 border-b border-slate-100 bg-white/50 backdrop-blur-md px-4 sm:px-6 dark:border-slate-800 dark:bg-slate-950/50">
       <SidebarTrigger className="shrink-0" />
       <div className="flex flex-1 items-center justify-end">
         <DropdownMenu>

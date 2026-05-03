@@ -6,7 +6,7 @@
 
 @layer base {
   :root {
-    /* Soft Modern Blue Theme */
+    /* Slim Light Blue Theme */
     --background: 210 40% 98%;
     --foreground: 222.2 84% 4.9%;
 
@@ -16,37 +16,35 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
-    /* Lighter Blue Primary */
-    --primary: 217 91% 60%;
+    --primary: 214 80% 55%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 214 100% 95%;
-    --secondary-foreground: 222 47% 11%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
 
-    --muted: 210 40% 96%;
+    --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
 
-    /* Soft Blue Accent */
-    --accent: 214 100% 91%;
-    --accent-foreground: 217 91% 60%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 214 80% 55%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 217 91% 60%;
+    --ring: 214 80% 55%;
 
     --radius: 0.75rem;
 
     --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 222.2 84% 4.9%;
-    --sidebar-primary: 217 91% 60%;
+    --sidebar-primary: 214 80% 55%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 214 100% 95%;
-    --sidebar-accent-foreground: 217 91% 60%;
+    --sidebar-accent: 210 40% 96.1%;
+    --sidebar-accent-foreground: 214 80% 55%;
     --sidebar-border: 214.3 31.8% 91.4%;
-    --sidebar-ring: 217 91% 60%;
+    --sidebar-ring: 214 80% 55%;
 
     --chart-1: 217 91% 60%;
     --chart-2: 199 89% 48%;
@@ -98,7 +96,19 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground font-sans;
+    @apply bg-background text-foreground font-sans antialiased;
+    letter-spacing: -0.01em;
+  }
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-medium tracking-tight text-slate-800 dark:text-slate-100;
+  }
+  .lucide {
+    stroke-width: 1.5;
   }
 
   section[aria-label='Notifications alt+T'] {

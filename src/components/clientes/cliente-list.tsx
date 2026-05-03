@@ -262,21 +262,29 @@ export function ClienteList({
 
   return (
     <>
-      <div className="hidden md:block print:block rounded-xl border bg-card shadow-sm overflow-hidden w-full">
+      <div className="hidden md:block print:block rounded-2xl border border-slate-100 bg-white/50 backdrop-blur-sm shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] dark:bg-slate-900/50 dark:border-slate-800 overflow-hidden w-full">
         <div className="overflow-x-auto w-full pb-2">
           <Table className="min-w-max w-full">
             <TableHeader>
-              <TableRow className="bg-muted/50 hover:bg-muted/50 border-b-border/50">
-                <TableHead className="font-semibold whitespace-nowrap min-w-[200px]">
+              <TableRow className="bg-slate-50/50 dark:bg-slate-800/50 hover:bg-slate-50/50 border-b-slate-100 dark:border-b-slate-800">
+                <TableHead className="font-medium text-slate-500 whitespace-nowrap min-w-[200px]">
                   CNPJ / Razão Social
                 </TableHead>
-                <TableHead className="font-semibold whitespace-nowrap">Cliente</TableHead>
-                <TableHead className="font-semibold whitespace-nowrap">Colaborador</TableHead>
-                <TableHead className="font-semibold whitespace-nowrap">Solicitação</TableHead>
-                <TableHead className="font-semibold whitespace-nowrap">Status</TableHead>
-                <TableHead className="font-semibold whitespace-nowrap">Pgto</TableHead>
-                <TableHead className="font-semibold min-w-[250px]">Obs</TableHead>
-                <TableHead className="font-semibold whitespace-nowrap">Data</TableHead>
+                <TableHead className="font-medium text-slate-500 whitespace-nowrap">
+                  Cliente
+                </TableHead>
+                <TableHead className="font-medium text-slate-500 whitespace-nowrap">
+                  Colaborador
+                </TableHead>
+                <TableHead className="font-medium text-slate-500 whitespace-nowrap">
+                  Solicitação
+                </TableHead>
+                <TableHead className="font-medium text-slate-500 whitespace-nowrap">
+                  Status
+                </TableHead>
+                <TableHead className="font-medium text-slate-500 whitespace-nowrap">Pgto</TableHead>
+                <TableHead className="font-medium text-slate-500 min-w-[250px]">Obs</TableHead>
+                <TableHead className="font-medium text-slate-500 whitespace-nowrap">Data</TableHead>
                 <TableHead className="w-[60px] print:hidden sticky right-0 bg-card"></TableHead>
               </TableRow>
             </TableHeader>
@@ -313,7 +321,7 @@ export function ClienteList({
                     )}
                   >
                     <TableCell className="align-top">
-                      <div className="font-semibold text-foreground flex items-center gap-2">
+                      <div className="font-medium text-slate-800 dark:text-slate-200 flex items-center gap-2">
                         {client.razao_social}
                         {showCritical && (
                           <Badge

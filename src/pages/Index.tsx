@@ -140,11 +140,11 @@ const Index = () => {
         </Alert>
       )}
 
-      <div className="flex flex-col gap-1 mb-6">
-        <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">
+      <div className="flex flex-col gap-1 mb-8">
+        <h2 className="text-2xl md:text-3xl font-medium tracking-tight text-slate-800 dark:text-slate-100">
           {userName ? `${getGreeting()}, ${userName}!` : 'Bem-vindo(a)!'}
         </h2>
-        <p className="text-muted-foreground text-sm">Acompanhe as métricas e alertas do sistema.</p>
+        <p className="text-slate-500 text-sm">Acompanhe as métricas e alertas do sistema.</p>
       </div>
 
       <KpiCards />

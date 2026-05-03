@@ -67,10 +67,10 @@ export function AlertsWidget() {
         </Card>
       )}
 
-      <Card className="border-border/50 shadow-sm border-l-4 border-l-emerald-500 overflow-hidden">
-        <CardHeader className="bg-emerald-50/50 dark:bg-emerald-950/20 pb-4 border-b border-border/50">
-          <CardTitle className="text-base font-medium flex items-center gap-2 text-emerald-800 dark:text-emerald-400">
-            <Clock className="w-5 h-5" />
+      <Card className="border-slate-100 dark:border-slate-800 shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] border-l-4 border-l-emerald-400 overflow-hidden">
+        <CardHeader className="bg-white/50 dark:bg-slate-900/50 pb-4 border-b border-slate-100 dark:border-slate-800">
+          <CardTitle className="text-base font-medium flex items-center gap-2 text-slate-700 dark:text-slate-200">
+            <Clock className="w-4 h-4 text-emerald-500" />
             Alertas de Pendências
           </CardTitle>
         </CardHeader>

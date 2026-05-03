@@ -39,42 +39,42 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 via-white to-sky-50 p-4 relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4 relative overflow-hidden">
       {/* Decorative blurred circles */}
-      <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-blue-400/20 rounded-full blur-[100px]" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-sky-300/20 rounded-full blur-[100px]" />
+      <div className="absolute top-[-10%] left-[-10%] w-[30rem] h-[30rem] bg-blue-100/50 rounded-full blur-[100px]" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[30rem] h-[30rem] bg-sky-100/50 rounded-full blur-[100px]" />
 
-      <div className="w-full max-w-md bg-white/70 backdrop-blur-xl border border-white/50 p-8 rounded-2xl shadow-xl z-10 animate-fade-in-up">
-        <div className="flex flex-col items-center mb-8">
-          <div className="bg-gradient-to-tr from-blue-600 to-sky-400 w-16 h-16 rounded-2xl flex items-center justify-center mb-4 shadow-lg shadow-blue-500/20">
-            <Building2 className="w-8 h-8 text-white" />
+      <div className="w-full max-w-md bg-white/80 backdrop-blur-2xl border border-slate-100 p-10 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] z-10 animate-fade-in-up">
+        <div className="flex flex-col items-center mb-10">
+          <div className="bg-primary/10 w-16 h-16 rounded-2xl flex items-center justify-center mb-5">
+            <Building2 className="w-8 h-8 text-primary" strokeWidth={1.5} />
           </div>
-          <h1 className="text-3xl font-bold text-slate-800 tracking-wide">GESTÃO Cliente</h1>
-          <p className="text-slate-500 text-sm mt-2 font-medium">SISTEMA DE GESTÃO EMPRESARIAL</p>
+          <h1 className="text-2xl font-medium text-slate-800 tracking-tight">Gestão Cliente</h1>
+          <p className="text-slate-500 text-sm mt-1">Acesso ao sistema</p>
         </div>
 
-        <form onSubmit={handleLogin} className="space-y-5">
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium text-slate-700 ml-1">E-mail de Acesso</label>
+        <form onSubmit={handleLogin} className="space-y-6">
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-slate-600 ml-1">E-mail</label>
             <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <Input
                 type="email"
-                placeholder="tobiascorreia@gmail.com"
+                placeholder="nome@empresa.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="pl-10 bg-white/50 border-slate-200 text-slate-800 placeholder:text-slate-400 h-12 rounded-xl focus-visible:ring-blue-500 transition-all shadow-sm hover:border-blue-300 focus:bg-white"
+                className="pl-10 h-12 rounded-xl bg-white"
               />
             </div>
           </div>
 
-          <div className="space-y-1.5">
+          <div className="space-y-2">
             <div className="flex justify-between items-center ml-1">
-              <label className="text-sm font-medium text-slate-700">Senha</label>
+              <label className="text-sm font-medium text-slate-600">Senha</label>
               <button
                 type="button"
-                className="text-xs text-blue-600 hover:text-blue-800 transition-colors font-medium"
+                className="text-xs text-primary hover:text-primary/80 transition-colors font-medium"
                 onClick={() => {
                   if (!email) {
                     toast({
@@ -96,37 +96,32 @@ export default function Login() {
               </button>
             </div>
             <div className="relative">
-              <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+              <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <Input
                 type={showPassword ? 'text' : 'password'}
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="pl-10 pr-10 bg-white/50 border-slate-200 text-slate-800 placeholder:text-slate-400 h-12 rounded-xl focus-visible:ring-blue-500 transition-all shadow-sm hover:border-blue-300 focus:bg-white"
+                className="pl-10 pr-10 h-12 rounded-xl bg-white"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
               >
-                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
           </div>
 
-          <Button
-            type="submit"
-            className="w-full h-12 mt-6 bg-blue-600 hover:bg-blue-700 text-white font-bold text-base rounded-xl transition-all shadow-[0_4px_14px_0_rgba(37,99,235,0.39)] hover:shadow-[0_6px_20px_rgba(37,99,235,0.23)] hover:-translate-y-0.5"
-          >
+          <Button type="submit" className="w-full h-12 mt-8 text-base rounded-xl">
             Acessar Sistema
           </Button>
         </form>
       </div>
 
-      <div className="absolute bottom-4 left-0 right-0 text-center z-10">
-        <p className="text-xs text-slate-500 font-medium">
-          © 2026 - MegaFllex Soluções - Todos os direitos reservados
-        </p>
+      <div className="absolute bottom-6 left-0 right-0 text-center z-10">
+        <p className="text-xs text-slate-400">© 2026 - MegaFllex Soluções</p>
       </div>
     </div>
   )

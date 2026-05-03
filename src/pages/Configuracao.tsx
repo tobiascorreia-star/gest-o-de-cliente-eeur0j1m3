@@ -71,11 +71,11 @@ const Configuracao = () => {
   return (
     <ErrorBoundary>
       <div className="space-y-6">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">Configurações do Sistema</h2>
-          <p className="text-muted-foreground text-sm">
-            Gerencie regras de negócios e dados de listagem.
-          </p>
+        <div className="mb-8">
+          <h2 className="text-2xl font-medium tracking-tight text-slate-800 dark:text-slate-100">
+            Configurações do Sistema
+          </h2>
+          <p className="text-slate-500 text-sm">Gerencie regras de negócios e dados de listagem.</p>
         </div>
 
         <Tabs defaultValue="listas" className="w-full">

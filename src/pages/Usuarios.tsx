@@ -360,10 +360,12 @@ export default function Usuarios() {
   return (
     <ErrorBoundary>
       <div className="space-y-4">
-        <div className="flex justify-between items-center">
+        <div className="flex justify-between items-center mb-4">
           <div>
-            <h2 className="text-2xl font-bold tracking-tight">Usuários</h2>
-            <p className="text-muted-foreground text-sm">Equipe com acesso ao sistema.</p>
+            <h2 className="text-2xl font-medium tracking-tight text-slate-800 dark:text-slate-100">
+              Usuários
+            </h2>
+            <p className="text-slate-500 text-sm">Equipe com acesso ao sistema.</p>
           </div>
           <Button onClick={() => openForm()}>
             <Plus className="w-4 h-4 mr-2" /> Novo Usuário
@@ -378,15 +380,17 @@ export default function Usuarios() {
             </Button>
           </div>
         ) : (
-          <div className="border rounded-md bg-card">
+          <div className="border border-slate-100 rounded-2xl bg-white/50 backdrop-blur-sm shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] dark:bg-slate-900/50 dark:border-slate-800 overflow-hidden">
             <Table>
-              <TableHeader>
+              <TableHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b-slate-100 dark:border-b-slate-800">
                 <TableRow>
-                  <TableHead>Usuário</TableHead>
-                  <TableHead className="hidden md:table-cell">Contato</TableHead>
-                  <TableHead>Perfil</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
+                  <TableHead className="font-medium text-slate-500">Usuário</TableHead>
+                  <TableHead className="hidden md:table-cell font-medium text-slate-500">
+                    Contato
+                  </TableHead>
+                  <TableHead className="font-medium text-slate-500">Perfil</TableHead>
+                  <TableHead className="font-medium text-slate-500">Status</TableHead>
+                  <TableHead className="text-right font-medium text-slate-500">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
