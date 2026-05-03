@@ -7,17 +7,23 @@ export interface LookupItem {
 export interface Client {
   id: string
   cnpj: string
-  razaoSocial: string
-  nome: string
-  colaboradorId: string
-  solicitacaoId: string
-  statusId: string
-  categoriaId: string
-  dataCadastro: string
-  dataBaixa?: string
-  obs?: string
-  pgtoId: string
-  previousStatusId?: string
+  razao_social: string
+  nome_cliente: string
+  colaborador?: string
+  solicitacao?: string
+  status?: string
+  categoria?: string
+  pgto?: string
+  observacoes?: string
+  created: string
+  updated: string
+  expand?: {
+    colaborador?: { id: string; name: string; color?: string }
+    solicitacao?: { id: string; name: string; color?: string }
+    status?: { id: string; name: string; color?: string }
+    categoria?: { id: string; name: string; color?: string }
+    pgto?: { id: string; name: string; color?: string }
+  }
 }
 
 export interface AlertConfig {

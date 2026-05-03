@@ -22,15 +22,14 @@ import { Loader2, Search } from 'lucide-react'
 
 const formSchema = z.object({
   cnpj: z.string().min(18, 'CNPJ incompleto').max(18, 'CNPJ incompleto'),
-  razaoSocial: z.string().min(3, 'Razão social é obrigatória'),
-  nome: z.string().min(3, 'Cliente é obrigatório'),
-  colaboradorId: z.string().min(1, 'Selecione um colaborador'),
-  solicitacaoId: z.string().min(1, 'Selecione uma solicitação'),
-  statusId: z.string().min(1, 'Selecione um status'),
-  categoriaId: z.string().min(1, 'Selecione uma categoria'),
-  dataCadastro: z.string().optional(),
-  pgtoId: z.string().optional(),
-  obs: z.string().optional(),
+  razao_social: z.string().min(3, 'Razão social é obrigatória'),
+  nome_cliente: z.string().min(3, 'Cliente é obrigatório'),
+  colaborador: z.string().min(1, 'Selecione um colaborador'),
+  solicitacao: z.string().min(1, 'Selecione uma solicitação'),
+  status: z.string().min(1, 'Selecione um status'),
+  categoria: z.string().min(1, 'Selecione uma categoria'),
+  pgto: z.string().optional(),
+  observacoes: z.string().optional(),
 })
 
 type FormData = z.infer<typeof formSchema>
@@ -82,28 +81,26 @@ export function ClienteForm({ initialData, onSuccess }: ClienteFormProps) {
     defaultValues: initialData
       ? {
           ...initialData,
-          dataCadastro: initialData.dataCadastro.split('T')[0],
         }
       : {
           cnpj: '',
-          razaoSocial: '',
-          nome: '',
-          colaboradorId: '',
-          solicitacaoId: '',
-          statusId: '',
-          categoriaId: '',
-          dataCadastro: new Date().toISOString().split('T')[0],
-          pgtoId: '',
-          obs: '',
+          razao_social: '',
+          nome_cliente: '',
+          colaborador: '',
+          solicitacao: '',
+          status: '',
+          categoria: '',
+          pgto: '',
+          observacoes: '',
         },
   })
 
   useEffect(() => {
-    register('colaboradorId')
-    register('solicitacaoId')
-    register('statusId')
-    register('categoriaId')
-    register('pgtoId')
+    register('colaborador')
+    register('solicitacao')
+    register('status')
+    register('categoria')
+    register('pgto')
   }, [register])
 
   const cnpjValue = watch('cnpj')
@@ -117,39 +114,40 @@ export function ClienteForm({ initialData, onSuccess }: ClienteFormProps) {
     if (!cnpjValue || cnpjValue.length < 18) return
     setIsFetchingCnpj(true)
     await new Promise((resolve) => setTimeout(resolve, 1000))
-    setValue('razaoSocial', 'Empresa Auto-preenchida LTDA', { shouldValidate: true })
+    setValue('razao_social', 'Empresa Auto-preenchida LTDA', { shouldValidate: true })
     setIsFetchingCnpj(false)
     toast({ title: 'CNPJ Encontrado', description: 'Razão social preenchida automaticamente.' })
   }
 
-  const onSubmit = (data: FormData) => {
-    if (isAdmin && !data.pgtoId) {
-      setError('pgtoId', { type: 'manual', message: 'Pagamento é obrigatório' })
+  const onSubmit = async (data: FormData) => {
+    if (isAdmin && !data.pgto) {
+      setError('pgto', { type: 'manual', message: 'Pagamento é obrigatório' })
       return
     }
 
-    const finalDataCadastro =
-      initialData && data.dataCadastro
-        ? new Date(data.dataCadastro).toISOString()
-        : new Date().toISOString()
-
     const clientData = {
       ...data,
-      dataCadastro: finalDataCadastro,
-      pgtoId: data.pgtoId || '',
+      pgto: data.pgto || '',
     }
 
-    if (initialData) {
-      updateClient({ ...initialData, ...clientData })
-      toast({ title: 'Sucesso', description: 'Cliente atualizado com sucesso!' })
-    } else {
-      addClient({
-        id: `cli_${Date.now()}`,
-        ...clientData,
+    try {
+      if (initialData) {
+        const { updateClient } = await import('@/services/clients')
+        await updateClient(initialData.id, clientData)
+        toast({ title: 'Sucesso', description: 'Cliente atualizado com sucesso!' })
+      } else {
+        const { createClient } = await import('@/services/clients')
+        await createClient(clientData)
+        toast({ title: 'Sucesso', description: 'Cliente cadastrado com sucesso!' })
+      }
+      onSuccess()
+    } catch (error: any) {
+      toast({
+        title: 'Erro',
+        description: error?.message || 'Falha ao salvar cliente',
+        variant: 'destructive',
       })
-      toast({ title: 'Sucesso', description: 'Cliente cadastrado com sucesso!' })
     }
-    onSuccess()
   }
 
   return (
@@ -182,34 +180,36 @@ export function ClienteForm({ initialData, onSuccess }: ClienteFormProps) {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="razaoSocial">Razão Social *</Label>
+          <Label htmlFor="razao_social">Razão Social *</Label>
           <Input
-            id="razaoSocial"
-            {...register('razaoSocial')}
-            className={errors.razaoSocial ? 'border-destructive' : ''}
+            id="razao_social"
+            {...register('razao_social')}
+            className={errors.razao_social ? 'border-destructive' : ''}
           />
-          {errors.razaoSocial && (
-            <p className="text-xs text-destructive">{errors.razaoSocial.message}</p>
+          {errors.razao_social && (
+            <p className="text-xs text-destructive">{errors.razao_social.message}</p>
           )}
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="nome">Cliente *</Label>
+          <Label htmlFor="nome_cliente">Cliente *</Label>
           <Input
-            id="nome"
-            {...register('nome')}
-            className={errors.nome ? 'border-destructive' : ''}
+            id="nome_cliente"
+            {...register('nome_cliente')}
+            className={errors.nome_cliente ? 'border-destructive' : ''}
           />
-          {errors.nome && <p className="text-xs text-destructive">{errors.nome.message}</p>}
+          {errors.nome_cliente && (
+            <p className="text-xs text-destructive">{errors.nome_cliente.message}</p>
+          )}
         </div>
 
         <div className="space-y-2">
           <Label>Colaborador Responsável *</Label>
           <Select
-            onValueChange={(v) => setValue('colaboradorId', v, { shouldValidate: true })}
-            defaultValue={initialData?.colaboradorId}
+            onValueChange={(v) => setValue('colaborador', v, { shouldValidate: true })}
+            defaultValue={initialData?.colaborador}
           >
-            <SelectTrigger className={errors.colaboradorId ? 'border-destructive' : ''}>
+            <SelectTrigger className={errors.colaborador ? 'border-destructive' : ''}>
               <SelectValue placeholder="Selecione" />
             </SelectTrigger>
             <SelectContent>
@@ -220,18 +220,18 @@ export function ClienteForm({ initialData, onSuccess }: ClienteFormProps) {
               ))}
             </SelectContent>
           </Select>
-          {errors.colaboradorId && (
-            <p className="text-xs text-destructive">{errors.colaboradorId.message}</p>
+          {errors.colaborador && (
+            <p className="text-xs text-destructive">{errors.colaborador.message}</p>
           )}
         </div>
 
         <div className="space-y-2">
           <Label>Solicitação *</Label>
           <Select
-            onValueChange={(v) => setValue('solicitacaoId', v, { shouldValidate: true })}
-            defaultValue={initialData?.solicitacaoId}
+            onValueChange={(v) => setValue('solicitacao', v, { shouldValidate: true })}
+            defaultValue={initialData?.solicitacao}
           >
-            <SelectTrigger className={errors.solicitacaoId ? 'border-destructive' : ''}>
+            <SelectTrigger className={errors.solicitacao ? 'border-destructive' : ''}>
               <SelectValue placeholder="Selecione" />
             </SelectTrigger>
             <SelectContent>
@@ -242,18 +242,18 @@ export function ClienteForm({ initialData, onSuccess }: ClienteFormProps) {
               ))}
             </SelectContent>
           </Select>
-          {errors.solicitacaoId && (
-            <p className="text-xs text-destructive">{errors.solicitacaoId.message}</p>
+          {errors.solicitacao && (
+            <p className="text-xs text-destructive">{errors.solicitacao.message}</p>
           )}
         </div>
 
         <div className="space-y-2">
           <Label>Status *</Label>
           <Select
-            onValueChange={(v) => setValue('statusId', v, { shouldValidate: true })}
-            defaultValue={initialData?.statusId}
+            onValueChange={(v) => setValue('status', v, { shouldValidate: true })}
+            defaultValue={initialData?.status}
           >
-            <SelectTrigger className={errors.statusId ? 'border-destructive' : ''}>
+            <SelectTrigger className={errors.status ? 'border-destructive' : ''}>
               <SelectValue placeholder="Selecione" />
             </SelectTrigger>
             <SelectContent>
@@ -266,16 +266,16 @@ export function ClienteForm({ initialData, onSuccess }: ClienteFormProps) {
                 ))}
             </SelectContent>
           </Select>
-          {errors.statusId && <p className="text-xs text-destructive">{errors.statusId.message}</p>}
+          {errors.status && <p className="text-xs text-destructive">{errors.status.message}</p>}
         </div>
 
         <div className="space-y-2">
           <Label>Categoria *</Label>
           <Select
-            onValueChange={(v) => setValue('categoriaId', v, { shouldValidate: true })}
-            defaultValue={initialData?.categoriaId}
+            onValueChange={(v) => setValue('categoria', v, { shouldValidate: true })}
+            defaultValue={initialData?.categoria}
           >
-            <SelectTrigger className={errors.categoriaId ? 'border-destructive' : ''}>
+            <SelectTrigger className={errors.categoria ? 'border-destructive' : ''}>
               <SelectValue placeholder="Selecione" />
             </SelectTrigger>
             <SelectContent>
@@ -286,19 +286,19 @@ export function ClienteForm({ initialData, onSuccess }: ClienteFormProps) {
               ))}
             </SelectContent>
           </Select>
-          {errors.categoriaId && (
-            <p className="text-xs text-destructive">{errors.categoriaId.message}</p>
+          {errors.categoria && (
+            <p className="text-xs text-destructive">{errors.categoria.message}</p>
           )}
         </div>
 
         <div className="space-y-2">
           <Label>Pgto *</Label>
           <Select
-            onValueChange={(v) => setValue('pgtoId', v, { shouldValidate: true })}
-            defaultValue={initialData?.pgtoId}
+            onValueChange={(v) => setValue('pgto', v, { shouldValidate: true })}
+            defaultValue={initialData?.pgto}
             disabled={!isAdmin}
           >
-            <SelectTrigger className={errors.pgtoId ? 'border-destructive' : ''}>
+            <SelectTrigger className={errors.pgto ? 'border-destructive' : ''}>
               <SelectValue placeholder="Selecione o tipo de pagamento" />
             </SelectTrigger>
             <SelectContent>
@@ -309,32 +309,18 @@ export function ClienteForm({ initialData, onSuccess }: ClienteFormProps) {
               ))}
             </SelectContent>
           </Select>
-          {errors.pgtoId && <p className="text-xs text-destructive">{errors.pgtoId.message}</p>}
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="dataCadastro">Data Cadastro *</Label>
-          <Input
-            id="dataCadastro"
-            type="date"
-            {...register('dataCadastro')}
-            disabled={!initialData}
-            className={errors.dataCadastro ? 'border-destructive' : 'disabled:opacity-70'}
-          />
-          {errors.dataCadastro && (
-            <p className="text-xs text-destructive">{errors.dataCadastro.message}</p>
-          )}
-          {!initialData && (
-            <p className="text-[10px] text-muted-foreground">
-              Preenchimento automático na criação.
-            </p>
-          )}
+          {errors.pgto && <p className="text-xs text-destructive">{errors.pgto.message}</p>}
         </div>
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="obs">Observações</Label>
-        <Textarea id="obs" {...register('obs')} rows={3} placeholder="Detalhes adicionais..." />
+        <Label htmlFor="observacoes">Observações</Label>
+        <Textarea
+          id="observacoes"
+          {...register('observacoes')}
+          rows={3}
+          placeholder="Detalhes adicionais..."
+        />
       </div>
 
       <div className="flex justify-end gap-2 pt-4">

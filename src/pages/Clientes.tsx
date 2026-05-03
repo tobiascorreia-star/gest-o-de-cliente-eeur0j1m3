@@ -1,5 +1,4 @@
-import { useState } from 'react'
-import { useApp } from '@/contexts/app-context'
+import { useState, useEffect } from 'react'
 import { ClienteList } from '@/components/clientes/cliente-list'
 import { ClienteForm } from '@/components/clientes/cliente-form'
 import { Input } from '@/components/ui/input'
@@ -14,21 +13,78 @@ import {
 } from '@/components/ui/dialog'
 import { Plus, Search } from 'lucide-react'
 import { Client } from '@/types'
+import { getClients, deleteClient as apiDeleteClient, updateClient } from '@/services/clients'
+import { useRealtime } from '@/hooks/use-realtime'
+import { useToast } from '@/hooks/use-toast'
+import pb from '@/lib/pocketbase/client'
 
 const Clientes = () => {
-  const { clients, deleteClient, markClientAsCompleted } = useApp()
+  const { toast } = useToast()
+  const [clients, setClients] = useState<Client[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [editingClient, setEditingClient] = useState<Client | null>(null)
 
+  const loadClients = async () => {
+    try {
+      const data = await getClients()
+      setClients(data)
+    } catch (error) {
+      console.error('Failed to load clients', error)
+    }
+  }
+
+  useEffect(() => {
+    loadClients()
+  }, [])
+
+  useRealtime('clients', () => {
+    loadClients()
+  })
+
+  useRealtime('configurations', () => {
+    loadClients()
+  })
+
   const filteredClients = clients.filter((c) => {
     const term = searchTerm.toLowerCase()
     return (
-      c.razaoSocial.toLowerCase().includes(term) ||
-      c.cnpj.includes(term) ||
-      c.nome.toLowerCase().includes(term)
+      (c.razao_social || '').toLowerCase().includes(term) ||
+      (c.cnpj || '').includes(term) ||
+      (c.nome_cliente || '').toLowerCase().includes(term)
     )
   })
+
+  const handleDelete = async (id: string) => {
+    try {
+      await apiDeleteClient(id)
+      toast({ title: 'Sucesso', description: 'Cliente excluído com sucesso.' })
+    } catch (error) {
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível excluir o cliente.',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  const handleBaixa = async (id: string) => {
+    try {
+      const statusBaixa = await pb
+        .collection('configurations')
+        .getFirstListItem(`type='Status' && name='Baixa'`)
+      if (statusBaixa) {
+        await updateClient(id, { status: statusBaixa.id })
+        toast({ title: 'Sucesso', description: 'Cliente atualizado para Baixa.' })
+      }
+    } catch (error) {
+      toast({
+        title: 'Erro',
+        description: 'Status Baixa não encontrado ou erro na atualização.',
+        variant: 'destructive',
+      })
+    }
+  }
 
   const handleEdit = (client: Client) => {
     setEditingClient(client)
@@ -84,8 +140,8 @@ const Clientes = () => {
       <ClienteList
         clients={filteredClients}
         onEdit={handleEdit}
-        onDelete={deleteClient}
-        onBaixa={markClientAsCompleted}
+        onDelete={handleDelete}
+        onBaixa={handleBaixa}
       />
     </div>
   )
