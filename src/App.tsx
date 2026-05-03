@@ -4,6 +4,7 @@ import { Toaster as Sonner } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { AppProvider } from '@/contexts/app-context'
 import { AuthProvider, useAuth } from '@/hooks/use-auth'
+import { ThemeProvider } from '@/components/theme-provider'
 import Layout from './components/Layout'
 import { ErrorBoundary } from './components/error-boundary'
 import Index from './pages/Index'
@@ -71,19 +72,21 @@ const AppRoutes = () => {
 }
 
 const App = () => (
-  <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-    <ErrorBoundary>
-      <TooltipProvider>
-        <AuthProvider>
-          <AppProvider>
-            <Toaster />
-            <Sonner />
-            <AppRoutes />
-          </AppProvider>
-        </AuthProvider>
-      </TooltipProvider>
-    </ErrorBoundary>
-  </BrowserRouter>
+  <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
+    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <ErrorBoundary>
+        <TooltipProvider>
+          <AuthProvider>
+            <AppProvider>
+              <Toaster />
+              <Sonner />
+              <AppRoutes />
+            </AppProvider>
+          </AuthProvider>
+        </TooltipProvider>
+      </ErrorBoundary>
+    </BrowserRouter>
+  </ThemeProvider>
 )
 
 export default App

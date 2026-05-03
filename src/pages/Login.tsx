@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Building2, Eye, EyeOff, KeyRound, Mail } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from '@/hooks/use-toast'
+import { ModeToggle } from '@/components/mode-toggle'
 
 export default function Login() {
   const { requestPasswordReset } = useApp()
@@ -39,23 +40,31 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4 relative overflow-hidden">
-      {/* Decorative blurred circles */}
-      <div className="absolute top-[-10%] left-[-10%] w-[30rem] h-[30rem] bg-blue-100/50 rounded-full blur-[100px]" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[30rem] h-[30rem] bg-sky-100/50 rounded-full blur-[100px]" />
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 p-4 relative overflow-hidden transition-colors">
+      <div className="absolute top-4 right-4 z-20">
+        <ModeToggle />
+      </div>
 
-      <div className="w-full max-w-md bg-white/80 backdrop-blur-2xl border border-slate-100 p-10 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] z-10 animate-fade-in-up">
+      {/* Decorative blurred circles */}
+      <div className="absolute top-[-10%] left-[-10%] w-[30rem] h-[30rem] bg-blue-100/50 dark:bg-blue-900/20 rounded-full blur-[100px]" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[30rem] h-[30rem] bg-sky-100/50 dark:bg-sky-900/20 rounded-full blur-[100px]" />
+
+      <div className="w-full max-w-md bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl border border-slate-100 dark:border-slate-800 p-10 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] z-10 animate-fade-in-up transition-colors">
         <div className="flex flex-col items-center mb-10">
-          <div className="bg-primary/10 w-16 h-16 rounded-2xl flex items-center justify-center mb-5">
-            <Building2 className="w-8 h-8 text-primary" strokeWidth={1.5} />
+          <div className="bg-primary/10 dark:bg-primary/20 w-16 h-16 rounded-2xl flex items-center justify-center mb-5 transition-colors">
+            <Building2 className="w-8 h-8 text-primary dark:text-blue-400" strokeWidth={1.5} />
           </div>
-          <h1 className="text-2xl font-medium text-slate-800 tracking-tight">Gestão Cliente</h1>
-          <p className="text-slate-500 text-sm mt-1">Acesso ao sistema</p>
+          <h1 className="text-2xl font-medium text-slate-800 dark:text-slate-100 tracking-tight">
+            Gestão Cliente
+          </h1>
+          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Acesso ao sistema</p>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-6">
           <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-600 ml-1">E-mail</label>
+            <label className="text-sm font-medium text-slate-600 dark:text-slate-300 ml-1">
+              E-mail
+            </label>
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <Input
@@ -64,14 +73,16 @@ export default function Login() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="pl-10 h-12 rounded-xl bg-white"
+                className="pl-10 h-12 rounded-xl bg-white dark:bg-slate-950 dark:border-slate-800 transition-colors"
               />
             </div>
           </div>
 
           <div className="space-y-2">
             <div className="flex justify-between items-center ml-1">
-              <label className="text-sm font-medium text-slate-600">Senha</label>
+              <label className="text-sm font-medium text-slate-600 dark:text-slate-300">
+                Senha
+              </label>
               <button
                 type="button"
                 className="text-xs text-primary hover:text-primary/80 transition-colors font-medium"
@@ -102,7 +113,7 @@ export default function Login() {
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="pl-10 pr-10 h-12 rounded-xl bg-white"
+                className="pl-10 pr-10 h-12 rounded-xl bg-white dark:bg-slate-950 dark:border-slate-800 transition-colors"
               />
               <button
                 type="button"
@@ -121,7 +132,7 @@ export default function Login() {
       </div>
 
       <div className="absolute bottom-6 left-0 right-0 text-center z-10">
-        <p className="text-xs text-slate-400">© 2026 - MegaFllex Soluções</p>
+        <p className="text-xs text-slate-400 dark:text-slate-500">© 2026 - MegaFllex Soluções</p>
       </div>
     </div>
   )

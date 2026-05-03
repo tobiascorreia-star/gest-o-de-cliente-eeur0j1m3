@@ -13,6 +13,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { LogOut, User as UserIcon } from 'lucide-react'
 import pb from '@/lib/pocketbase/client'
 import { ProfileDialog } from '../profile-dialog'
+import { ModeToggle } from '@/components/mode-toggle'
 
 export function AppHeader() {
   const { user, signOut } = useAuth()
@@ -27,7 +28,8 @@ export function AppHeader() {
   return (
     <header className="sticky top-0 z-30 flex h-14 w-full items-center gap-4 border-b border-slate-100 bg-white/50 backdrop-blur-md px-4 sm:px-6 dark:border-slate-800 dark:bg-slate-950/50">
       <SidebarTrigger className="shrink-0" />
-      <div className="flex flex-1 items-center justify-end">
+      <div className="flex flex-1 items-center justify-end gap-2">
+        <ModeToggle />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button className="flex items-center gap-2 outline-none hover:opacity-80 transition-opacity">
