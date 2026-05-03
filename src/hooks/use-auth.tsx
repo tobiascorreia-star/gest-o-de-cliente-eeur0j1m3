@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import pb from '@/lib/pocketbase/client'
+import { useRealtime } from '@/hooks/use-realtime'
 
 interface AuthContextType {
   user: any
@@ -29,6 +30,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       unsubscribe()
     }
   }, [])
+
+  useRealtime(
+    'users',
+    (e) => {
+      if (user?.id && e.record.id === user.id) {
+        if (e.action === 'update') {
+          pb.authStore.save(pb.authStore.token, e.record)
+        } else if (e.action === 'delete' || e.record.active === false) {
+          signOut()
+        }
+      }
+    },
+    !!user?.id,
+  )
 
   const signIn = async (email: string, password?: string) => {
     try {

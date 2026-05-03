@@ -58,23 +58,45 @@ export function ProfileDialog({
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    if (open && user) {
-      setName(user.name || '')
-      setPhone(formatPhone(user.phone || ''))
-      setOldPassword('')
-      setPassword('')
-      setPasswordConfirm('')
+    const fetchLatestUser = async () => {
+      if (open && user?.id) {
+        try {
+          const latestUser = await pb.collection('users').getOne(user.id)
+          setName(latestUser.name || '')
+          setPhone(formatPhone(latestUser.phone || ''))
+          setOldPassword('')
+          setPassword('')
+          setPasswordConfirm('')
 
-      const currentAvatarUrl =
-        user.avatarUrl || (user.avatar ? pb.files.getURL(user, user.avatar) : null)
-      setAvatarPreview(currentAvatarUrl)
-      setAvatarFile(null)
-      setRemoveAvatar(false)
-      setShowPassword(false)
-      setShowPasswordConfirm(false)
-      setIsSaving(false)
+          const currentAvatarUrl =
+            latestUser.avatarUrl ||
+            (latestUser.avatar ? pb.files.getURL(latestUser, latestUser.avatar) : null)
+          setAvatarPreview(currentAvatarUrl)
+          setAvatarFile(null)
+          setRemoveAvatar(false)
+          setShowPassword(false)
+          setShowPasswordConfirm(false)
+          setIsSaving(false)
+        } catch (e) {
+          // Fallback to context user if fetch fails
+          setName(user.name || '')
+          setPhone(formatPhone(user.phone || ''))
+          setOldPassword('')
+          setPassword('')
+          setPasswordConfirm('')
+          const currentAvatarUrl =
+            user.avatarUrl || (user.avatar ? pb.files.getURL(user, user.avatar) : null)
+          setAvatarPreview(currentAvatarUrl)
+          setAvatarFile(null)
+          setRemoveAvatar(false)
+          setShowPassword(false)
+          setShowPasswordConfirm(false)
+          setIsSaving(false)
+        }
+      }
     }
-  }, [open, user])
+    fetchLatestUser()
+  }, [open, user?.id])
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -326,7 +348,10 @@ export function ProfileDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSaving}>
             Cancelar
           </Button>
-          <Button onClick={handleSave} disabled={isSaving}>
+          <Button
+            onClick={handleSave}
+            disabled={isSaving || (password.length > 0 && password !== passwordConfirm)}
+          >
             {isSaving ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />

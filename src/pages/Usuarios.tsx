@@ -88,20 +88,44 @@ export default function Usuarios() {
 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const openForm = (u?: any) => {
+  const openForm = async (u?: any) => {
     if (u) {
-      setEditingUser(u)
-      setName(u.name || '')
-      setEmail(u.email || '')
-      setPhone(formatPhone(u.phone || ''))
-      setActive(u.active !== false)
-      setOldPassword('')
-      setPassword('')
-      setPasswordConfirm('')
-      setRole((u.role as any) || 'operator')
-      setAvatarPreview(u.avatarUrl || (u.avatar ? pb.files.getURL(u, u.avatar) : null))
-      setAvatarFile(null)
-      setRemoveAvatar(false)
+      try {
+        const latestUser = await pb.collection('users').getOne(u.id)
+        setEditingUser(latestUser)
+        setName(latestUser.name || '')
+        setEmail(latestUser.email || '')
+        setPhone(formatPhone(latestUser.phone || ''))
+        setActive(latestUser.active !== false)
+        setOldPassword('')
+        setPassword('')
+        setPasswordConfirm('')
+        setRole((latestUser.role as any) || 'operator')
+        setAvatarPreview(
+          latestUser.avatarUrl ||
+            (latestUser.avatar ? pb.files.getURL(latestUser, latestUser.avatar) : null),
+        )
+        setAvatarFile(null)
+        setRemoveAvatar(false)
+      } catch (error) {
+        toast({
+          title: 'Aviso',
+          description: 'Não foi possível carregar as informações mais recentes do usuário.',
+          variant: 'destructive',
+        })
+        setEditingUser(u)
+        setName(u.name || '')
+        setEmail(u.email || '')
+        setPhone(formatPhone(u.phone || ''))
+        setActive(u.active !== false)
+        setOldPassword('')
+        setPassword('')
+        setPasswordConfirm('')
+        setRole((u.role as any) || 'operator')
+        setAvatarPreview(u.avatarUrl || (u.avatar ? pb.files.getURL(u, u.avatar) : null))
+        setAvatarFile(null)
+        setRemoveAvatar(false)
+      }
     } else {
       setEditingUser(null)
       setName('')
@@ -599,7 +623,10 @@ export default function Usuarios() {
               <Button variant="outline" onClick={() => setIsOpen(false)} disabled={isSaving}>
                 Cancelar
               </Button>
-              <Button onClick={handleSave} disabled={isSaving}>
+              <Button
+                onClick={handleSave}
+                disabled={isSaving || (password.length > 0 && password !== passwordConfirm)}
+              >
                 {isSaving ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
