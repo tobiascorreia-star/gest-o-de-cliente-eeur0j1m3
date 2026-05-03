@@ -14,6 +14,7 @@ import {
   Power,
   PowerOff,
   Loader2,
+  Copy,
 } from 'lucide-react'
 import {
   Dialog,
@@ -92,6 +93,10 @@ export default function Usuarios() {
   const [isOpen, setIsOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<any>(null)
   const [accessUser, setAccessUser] = useState<any>(null)
+  const [createdUserCredentials, setCreatedUserCredentials] = useState<{
+    email: string
+    password: string
+  } | null>(null)
 
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -213,8 +218,6 @@ export default function Usuarios() {
 
     setIsSaving(true)
     try {
-      await new Promise((resolve) => setTimeout(resolve, 500))
-
       const userData: any = {
         name: name.trim(),
         email: email.trim(),
@@ -297,6 +300,7 @@ export default function Usuarios() {
         addUser(record)
         logAudit('CREATE_USER', `Usuário ${email} criado.`)
         toast({ title: 'Sucesso', description: 'Novo usuário criado!' })
+        setCreatedUserCredentials({ email: userData.email, password: pass })
       }
 
       setIsOpen(false)
@@ -453,7 +457,7 @@ export default function Usuarios() {
                           onClick={() => setAccessUser(u)}
                           title="Acessos"
                         >
-                          <Shield className="w-4 h-4 text-muted-foreground" />
+                          <Shield className="w-4 h-4 text-muted-foreground" strokeWidth={1.5} />
                         </Button>
                         <Button
                           variant="ghost"
@@ -461,7 +465,7 @@ export default function Usuarios() {
                           onClick={() => openForm(u)}
                           title="Editar"
                         >
-                          <Edit className="w-4 h-4 text-muted-foreground" />
+                          <Edit className="w-4 h-4 text-muted-foreground" strokeWidth={1.5} />
                         </Button>
                         <Button
                           variant="ghost"
@@ -475,9 +479,9 @@ export default function Usuarios() {
                           }
                         >
                           {u.active !== false ? (
-                            <PowerOff className="w-4 h-4" />
+                            <PowerOff className="w-4 h-4" strokeWidth={1.5} />
                           ) : (
-                            <Power className="w-4 h-4" />
+                            <Power className="w-4 h-4" strokeWidth={1.5} />
                           )}
                         </Button>
                       </div>
@@ -514,11 +518,11 @@ export default function Usuarios() {
                   {avatarPreview && (
                     <Button
                       variant="ghost"
-                      size="sm"
+                      size="icon"
                       onClick={handleRemoveAvatar}
-                      className="text-destructive"
+                      className="text-destructive w-8 h-8"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-4 h-4" strokeWidth={1.5} />
                     </Button>
                   )}
                 </div>
@@ -599,7 +603,11 @@ export default function Usuarios() {
                     className="absolute right-0 top-0 h-full w-10 text-muted-foreground hover:text-foreground hover:bg-transparent"
                     onClick={() => setShowPassword(!showPassword)}
                   >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" strokeWidth={1.5} />
+                    ) : (
+                      <Eye className="h-4 w-4" strokeWidth={1.5} />
+                    )}
                   </Button>
                 </div>
               </div>
@@ -624,9 +632,9 @@ export default function Usuarios() {
                       onClick={() => setShowPasswordConfirm(!showPasswordConfirm)}
                     >
                       {showPasswordConfirm ? (
-                        <EyeOff className="h-4 w-4" />
+                        <EyeOff className="h-4 w-4" strokeWidth={1.5} />
                       ) : (
-                        <Eye className="h-4 w-4" />
+                        <Eye className="h-4 w-4" strokeWidth={1.5} />
                       )}
                     </Button>
                   </div>
@@ -707,6 +715,68 @@ export default function Usuarios() {
               <Button variant="outline" onClick={() => setAccessUser(null)}>
                 Fechar
               </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog
+          open={!!createdUserCredentials}
+          onOpenChange={(open) => !open && setCreatedUserCredentials(null)}
+        >
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Usuário Criado com Sucesso</DialogTitle>
+              <DialogDescription>
+                Copie as credenciais abaixo e envie para o novo usuário.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>E-mail</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={createdUserCredentials?.email || ''}
+                    readOnly
+                    className="bg-muted font-medium"
+                  />
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => {
+                      navigator.clipboard.writeText(createdUserCredentials?.email || '')
+                      toast({ description: 'E-mail copiado!' })
+                    }}
+                  >
+                    <Copy className="w-4 h-4" strokeWidth={1.5} />
+                  </Button>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Senha Temporária</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={createdUserCredentials?.password || ''}
+                    readOnly
+                    className="bg-muted font-medium"
+                  />
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => {
+                      navigator.clipboard.writeText(createdUserCredentials?.password || '')
+                      toast({ description: 'Senha copiada!' })
+                    }}
+                  >
+                    <Copy className="w-4 h-4" strokeWidth={1.5} />
+                  </Button>
+                </div>
+              </div>
+              <div className="bg-primary/10 text-primary p-3 rounded-md text-sm">
+                O usuário precisará alterar esta senha no primeiro acesso.
+              </div>
+            </div>
+            <div className="flex justify-end">
+              <Button onClick={() => setCreatedUserCredentials(null)}>Concluir</Button>
             </div>
           </DialogContent>
         </Dialog>
