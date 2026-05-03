@@ -20,6 +20,8 @@ import {
   Undo2,
   Copy,
   Check,
+  AlertTriangle,
+  Clock,
 } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
 import {
@@ -29,7 +31,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { format } from 'date-fns'
+import { format, differenceInDays } from 'date-fns'
 import {
   Dialog,
   DialogContent,
@@ -37,9 +39,12 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
+import { Badge } from '@/components/ui/badge'
+import { cn } from '@/lib/utils'
 
 interface ClienteListProps {
   clients: Client[]
+  alertSettings?: any
   onEdit: (client: Client) => void
   onDelete: (id: string) => void
   onBaixa: (id: string) => void
@@ -63,6 +68,7 @@ const ConfigBadge = ({ name, color }: { name?: string; color?: string }) => {
 
 export function ClienteList({
   clients,
+  alertSettings,
   onEdit,
   onDelete,
   onBaixa,
@@ -176,75 +182,115 @@ export function ClienteList({
                   </TableCell>
                 </TableRow>
               )}
-              {clients.map((client) => (
-                <TableRow
-                  key={client.id}
-                  className="group transition-colors hover:bg-muted/30 print:break-inside-avoid"
-                >
-                  <TableCell className="align-top">
-                    <div className="font-semibold text-foreground">{client.razao_social}</div>
-                    <div className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1.5 group/cnpj">
-                      {client.cnpj}
-                      <button
-                        onClick={(e) => handleCopyCnpj(client.cnpj, e)}
-                        className="text-muted-foreground/50 hover:text-foreground transition-colors print:hidden opacity-0 group-hover/cnpj:opacity-100 focus:opacity-100"
-                        title="Copiar CNPJ"
-                      >
-                        {copiedCnpj === client.cnpj ? (
-                          <Check className="h-3 w-3 text-emerald-500" />
-                        ) : (
-                          <Copy className="h-3 w-3" />
-                        )}
-                      </button>
-                    </div>
-                    <div className="mt-1.5">
-                      <ConfigBadge
-                        name={client.expand?.categoria?.name}
-                        color={client.expand?.categoria?.color}
-                      />
-                    </div>
-                  </TableCell>
-                  <TableCell className="align-top font-medium text-sm">
-                    {client.nome_cliente}
-                  </TableCell>
-                  <TableCell className="align-top">
-                    <ConfigBadge
-                      name={client.expand?.colaborador?.name}
-                      color={client.expand?.colaborador?.color}
-                    />
-                  </TableCell>
-                  <TableCell className="align-top">
-                    <ConfigBadge
-                      name={client.expand?.solicitacao?.name}
-                      color={client.expand?.solicitacao?.color}
-                    />
-                  </TableCell>
-                  <TableCell className="align-top">
-                    <ConfigBadge
-                      name={client.expand?.status?.name}
-                      color={client.expand?.status?.color}
-                    />
-                  </TableCell>
-                  <TableCell className="align-top">
-                    <ConfigBadge
-                      name={client.expand?.pgto?.name}
-                      color={client.expand?.pgto?.color}
-                    />
-                  </TableCell>
-                  <TableCell
-                    className="align-top text-xs text-muted-foreground max-w-[200px] truncate"
-                    title={client.observacoes}
+              {clients.map((client) => {
+                const days = client.created
+                  ? differenceInDays(new Date(), new Date(client.created))
+                  : 0
+                const statusName = client.expand?.status?.name?.toUpperCase() || ''
+                const isPending =
+                  statusName !== 'BAIXA' && statusName !== 'CONCLUÍDO' && statusName !== 'CONCLUIDO'
+                const isCritical = alertSettings && days >= alertSettings.critical_days
+                const isOld = alertSettings && !isCritical && days >= alertSettings.old_days
+                const showCritical = isPending && isCritical
+                const showOld = isPending && isOld
+
+                return (
+                  <TableRow
+                    key={client.id}
+                    className={cn(
+                      'group transition-colors hover:bg-muted/30 print:break-inside-avoid',
+                      showCritical &&
+                        'bg-destructive/5 hover:bg-destructive/10 dark:bg-destructive/10 dark:hover:bg-destructive/20',
+                    )}
                   >
-                    {client.observacoes || '-'}
-                  </TableCell>
-                  <TableCell className="align-top text-sm text-primary font-medium">
-                    {client.created ? format(new Date(client.created), 'dd/MM/yyyy') : '-'}
-                  </TableCell>
-                  <TableCell className="align-top print:hidden sticky right-0 bg-card/90 backdrop-blur-sm">
-                    {renderActions(client)}
-                  </TableCell>
-                </TableRow>
-              ))}
+                    <TableCell className="align-top">
+                      <div className="font-semibold text-foreground flex items-center gap-2">
+                        {client.razao_social}
+                        {showCritical && (
+                          <Badge
+                            variant="destructive"
+                            className="h-5 px-1.5 text-[10px] flex gap-1 items-center font-medium"
+                          >
+                            <AlertTriangle className="w-3 h-3" /> Crítica
+                          </Badge>
+                        )}
+                        {showOld && (
+                          <Badge
+                            variant="outline"
+                            className="h-5 px-1.5 text-[10px] flex gap-1 items-center font-medium border-amber-500 text-amber-600 bg-amber-50 dark:bg-amber-950 dark:text-amber-500"
+                          >
+                            <Clock className="w-3 h-3" /> Antiga
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1.5 group/cnpj">
+                        {client.cnpj}
+                        <button
+                          onClick={(e) => handleCopyCnpj(client.cnpj, e)}
+                          className="text-muted-foreground/50 hover:text-foreground transition-colors print:hidden opacity-0 group-hover/cnpj:opacity-100 focus:opacity-100"
+                          title="Copiar CNPJ"
+                        >
+                          {copiedCnpj === client.cnpj ? (
+                            <Check className="h-3 w-3 text-emerald-500" />
+                          ) : (
+                            <Copy className="h-3 w-3" />
+                          )}
+                        </button>
+                      </div>
+                      <div className="mt-1.5">
+                        <ConfigBadge
+                          name={client.expand?.categoria?.name}
+                          color={client.expand?.categoria?.color}
+                        />
+                      </div>
+                    </TableCell>
+                    <TableCell className="align-top font-medium text-sm">
+                      {client.nome_cliente}
+                    </TableCell>
+                    <TableCell className="align-top">
+                      <ConfigBadge
+                        name={client.expand?.colaborador?.name}
+                        color={client.expand?.colaborador?.color}
+                      />
+                    </TableCell>
+                    <TableCell className="align-top">
+                      <ConfigBadge
+                        name={client.expand?.solicitacao?.name}
+                        color={client.expand?.solicitacao?.color}
+                      />
+                    </TableCell>
+                    <TableCell className="align-top">
+                      <ConfigBadge
+                        name={client.expand?.status?.name}
+                        color={client.expand?.status?.color}
+                      />
+                    </TableCell>
+                    <TableCell className="align-top">
+                      <ConfigBadge
+                        name={client.expand?.pgto?.name}
+                        color={client.expand?.pgto?.color}
+                      />
+                    </TableCell>
+                    <TableCell
+                      className="align-top text-xs text-muted-foreground max-w-[200px] truncate"
+                      title={client.observacoes}
+                    >
+                      {client.observacoes || '-'}
+                    </TableCell>
+                    <TableCell className="align-top text-sm text-primary font-medium">
+                      {client.created ? format(new Date(client.created), 'dd/MM/yyyy') : '-'}
+                    </TableCell>
+                    <TableCell
+                      className={cn(
+                        'align-top print:hidden sticky right-0 backdrop-blur-sm',
+                        showCritical ? 'bg-red-50/90 dark:bg-red-950/90' : 'bg-card/90',
+                      )}
+                    >
+                      {renderActions(client)}
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
             </TableBody>
           </Table>
         </div>
@@ -256,32 +302,67 @@ export function ClienteList({
             Nenhum cliente encontrado.
           </div>
         )}
-        {clients.map((client) => (
-          <Card key={client.id} className="overflow-hidden rounded-xl shadow-sm">
-            <CardContent className="p-5 flex flex-col gap-4">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h4 className="font-semibold text-foreground">{client.razao_social}</h4>
-                  <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1.5">
-                    {client.cnpj}
-                  </p>
-                  <p className="text-sm font-medium mt-2">Cliente: {client.nome_cliente}</p>
+        {clients.map((client) => {
+          const days = client.created ? differenceInDays(new Date(), new Date(client.created)) : 0
+          const statusName = client.expand?.status?.name?.toUpperCase() || ''
+          const isPending =
+            statusName !== 'BAIXA' && statusName !== 'CONCLUÍDO' && statusName !== 'CONCLUIDO'
+          const isCritical = alertSettings && days >= alertSettings.critical_days
+          const isOld = alertSettings && !isCritical && days >= alertSettings.old_days
+          const showCritical = isPending && isCritical
+          const showOld = isPending && isOld
+
+          return (
+            <Card
+              key={client.id}
+              className={cn(
+                'overflow-hidden rounded-xl shadow-sm transition-colors',
+                showCritical && 'border-destructive bg-destructive/5 dark:bg-destructive/10',
+              )}
+            >
+              <CardContent className="p-5 flex flex-col gap-4">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
+                      <h4 className="font-semibold text-foreground">{client.razao_social}</h4>
+                      {showCritical && (
+                        <Badge
+                          variant="destructive"
+                          className="h-5 px-1.5 text-[10px] flex gap-1 items-center font-medium"
+                        >
+                          <AlertTriangle className="w-3 h-3" /> Crítica
+                        </Badge>
+                      )}
+                      {showOld && (
+                        <Badge
+                          variant="outline"
+                          className="h-5 px-1.5 text-[10px] flex gap-1 items-center font-medium border-amber-500 text-amber-600 bg-amber-50 dark:bg-amber-950 dark:text-amber-500"
+                        >
+                          <Clock className="w-3 h-3" /> Antiga
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1.5">
+                      {client.cnpj}
+                    </p>
+                    <p className="text-sm font-medium mt-2">Cliente: {client.nome_cliente}</p>
+                  </div>
+                  {renderActions(client)}
                 </div>
-                {renderActions(client)}
-              </div>
-              <div className="flex flex-wrap gap-x-4 gap-y-2 mt-2">
-                <ConfigBadge
-                  name={client.expand?.status?.name}
-                  color={client.expand?.status?.color}
-                />
-                <ConfigBadge
-                  name={client.expand?.categoria?.name}
-                  color={client.expand?.categoria?.color}
-                />
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+                <div className="flex flex-wrap gap-x-4 gap-y-2 mt-2">
+                  <ConfigBadge
+                    name={client.expand?.status?.name}
+                    color={client.expand?.status?.color}
+                  />
+                  <ConfigBadge
+                    name={client.expand?.categoria?.name}
+                    color={client.expand?.categoria?.color}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          )
+        })}
       </div>
 
       <Dialog open={!!reportClient} onOpenChange={(open) => !open && setReportClient(null)}>
