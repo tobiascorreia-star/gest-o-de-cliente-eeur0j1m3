@@ -54,13 +54,13 @@ const ObservationBlock = ({
   if (!client.observacoes) return <span className="text-muted-foreground">-</span>
 
   return (
-    <div className="flex flex-col gap-2.5 min-w-[220px] p-3 border rounded-xl bg-card shadow-sm print:shadow-none print:border-none print:p-0">
+    <div className="flex flex-col gap-2 min-w-[200px] p-2.5 border rounded-xl bg-card shadow-sm print:shadow-none print:border-none print:p-0">
       {!client.observacao_lida ? (
         <>
-          <div className="bg-amber-100/80 text-amber-700 border-amber-200/50 border px-2.5 py-1 rounded-2xl text-[10px] font-bold inline-flex items-center gap-1.5 w-fit uppercase tracking-wide">
+          <div className="bg-amber-50 text-amber-700 border border-amber-200 px-2.5 py-0.5 rounded-full text-[10px] font-bold inline-flex items-center gap-1.5 w-fit uppercase tracking-wide">
             <AlertTriangle className="w-3.5 h-3.5" /> OBSERVAÇÃO PENDENTE
           </div>
-          <div className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">
+          <div className="text-[13px] text-foreground whitespace-pre-wrap leading-snug px-0.5">
             {client.observacoes}
           </div>
           {isAdmin && (
@@ -71,23 +71,23 @@ const ObservationBlock = ({
                 e.stopPropagation()
                 onMarkAsRead(client.id)
               }}
-              className="h-8 text-blue-600 border-blue-200 bg-blue-50 hover:bg-blue-100 hover:text-blue-700 text-xs font-semibold w-fit mt-0.5 transition-colors shadow-none rounded-lg"
+              className="h-7 px-3 text-blue-600 border-blue-200 bg-blue-50 hover:bg-blue-100 hover:text-blue-700 text-[11px] font-semibold w-fit transition-colors shadow-none rounded-full"
             >
-              <Check className="w-3.5 h-3.5 mr-1" strokeWidth={2.5} /> Marcar como lida
+              <Check className="w-3.5 h-3.5 mr-1.5" strokeWidth={2.5} /> Marcar como lida
             </Button>
           )}
         </>
       ) : (
         <>
-          <div className="bg-emerald-100/80 text-emerald-700 border-emerald-200/50 border px-2.5 py-1 rounded-2xl text-[10px] font-bold inline-flex items-center gap-1.5 w-fit uppercase tracking-wide">
+          <div className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-0.5 rounded-full text-[10px] font-bold inline-flex items-center gap-1.5 w-fit uppercase tracking-wide">
             <Check className="w-3.5 h-3.5" strokeWidth={2.5} /> OBSERVAÇÃO LIDA
           </div>
-          <div className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">
+          <div className="text-[13px] text-foreground whitespace-pre-wrap leading-snug px-0.5">
             {client.observacoes}
           </div>
           {client.data_leitura_observacao && (
-            <div className="text-[11.5px] text-muted-foreground font-medium mt-0.5">
-              Lida em {format(new Date(client.data_leitura_observacao), 'dd/MM/yyyy, HH:mm:ss')}
+            <div className="text-[10px] text-muted-foreground font-medium px-0.5">
+              Lida em {format(new Date(client.data_leitura_observacao), 'dd/MM/yyyy HH:mm')}
             </div>
           )}
         </>
