@@ -2,7 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom
 import { Toaster } from '@/components/ui/toaster'
 import { Toaster as Sonner } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
-import { AppProvider, useApp } from '@/contexts/app-context'
+import { AppProvider } from '@/contexts/app-context'
 import { AuthProvider, useAuth } from '@/hooks/use-auth'
 import Layout from './components/Layout'
 import { ErrorBoundary } from './components/error-boundary'
@@ -17,11 +17,21 @@ import Relatorio from './pages/Relatorio'
 import Configuracao from './pages/Configuracao'
 import NotFound from './pages/NotFound'
 import Login from './pages/Login'
+import Setup from './pages/Setup'
 
 const ProtectedRoute = () => {
   const { user, loading } = useAuth()
   if (loading) return null
   if (!user) return <Navigate to="/login" replace />
+  if (user.setup_completed === false) return <Navigate to="/setup" replace />
+  return <Outlet />
+}
+
+const SetupRoute = () => {
+  const { user, loading } = useAuth()
+  if (loading) return null
+  if (!user) return <Navigate to="/login" replace />
+  if (user.setup_completed !== false) return <Navigate to="/" replace />
   return <Outlet />
 }
 
@@ -36,6 +46,9 @@ const AppRoutes = () => {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route element={<SetupRoute />}>
+        <Route path="/setup" element={<Setup />} />
+      </Route>
       <Route element={<ProtectedRoute />}>
         <Route element={<Layout />}>
           <Route path="/" element={<Index />} />

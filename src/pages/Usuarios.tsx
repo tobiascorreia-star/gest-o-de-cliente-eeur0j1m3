@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -43,10 +43,10 @@ import {
 import { toast } from '@/hooks/use-toast'
 import { logAudit } from '@/services/audit'
 import { ErrorBoundary } from '@/components/error-boundary'
-import { useApp } from '@/contexts/app-context'
 import { useAuth } from '@/hooks/use-auth'
 import pb from '@/lib/pocketbase/client'
 import { extractFieldErrors } from '@/lib/pocketbase/errors'
+import { useRealtime } from '@/hooks/use-realtime'
 
 const formatPhone = (val: string) => {
   if (!val) return ''
@@ -66,7 +66,29 @@ const formatPhone = (val: string) => {
 
 export default function Usuarios() {
   const { user } = useAuth()
-  const { users, addUser, updateUser } = useApp()
+
+  const [users, setUsers] = useState<any[]>([])
+
+  const loadUsers = async () => {
+    try {
+      const records = await pb.collection('users').getFullList({ sort: '-created' })
+      setUsers(records)
+    } catch (error) {
+      console.error('Error fetching users:', error)
+    }
+  }
+
+  useEffect(() => {
+    loadUsers()
+  }, [])
+
+  useRealtime('users', () => {
+    loadUsers()
+  })
+
+  const addUser = (u: any) => setUsers((prev) => [u, ...prev])
+  const updateUser = (u: any) => setUsers((prev) => prev.map((p) => (p.id === u.id ? u : p)))
+
   const [isOpen, setIsOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<any>(null)
   const [accessUser, setAccessUser] = useState<any>(null)
@@ -201,11 +223,14 @@ export default function Usuarios() {
         active,
       }
 
+      if (!editingUser) {
+        userData.setup_completed = false
+      }
+
       if (pass) {
         userData.password = pass
         userData.passwordConfirm = pass
 
-        // PocketBase requires the oldPassword to change a user's own password
         if (editingUser && editingUser.id === user?.id) {
           if (!oldPassword.trim()) {
             toast({
@@ -230,7 +255,6 @@ export default function Usuarios() {
         let record
 
         if (editingUser.id !== user?.id) {
-          // Admin updating another user -> Use custom endpoint to bypass oldPassword requirement
           const formData = new FormData()
           formData.append('name', userData.name || '')
           formData.append('email', userData.email)
@@ -254,7 +278,6 @@ export default function Usuarios() {
             body: formData,
           })
         } else {
-          // Updating self -> use standard API
           record = await pb.collection('users').update(editingUser.id, userData)
           if (record.id === user?.id) {
             pb.authStore.save(pb.authStore.token, record)
