@@ -82,7 +82,11 @@ const ObservationBlock = ({
                 {client.observacoes}
               </div>
             </TooltipTrigger>
-            <TooltipContent className="max-w-[300px] whitespace-pre-wrap text-sm" side="top">
+            <TooltipContent
+              className="w-[250px] whitespace-normal break-words text-sm"
+              style={{ wordWrap: 'break-word', overflowWrap: 'break-word' }}
+              side="top"
+            >
               {client.observacoes}
             </TooltipContent>
           </Tooltip>
@@ -105,7 +109,11 @@ const ObservationBlock = ({
                 {client.observacoes}
               </div>
             </TooltipTrigger>
-            <TooltipContent className="max-w-[300px] whitespace-pre-wrap text-sm" side="top">
+            <TooltipContent
+              className="w-[250px] whitespace-normal break-words text-sm"
+              style={{ wordWrap: 'break-word', overflowWrap: 'break-word' }}
+              side="top"
+            >
               {client.observacoes}
             </TooltipContent>
           </Tooltip>
