@@ -269,7 +269,7 @@ export function ClienteForm({ initialData, onSuccess }: ClienteFormProps) {
           {errors.status && <p className="text-xs text-destructive">{errors.status.message}</p>}
         </div>
 
-        <div className="space-y-2">
+        <div className={isAdmin ? 'space-y-2' : 'space-y-2 md:col-span-2'}>
           <Label>Categoria *</Label>
           <Select
             onValueChange={(v) => setValue('categoria', v, { shouldValidate: true })}
