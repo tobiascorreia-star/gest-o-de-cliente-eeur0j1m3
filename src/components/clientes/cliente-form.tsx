@@ -4,6 +4,8 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 import { Client } from '@/types'
 import { useApp } from '@/contexts/app-context'
+import { getConfigurations } from '@/services/configurations'
+import { useRealtime } from '@/hooks/use-realtime'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -49,18 +51,24 @@ const applyCnpjMask = (value: string) => {
 }
 
 export function ClienteForm({ initialData, onSuccess }: ClienteFormProps) {
-  const {
-    currentUser,
-    colaboradores,
-    solicitacoes,
-    statusList,
-    categorias,
-    pgtoTipos,
-    addClient,
-    updateClient,
-  } = useApp()
+  const { currentUser, addClient, updateClient } = useApp()
   const [isFetchingCnpj, setIsFetchingCnpj] = useState(false)
-  const isAdmin = currentUser?.role === 'Admin'
+  const [configs, setConfigs] = useState<any[]>([])
+  const isAdmin = currentUser?.role === 'Admin' || currentUser?.role === 'admin'
+
+  useEffect(() => {
+    getConfigurations().then(setConfigs).catch(console.error)
+  }, [])
+
+  useRealtime('configurations', () => {
+    getConfigurations().then(setConfigs).catch(console.error)
+  })
+
+  const colaboradores = configs.filter((c) => c.type === 'Colaborador' && c.active !== false)
+  const solicitacoes = configs.filter((c) => c.type === 'Solicitação' && c.active !== false)
+  const statusList = configs.filter((c) => c.type === 'Status' && c.active !== false)
+  const categorias = configs.filter((c) => c.type === 'Categoria' && c.active !== false)
+  const pgtoTipos = configs.filter((c) => c.type === 'Pgto' && c.active !== false)
 
   const {
     register,

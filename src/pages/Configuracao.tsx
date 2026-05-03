@@ -11,10 +11,11 @@ import { useRealtime } from '@/hooks/use-realtime'
 import { toast } from '@/hooks/use-toast'
 
 const CONFIG_TYPES = [
+  { value: 'Colaborador', label: 'Colaborador' },
+  { value: 'Solicitação', label: 'Solicitação' },
   { value: 'Status', label: 'Status' },
-  { value: 'Prioridade', label: 'Prioridade' },
   { value: 'Categoria', label: 'Categoria' },
-  { value: 'Origem', label: 'Origem' },
+  { value: 'Pgto', label: 'Pgto' },
 ]
 
 const Configuracao = () => {
