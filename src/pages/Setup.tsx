@@ -14,12 +14,23 @@ export default function Setup() {
   const navigate = useNavigate()
   const [password, setPassword] = useState('')
   const [passwordConfirm, setPasswordConfirm] = useState('')
-  const [showPassword, setShowPassword] = useState(true)
-  const [showPasswordConfirm, setShowPasswordConfirm] = useState(true)
+  const [showPassword, setShowPassword] = useState(false)
+  const [showPasswordConfirm, setShowPasswordConfirm] = useState(false)
+  const [oldPassword] = useState(() => sessionStorage.getItem('temp_password') || '')
   const [isLoading, setIsLoading] = useState(false)
 
   const handleSetup = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (!oldPassword) {
+      toast({
+        title: 'Sessão expirada',
+        description: 'Por favor, faça login novamente para concluir a configuração.',
+        variant: 'destructive',
+      })
+      navigate('/login')
+      return
+    }
 
     if (password !== passwordConfirm) {
       toast({
@@ -42,12 +53,14 @@ export default function Setup() {
     setIsLoading(true)
     try {
       const record = await pb.collection('users').update(user.id, {
+        oldPassword,
         password,
         passwordConfirm,
         setup_completed: true,
       })
 
       pb.authStore.save(pb.authStore.token, record)
+      sessionStorage.removeItem('temp_password')
 
       toast({
         title: 'Sucesso',
@@ -59,7 +72,11 @@ export default function Setup() {
       const fieldErrors = extractFieldErrors(error)
       if (Object.keys(fieldErrors).length > 0) {
         const messages = Object.entries(fieldErrors)
-          .map(([field, msg]) => `${field}: ${msg}`)
+          .map(([field, msg]) => {
+            if (field === 'oldPassword') return 'Senha atual incorreta ou ausente.'
+            if (field === 'password') return 'A nova senha não atende aos requisitos.'
+            return `${field}: ${msg}`
+          })
           .join(' | ')
         toast({
           title: 'Erro de validação',

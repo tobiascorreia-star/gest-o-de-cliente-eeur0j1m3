@@ -24,6 +24,7 @@ export default function Login() {
     setIsLoading(false)
 
     if (!error) {
+      sessionStorage.setItem('temp_password', password)
       navigate('/')
     } else {
       toast({

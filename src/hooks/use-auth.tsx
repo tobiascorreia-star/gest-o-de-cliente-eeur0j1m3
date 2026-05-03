@@ -61,6 +61,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }
 
   const signOut = () => {
+    sessionStorage.removeItem('temp_password')
     pb.authStore.clear()
   }
 
