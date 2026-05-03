@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 import { Client } from '@/types'
-import { useApp } from '@/contexts/app-context'
+import { useAuth } from '@/hooks/use-auth'
 import { getConfigurations } from '@/services/configurations'
 import { useRealtime } from '@/hooks/use-realtime'
 import { Button } from '@/components/ui/button'
@@ -50,10 +50,10 @@ const applyCnpjMask = (value: string) => {
 }
 
 export function ClienteForm({ initialData, onSuccess }: ClienteFormProps) {
-  const { currentUser, addClient, updateClient } = useApp()
+  const { user } = useAuth()
   const [isFetchingCnpj, setIsFetchingCnpj] = useState(false)
   const [configs, setConfigs] = useState<any[]>([])
-  const isAdmin = currentUser?.role === 'Admin' || currentUser?.role === 'admin'
+  const isAdmin = user?.role?.toLowerCase() === 'admin'
 
   useEffect(() => {
     getConfigurations().then(setConfigs).catch(console.error)
