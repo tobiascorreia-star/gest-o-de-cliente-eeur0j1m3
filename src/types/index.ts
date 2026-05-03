@@ -15,6 +15,8 @@ export interface Client {
   categoria?: string
   pgto?: string
   observacoes?: string
+  observacao_lida?: boolean
+  data_leitura_observacao?: string
   created: string
   updated: string
   expand?: {

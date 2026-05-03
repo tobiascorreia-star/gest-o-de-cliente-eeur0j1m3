@@ -42,6 +42,60 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 
+const ObservationBlock = ({
+  client,
+  isAdmin,
+  onMarkAsRead,
+}: {
+  client: Client
+  isAdmin: boolean
+  onMarkAsRead: (id: string) => void
+}) => {
+  if (!client.observacoes) return <span className="text-muted-foreground">-</span>
+
+  return (
+    <div className="flex flex-col gap-2.5 min-w-[220px] p-3 border rounded-xl bg-card shadow-sm print:shadow-none print:border-none print:p-0">
+      {!client.observacao_lida ? (
+        <>
+          <div className="bg-amber-100/80 text-amber-700 border-amber-200/50 border px-2.5 py-1 rounded-2xl text-[10px] font-bold inline-flex items-center gap-1.5 w-fit uppercase tracking-wide">
+            <AlertTriangle className="w-3.5 h-3.5" /> OBSERVAÇÃO PENDENTE
+          </div>
+          <div className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">
+            {client.observacoes}
+          </div>
+          {isAdmin && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation()
+                onMarkAsRead(client.id)
+              }}
+              className="h-8 text-blue-600 border-blue-200 bg-blue-50 hover:bg-blue-100 hover:text-blue-700 text-xs font-semibold w-fit mt-0.5 transition-colors shadow-none rounded-lg"
+            >
+              <Check className="w-3.5 h-3.5 mr-1" strokeWidth={2.5} /> Marcar como lida
+            </Button>
+          )}
+        </>
+      ) : (
+        <>
+          <div className="bg-emerald-100/80 text-emerald-700 border-emerald-200/50 border px-2.5 py-1 rounded-2xl text-[10px] font-bold inline-flex items-center gap-1.5 w-fit uppercase tracking-wide">
+            <Check className="w-3.5 h-3.5" strokeWidth={2.5} /> OBSERVAÇÃO LIDA
+          </div>
+          <div className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">
+            {client.observacoes}
+          </div>
+          {client.data_leitura_observacao && (
+            <div className="text-[11.5px] text-muted-foreground font-medium mt-0.5">
+              Lida em {format(new Date(client.data_leitura_observacao), 'dd/MM/yyyy, HH:mm:ss')}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  )
+}
+
 interface ClienteListProps {
   clients: Client[]
   alertSettings?: any
@@ -77,7 +131,25 @@ export function ClienteList({
 }: ClienteListProps) {
   const { user } = useAuth()
   const isOperator = user?.role?.toLowerCase() === 'operator'
+  const isAdmin = user?.role?.toLowerCase() === 'admin'
   const [reportClient, setReportClient] = useState<Client | null>(null)
+
+  const handleMarkAsRead = async (id: string) => {
+    try {
+      const { updateClient } = await import('@/services/clients')
+      await updateClient(id, {
+        observacao_lida: true,
+        data_leitura_observacao: new Date().toISOString(),
+      })
+      toast({ title: 'Sucesso', description: 'Observação marcada como lida.' })
+    } catch (error) {
+      toast({
+        title: 'Erro',
+        description: 'Falha ao atualizar observação.',
+        variant: 'destructive',
+      })
+    }
+  }
   const [copiedCnpj, setCopiedCnpj] = useState<string | null>(null)
 
   const handleCopyCnpj = (cnpj: string, e: React.MouseEvent) => {
@@ -166,7 +238,7 @@ export function ClienteList({
                 <TableHead className="font-semibold whitespace-nowrap">Solicitação</TableHead>
                 <TableHead className="font-semibold whitespace-nowrap">Status</TableHead>
                 <TableHead className="font-semibold whitespace-nowrap">Pgto</TableHead>
-                <TableHead className="font-semibold max-w-[200px]">Obs</TableHead>
+                <TableHead className="font-semibold min-w-[250px]">Obs</TableHead>
                 <TableHead className="font-semibold whitespace-nowrap">Data</TableHead>
                 <TableHead className="w-[60px] print:hidden sticky right-0 bg-card"></TableHead>
               </TableRow>
@@ -271,11 +343,12 @@ export function ClienteList({
                         color={client.expand?.pgto?.color}
                       />
                     </TableCell>
-                    <TableCell
-                      className="align-top text-xs text-muted-foreground max-w-[200px] truncate"
-                      title={client.observacoes}
-                    >
-                      {client.observacoes || '-'}
+                    <TableCell className="align-top max-w-[300px]">
+                      <ObservationBlock
+                        client={client}
+                        isAdmin={isAdmin}
+                        onMarkAsRead={handleMarkAsRead}
+                      />
                     </TableCell>
                     <TableCell className="align-top text-sm text-primary font-medium">
                       {client.created ? format(new Date(client.created), 'dd/MM/yyyy') : '-'}
@@ -359,6 +432,15 @@ export function ClienteList({
                     color={client.expand?.categoria?.color}
                   />
                 </div>
+                {client.observacoes && (
+                  <div className="mt-4 pt-4 border-t">
+                    <ObservationBlock
+                      client={client}
+                      isAdmin={isAdmin}
+                      onMarkAsRead={handleMarkAsRead}
+                    />
+                  </div>
+                )}
               </CardContent>
             </Card>
           )

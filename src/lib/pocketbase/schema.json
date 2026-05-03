@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-03T04:34:21.695Z",
+  "generatedAt": "2026-05-03T17:19:53.633Z",
   "collections": [
     {
       "name": "users",
@@ -53,6 +53,12 @@
         },
         {
           "name": "active",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "setup_completed",
           "type": "bool",
           "required": false,
           "system": false
@@ -257,6 +263,18 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "observacao_lida",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "data_leitura_observacao",
+          "type": "date",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": []

@@ -128,6 +128,7 @@ export function ClienteForm({ initialData, onSuccess }: ClienteFormProps) {
     const clientData = {
       ...data,
       pgto: isAdmin ? data.pgto || '' : initialData?.pgto || '',
+      ...(initialData ? {} : { observacao_lida: false, data_leitura_observacao: '' }),
     }
 
     try {
