@@ -1,4 +1,5 @@
 import { useApp } from '@/contexts/app-context'
+import { useDashboard } from '@/hooks/use-dashboard'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { differenceInDays, format } from 'date-fns'
@@ -9,23 +10,20 @@ import { Button } from '@/components/ui/button'
 export function AlertsWidget() {
   const {
     currentUser,
-    clients,
-    statusList,
-    alertConfig,
-    passwordResetRequests,
-    resolvePasswordReset,
-  } = useApp()
-  const baixaStatusId = statusList.find((s) => s.name === 'Baixa')?.id
+    passwordResetRequests = [],
+    resolvePasswordReset = () => {},
+  } = useApp?.() || {}
+  const { clients, statuses, alertSettings } = useDashboard()
+
+  const baixaStatusId = statuses.find((s) => s.name.toLowerCase() === 'baixa')?.id
 
   const alerts = clients
-    .filter((c) => c.statusId !== baixaStatusId)
+    .filter((c) => c.status !== baixaStatusId)
     .map((c) => {
-      const days = differenceInDays(new Date(), new Date(c.dataCadastro))
-      let severity: 'none' | 'moderate' | 'critical' | 'old' | 'veryCritical' = 'none'
-      if (days >= alertConfig.veryCriticalDays) severity = 'veryCritical'
-      else if (days >= alertConfig.oldDays) severity = 'old'
-      else if (days >= alertConfig.criticalDays) severity = 'critical'
-      else if (days >= alertConfig.moderateDays) severity = 'moderate'
+      const days = differenceInDays(new Date(), new Date(c.created))
+      let severity: 'none' | 'old' | 'critical' = 'none'
+      if (days >= alertSettings.critical_days) severity = 'critical'
+      else if (days >= alertSettings.old_days) severity = 'old'
 
       return { ...c, days, severity }
     })
@@ -33,11 +31,11 @@ export function AlertsWidget() {
     .sort((a, b) => b.days - a.days)
     .slice(0, 6)
 
-  const pendingResets = passwordResetRequests.filter((r) => r.status === 'pending')
+  const pendingResets = passwordResetRequests.filter((r: any) => r.status === 'pending')
 
   return (
     <div className="space-y-4 mt-4">
-      {currentUser?.role === 'Admin' && pendingResets.length > 0 && (
+      {currentUser?.role?.toLowerCase() === 'admin' && pendingResets.length > 0 && (
         <Card className="border-border/50 shadow-sm border-l-4 border-l-primary bg-primary/5">
           <CardHeader className="pb-2">
             <CardTitle className="text-base font-medium flex items-center gap-2 text-primary">
@@ -47,7 +45,7 @@ export function AlertsWidget() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {pendingResets.map((req) => (
+              {pendingResets.map((req: any) => (
                 <div
                   key={req.id}
                   className="flex items-center justify-between bg-background p-3 rounded-lg border shadow-sm"
@@ -69,17 +67,19 @@ export function AlertsWidget() {
         </Card>
       )}
 
-      <Card className="border-border/50 shadow-sm">
-        <CardHeader>
-          <CardTitle className="text-base font-medium flex items-center gap-2">
-            <Clock className="w-5 h-5 text-muted-foreground" />
-            Pendências Ativas
+      <Card className="border-border/50 shadow-sm border-l-4 border-l-emerald-500 overflow-hidden">
+        <CardHeader className="bg-emerald-50/50 dark:bg-emerald-950/20 pb-4 border-b border-border/50">
+          <CardTitle className="text-base font-medium flex items-center gap-2 text-emerald-800 dark:text-emerald-400">
+            <Clock className="w-5 h-5" />
+            Alertas de Pendências
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-4">
           {alerts.length === 0 ? (
-            <div className="py-8 text-center text-muted-foreground text-sm">
-              Nenhuma pendência crítica ou moderada encontrada.
+            <div className="py-8 text-center flex flex-col items-center justify-center gap-2 text-emerald-600 dark:text-emerald-400">
+              <CheckCircle2 className="w-8 h-8 opacity-50" />
+              <p className="text-sm font-medium">Tudo em dia!</p>
+              <p className="text-xs opacity-80">Nenhuma pendência antiga ou crítica encontrada.</p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -89,10 +89,10 @@ export function AlertsWidget() {
                   className="flex items-center justify-between border-b border-border/50 pb-3 last:border-0 last:pb-0"
                 >
                   <div>
-                    <p className="font-medium text-sm">{alert.razaoSocial}</p>
+                    <p className="font-medium text-sm">{alert.razao_social}</p>
                     <p className="text-xs text-muted-foreground mt-0.5">
                       Cadastrado em{' '}
-                      {format(new Date(alert.dataCadastro), "dd 'de' MMM, yyyy", { locale: ptBR })}
+                      {format(new Date(alert.created), "dd 'de' MMM, yyyy", { locale: ptBR })}
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
@@ -100,28 +100,14 @@ export function AlertsWidget() {
                       {alert.days} dias
                     </span>
                     <Badge
-                      variant={
-                        alert.severity === 'critical' || alert.severity === 'veryCritical'
-                          ? 'destructive'
-                          : 'secondary'
-                      }
+                      variant="secondary"
                       className={
-                        alert.severity === 'veryCritical'
-                          ? 'bg-purple-600 text-white hover:bg-purple-700'
-                          : alert.severity === 'old'
-                            ? 'bg-slate-500 text-white hover:bg-slate-600'
-                            : alert.severity === 'moderate'
-                              ? 'bg-amber-100 text-amber-800 hover:bg-amber-200 dark:bg-amber-900/30 dark:text-amber-500'
-                              : ''
+                        alert.severity === 'critical'
+                          ? 'bg-red-100 text-red-800 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400'
+                          : 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400'
                       }
                     >
-                      {alert.severity === 'veryCritical'
-                        ? 'Crítica Absoluta'
-                        : alert.severity === 'old'
-                          ? 'Antiguidade'
-                          : alert.severity === 'critical'
-                            ? 'Crítico'
-                            : 'Moderado'}
+                      {alert.severity === 'critical' ? 'Crítico' : 'Antiga'}
                     </Badge>
                   </div>
                 </div>

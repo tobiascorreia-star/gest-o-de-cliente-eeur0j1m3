@@ -1,29 +1,29 @@
 import { Users, AlertCircle, CheckCircle2, UserPlus } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { useApp } from '@/contexts/app-context'
+import { useDashboard } from '@/hooks/use-dashboard'
 import { differenceInDays, startOfMonth } from 'date-fns'
 
 export function KpiCards() {
-  const { clients, statusList, alertConfig } = useApp()
+  const { clients, statuses, alertSettings } = useDashboard()
 
-  const baixaStatusId = statusList.find((s) => s.name === 'Baixa')?.id
+  const baixaStatusId = statuses.find((s) => s.name.toLowerCase() === 'baixa')?.id
 
   const total = clients.length
 
   const pending = clients.filter((c) => {
-    if (c.statusId === baixaStatusId) return false
-    const days = differenceInDays(new Date(), new Date(c.dataCadastro))
-    return days >= alertConfig.moderateDays
+    if (c.status === baixaStatusId) return false
+    const days = differenceInDays(new Date(), new Date(c.created))
+    return days >= alertSettings.old_days
   }).length
 
   const thisMonthStart = startOfMonth(new Date())
 
   const completedThisMonth = clients.filter(
-    (c) => c.statusId === baixaStatusId && c.dataBaixa && new Date(c.dataBaixa) >= thisMonthStart,
+    (c) => c.status === baixaStatusId && new Date(c.updated) >= thisMonthStart,
   ).length
 
   const newClients30Days = clients.filter(
-    (c) => differenceInDays(new Date(), new Date(c.dataCadastro)) <= 30,
+    (c) => differenceInDays(new Date(), new Date(c.created)) <= 30,
   ).length
 
   const cards = [
@@ -35,7 +35,7 @@ export function KpiCards() {
       bg: 'bg-primary/10',
     },
     {
-      title: 'Pedidos Pendentes',
+      title: 'Pedidos Antigos/Críticos',
       value: pending,
       icon: AlertCircle,
       color: 'text-amber-500',

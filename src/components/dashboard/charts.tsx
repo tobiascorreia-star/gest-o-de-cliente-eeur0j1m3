@@ -1,41 +1,31 @@
 import { useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
-import { useApp } from '@/contexts/app-context'
-import {
-  Bar,
-  BarChart,
-  Line,
-  LineChart,
-  ResponsiveContainer,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-} from 'recharts'
+import { useDashboard } from '@/hooks/use-dashboard'
+import { Bar, BarChart, Line, LineChart, XAxis, YAxis, CartesianGrid, Cell } from 'recharts'
 import { format, subMonths } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
 export function DashboardCharts() {
-  const { clients, solicitacoes } = useApp()
+  const { clients, categories } = useDashboard()
 
   const lineData = useMemo(() => {
     const data = []
     for (let i = 5; i >= 0; i--) {
       const d = subMonths(new Date(), i)
       const monthStr = format(d, 'MMM', { locale: ptBR })
-      // mock counting
-      const count = clients.filter((c) => new Date(c.dataCadastro) <= d).length
+      const count = clients.filter((c) => new Date(c.created) <= d).length
       data.push({ month: monthStr, clientes: count })
     }
     return data
   }, [clients])
 
   const barData = useMemo(() => {
-    return solicitacoes.map((sol) => {
-      const count = clients.filter((c) => c.solicitacaoId === sol.id).length
-      return { category: sol.name, total: count }
+    return categories.map((cat) => {
+      const count = clients.filter((c) => c.categoria === cat.id).length
+      return { category: cat.name, total: count, fill: cat.color || 'hsl(var(--primary))' }
     })
-  }, [clients, solicitacoes])
+  }, [clients, categories])
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7 mt-4">
@@ -77,10 +67,7 @@ export function DashboardCharts() {
           <CardTitle className="text-base font-medium">Solicitações por Categoria</CardTitle>
         </CardHeader>
         <CardContent className="pl-0">
-          <ChartContainer
-            config={{ total: { label: 'Total', color: 'hsl(var(--chart-2))' } }}
-            className="h-[300px] w-full"
-          >
+          <ChartContainer config={{ total: { label: 'Total' } }} className="h-[300px] w-full">
             <BarChart
               data={barData}
               margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
@@ -104,7 +91,11 @@ export function DashboardCharts() {
                 width={120}
               />
               <ChartTooltip content={<ChartTooltipContent />} />
-              <Bar dataKey="total" fill="var(--color-total)" radius={[0, 4, 4, 0]} barSize={24} />
+              <Bar dataKey="total" radius={[0, 4, 4, 0]} barSize={24}>
+                {barData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.fill} />
+                ))}
+              </Bar>
             </BarChart>
           </ChartContainer>
         </CardContent>

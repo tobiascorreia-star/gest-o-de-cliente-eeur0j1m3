@@ -4,6 +4,7 @@ import { DashboardCharts } from '@/components/dashboard/charts'
 import { AlertsWidget } from '@/components/dashboard/alerts-widget'
 import { useApp } from '@/contexts/app-context'
 import { useAuth } from '@/hooks/use-auth'
+import { useDashboard } from '@/hooks/use-dashboard'
 import {
   Dialog,
   DialogContent,
@@ -11,22 +12,26 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { BellRing, KeyRound, CheckCircle } from 'lucide-react'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { BellRing, KeyRound, CheckCircle, AlertTriangle, Info } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 const Index = () => {
-  const { clients, lastLoginTime, passwordResetRequests, resolvePasswordReset } = useApp()
+  const {
+    lastLoginTime,
+    passwordResetRequests = [],
+    resolvePasswordReset = () => {},
+  } = useApp?.() || {}
   const { user: currentUser } = useAuth()
+  const { clients, statuses, alertSettings, loading } = useDashboard()
   const [showLoginAlert, setShowLoginAlert] = useState(false)
-  const pendingResets = passwordResetRequests.filter((req) => req.status === 'pending')
+  const pendingResets = passwordResetRequests.filter((req: any) => req.status === 'pending')
 
   useEffect(() => {
-    if (lastLoginTime) {
+    if (lastLoginTime && clients.length > 0) {
       const hasSeenAlert = sessionStorage.getItem('hasSeenNewClientsAlert')
       if (!hasSeenAlert) {
-        const hasNewClients = clients.some(
-          (c) => new Date(c.dataCadastro) > new Date(lastLoginTime),
-        )
+        const hasNewClients = clients.some((c) => new Date(c.created) > new Date(lastLoginTime))
         if (hasNewClients) {
           setShowLoginAlert(true)
           sessionStorage.setItem('hasSeenNewClientsAlert', 'true')
@@ -35,8 +40,35 @@ const Index = () => {
     }
   }, [lastLoginTime, clients])
 
+  const baixaStatusId = statuses.find((s) => s.name.toLowerCase() === 'baixa')?.id
+  const pendingClients = clients.filter((c) => c.status !== baixaStatusId)
+  const totalPending = pendingClients.length
+
+  let systemAlert = null
+  if (alertSettings && !loading) {
+    if (totalPending >= alertSettings.critical_threshold) {
+      systemAlert = {
+        type: 'critical',
+        title: 'Alerta Crítico de Pendências',
+        description: `O sistema registra atualmente ${totalPending} clientes com pendências, excedendo o limite crítico configurado de ${alertSettings.critical_threshold}. É necessária ação imediata.`,
+        icon: AlertTriangle,
+        className:
+          'bg-red-50 text-red-900 border-red-200 dark:bg-red-950/50 dark:text-red-200 dark:border-red-900',
+      }
+    } else if (totalPending >= alertSettings.moderate_threshold) {
+      systemAlert = {
+        type: 'moderate',
+        title: 'Aviso de Volume de Pendências',
+        description: `O número de clientes com pendências (${totalPending}) ultrapassou o limite moderado de ${alertSettings.moderate_threshold}. Acompanhe de perto para evitar acúmulos.`,
+        icon: Info,
+        className:
+          'bg-emerald-50 text-emerald-900 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-200 dark:border-emerald-900',
+      }
+    }
+  }
+
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 animate-fade-in">
       <Dialog open={showLoginAlert} onOpenChange={setShowLoginAlert}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -67,7 +99,7 @@ const Index = () => {
                 alterar a senha e marque como resolvido.
               </p>
               <div className="space-y-2">
-                {pendingResets.map((req) => (
+                {pendingResets.map((req: any) => (
                   <div
                     key={req.id}
                     className="flex items-center justify-between bg-white/50 dark:bg-black/20 p-2 rounded-md border border-yellow-500/10"
@@ -87,6 +119,16 @@ const Index = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {systemAlert && (
+        <Alert
+          className={`mb-6 border-l-4 animate-fade-in-down shadow-sm ${systemAlert.className}`}
+        >
+          <systemAlert.icon className="h-5 w-5" />
+          <AlertTitle className="font-semibold">{systemAlert.title}</AlertTitle>
+          <AlertDescription className="mt-1">{systemAlert.description}</AlertDescription>
+        </Alert>
       )}
 
       <div className="flex flex-col gap-1 mb-6">
