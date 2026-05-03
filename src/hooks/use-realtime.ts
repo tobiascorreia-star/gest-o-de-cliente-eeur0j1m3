@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import pb from '@/lib/pocketbase/client'
 import type { RecordSubscription } from 'pocketbase'
 
@@ -15,14 +15,6 @@ export function useRealtime(
 ) {
   const callbackRef = useRef(callback)
   callbackRef.current = callback
-
-  const [token, setToken] = useState(pb.authStore.token)
-
-  useEffect(() => {
-    return pb.authStore.onChange((newToken) => {
-      setToken((prev) => (newToken !== prev ? newToken : prev))
-    })
-  }, [])
 
   useEffect(() => {
     if (!enabled) return
@@ -41,9 +33,6 @@ export function useRealtime(
           unsubscribeFn = fn
         }
       })
-      .catch((err) => {
-        console.warn(`Failed to subscribe to ${collectionName}:`, err)
-      })
 
     return () => {
       cancelled = true
@@ -51,7 +40,7 @@ export function useRealtime(
         unsubscribeFn().catch(() => {})
       }
     }
-  }, [collectionName, enabled, token])
+  }, [collectionName, enabled])
 }
 
 export default useRealtime

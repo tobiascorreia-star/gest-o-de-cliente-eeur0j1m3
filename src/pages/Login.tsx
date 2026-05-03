@@ -39,42 +39,42 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#2B3088] via-[#1B1E5A] to-[#0A0D30] p-4 relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 via-white to-sky-50 p-4 relative overflow-hidden">
       {/* Decorative blurred circles */}
-      <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-blue-500/20 rounded-full blur-[100px]" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-purple-500/20 rounded-full blur-[100px]" />
+      <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-blue-400/20 rounded-full blur-[100px]" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-sky-300/20 rounded-full blur-[100px]" />
 
-      <div className="w-full max-w-md bg-white/10 backdrop-blur-xl border border-white/20 p-8 rounded-2xl shadow-2xl z-10 animate-fade-in-up">
+      <div className="w-full max-w-md bg-white/70 backdrop-blur-xl border border-white/50 p-8 rounded-2xl shadow-xl z-10 animate-fade-in-up">
         <div className="flex flex-col items-center mb-8">
-          <div className="bg-gradient-to-tr from-accent to-yellow-300 w-16 h-16 rounded-2xl flex items-center justify-center mb-4 shadow-lg">
-            <Building2 className="w-8 h-8 text-primary" />
+          <div className="bg-gradient-to-tr from-blue-600 to-sky-400 w-16 h-16 rounded-2xl flex items-center justify-center mb-4 shadow-lg shadow-blue-500/20">
+            <Building2 className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-white tracking-wide">GESTÃO Cliente</h1>
-          <p className="text-white/60 text-sm mt-2">SISTEMA DE GESTÃO EMPRESARIAL</p>
+          <h1 className="text-3xl font-bold text-slate-800 tracking-wide">GESTÃO Cliente</h1>
+          <p className="text-slate-500 text-sm mt-2 font-medium">SISTEMA DE GESTÃO EMPRESARIAL</p>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-5">
           <div className="space-y-1.5">
-            <label className="text-sm font-medium text-white/80 ml-1">E-mail de Acesso</label>
+            <label className="text-sm font-medium text-slate-700 ml-1">E-mail de Acesso</label>
             <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white/50" />
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
               <Input
                 type="email"
                 placeholder="tobiascorreia@gmail.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="pl-10 bg-black/20 border-white/10 text-white placeholder:text-white/30 h-12 rounded-xl focus-visible:ring-accent"
+                className="pl-10 bg-white/50 border-slate-200 text-slate-800 placeholder:text-slate-400 h-12 rounded-xl focus-visible:ring-blue-500 transition-all shadow-sm hover:border-blue-300 focus:bg-white"
               />
             </div>
           </div>
 
           <div className="space-y-1.5">
             <div className="flex justify-between items-center ml-1">
-              <label className="text-sm font-medium text-white/80">Senha</label>
+              <label className="text-sm font-medium text-slate-700">Senha</label>
               <button
                 type="button"
-                className="text-xs text-accent hover:text-white transition-colors"
+                className="text-xs text-blue-600 hover:text-blue-800 transition-colors font-medium"
                 onClick={() => {
                   if (!email) {
                     toast({
@@ -96,18 +96,18 @@ export default function Login() {
               </button>
             </div>
             <div className="relative">
-              <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white/50" />
+              <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
               <Input
                 type={showPassword ? 'text' : 'password'}
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="pl-10 pr-10 bg-black/20 border-white/10 text-white placeholder:text-white/30 h-12 rounded-xl focus-visible:ring-accent"
+                className="pl-10 pr-10 bg-white/50 border-slate-200 text-slate-800 placeholder:text-slate-400 h-12 rounded-xl focus-visible:ring-blue-500 transition-all shadow-sm hover:border-blue-300 focus:bg-white"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-white/50 hover:text-white transition-colors"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
               >
                 {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
@@ -116,7 +116,7 @@ export default function Login() {
 
           <Button
             type="submit"
-            className="w-full h-12 mt-4 bg-accent hover:bg-accent/90 text-primary font-bold text-base rounded-xl transition-all shadow-[0_0_20px_rgba(251,191,36,0.3)]"
+            className="w-full h-12 mt-6 bg-blue-600 hover:bg-blue-700 text-white font-bold text-base rounded-xl transition-all shadow-[0_4px_14px_0_rgba(37,99,235,0.39)] hover:shadow-[0_6px_20px_rgba(37,99,235,0.23)] hover:-translate-y-0.5"
           >
             Acessar Sistema
           </Button>
@@ -124,7 +124,7 @@ export default function Login() {
       </div>
 
       <div className="absolute bottom-4 left-0 right-0 text-center z-10">
-        <p className="text-xs text-white/30">
+        <p className="text-xs text-slate-500 font-medium">
           © 2026 - MegaFllex Soluções - Todos os direitos reservados
         </p>
       </div>
