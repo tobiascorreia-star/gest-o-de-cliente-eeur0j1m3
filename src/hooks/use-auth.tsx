@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, ReactNode } from 'react'
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
+import pb from '@/lib/pocketbase/client'
 
 interface AuthContextType {
   user: any
@@ -16,37 +17,30 @@ export const useAuth = () => {
 }
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<any>(() => {
-    const saved = localStorage.getItem('currentUser')
-    return saved ? JSON.parse(saved) : null
-  })
-  const [loading, setLoading] = useState(false)
+  const [user, setUser] = useState<any>(pb.authStore.record)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const unsubscribe = pb.authStore.onChange((_token, record) => {
+      setUser(record)
+    })
+    setLoading(false)
+    return () => {
+      unsubscribe()
+    }
+  }, [])
 
   const signIn = async (email: string, password?: string) => {
-    setLoading(true)
-    // Simulate network request
-    await new Promise((resolve) => setTimeout(resolve, 500))
-    setLoading(false)
-
-    if (email) {
-      const mockUser = {
-        id: 'u1',
-        name: 'Administrador',
-        email,
-        role: 'admin',
-        avatarUrl: 'https://img.usecurling.com/ppl/thumbnail?gender=male&seed=1',
-        active: true,
-      }
-      setUser(mockUser)
-      localStorage.setItem('currentUser', JSON.stringify(mockUser))
+    try {
+      await pb.collection('users').authWithPassword(email, password || '')
       return { error: null }
+    } catch (error) {
+      return { error }
     }
-    return { error: new Error('Credenciais inválidas') }
   }
 
   const signOut = () => {
-    setUser(null)
-    localStorage.removeItem('currentUser')
+    pb.authStore.clear()
   }
 
   return (

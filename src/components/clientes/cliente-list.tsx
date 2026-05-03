@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Client } from '@/types'
-import { useApp } from '@/contexts/app-context'
+import { useAuth } from '@/hooks/use-auth'
 import {
   Table,
   TableBody,
@@ -75,8 +75,8 @@ export function ClienteList({
   onReverse,
   isRestrictedArea = false,
 }: ClienteListProps) {
-  const { currentUser } = useApp()
-  const isOperator = currentUser?.role === 'Operator'
+  const { user } = useAuth()
+  const isOperator = user?.role?.toLowerCase() === 'operator'
   const [reportClient, setReportClient] = useState<Client | null>(null)
   const [copiedCnpj, setCopiedCnpj] = useState<string | null>(null)
 

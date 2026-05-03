@@ -41,12 +41,12 @@ const AppRoutes = () => {
           <Route path="/" element={<Index />} />
           <Route path="/clientes" element={<Clientes />} />
           <Route path="/historico" element={<Historico />} />
-          <Route path="/auditoria" element={<Auditoria />} />
           <Route path="/concluidos" element={<Concluidos />} />
           <Route path="/arquivo" element={<Arquivo />} />
           <Route path="/relatorio" element={<Relatorio />} />
 
           <Route element={<AdminRoute />}>
+            <Route path="/auditoria" element={<Auditoria />} />
             <Route path="/usuarios" element={<Usuarios />} />
             <Route path="/configuracao" element={<Configuracao />} />
           </Route>

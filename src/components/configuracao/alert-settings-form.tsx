@@ -54,7 +54,7 @@ export function AlertSettingsForm() {
       <CardContent className="p-6">
         <div className="flex items-center gap-2 mb-2">
           <span className="text-xl">🔔</span>
-          <h2 className="text-xl font-bold text-[#5a67d8]">Alertas de Pendências</h2>
+          <h2 className="text-xl font-bold text-green-600">Alertas de Pendências</h2>
         </div>
         <p className="text-muted-foreground text-sm mb-8">
           Defina quantas pendências acumuladas disparam cada nível de alerta.
@@ -68,7 +68,7 @@ export function AlertSettingsForm() {
             </label>
             <Input
               type="number"
-              className="w-24 text-center font-bold text-blue-600 bg-white"
+              className="w-24 text-center font-bold text-green-600 bg-white"
               value={settings?.moderate_threshold || 0}
               onChange={(e) => setSettings({ ...settings, moderate_threshold: e.target.value })}
             />
@@ -81,7 +81,7 @@ export function AlertSettingsForm() {
             </label>
             <Input
               type="number"
-              className="w-24 text-center font-bold text-blue-600 bg-white"
+              className="w-24 text-center font-bold text-green-600 bg-white"
               value={settings?.critical_threshold || 0}
               onChange={(e) => setSettings({ ...settings, critical_threshold: e.target.value })}
             />
@@ -94,7 +94,7 @@ export function AlertSettingsForm() {
             </label>
             <Input
               type="number"
-              className="w-24 text-center font-bold text-blue-600 bg-white"
+              className="w-24 text-center font-bold text-green-600 bg-white"
               value={settings?.old_days || 0}
               onChange={(e) => setSettings({ ...settings, old_days: e.target.value })}
             />
@@ -107,7 +107,7 @@ export function AlertSettingsForm() {
             </label>
             <Input
               type="number"
-              className="w-24 text-center font-bold text-blue-600 bg-white"
+              className="w-24 text-center font-bold text-green-600 bg-white"
               value={settings?.critical_days || 0}
               onChange={(e) => setSettings({ ...settings, critical_days: e.target.value })}
             />

@@ -32,7 +32,7 @@ const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
   { name: 'Clientes', href: '/clientes', icon: Users },
   { name: 'Histórico', href: '/historico', icon: History },
-  { name: 'Auditoria', href: '/auditoria', icon: ShieldAlert },
+  { name: 'Auditoria', href: '/auditoria', icon: ShieldAlert, adminOnly: true },
   { name: 'Usuários', href: '/usuarios', icon: UserCog, adminOnly: true },
   { name: 'Concluídos do Mês', href: '/concluidos', icon: CheckSquare },
   { name: 'Arquivo', href: '/arquivo', icon: Archive },

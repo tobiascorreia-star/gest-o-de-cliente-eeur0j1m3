@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { ConfigDataTable } from '@/components/configuracao/config-lists'
 import { AlertSettingsForm } from '@/components/configuracao/alert-settings-form'
+import { BackupSettingsForm } from '@/components/configuracao/backup-settings'
 import { ErrorBoundary } from '@/components/error-boundary'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
@@ -81,6 +82,7 @@ const Configuracao = () => {
           <TabsList className="mb-4">
             <TabsTrigger value="listas">Listas de Referência</TabsTrigger>
             <TabsTrigger value="alertas">Alertas de Pendências</TabsTrigger>
+            <TabsTrigger value="backup">Backup do Sistema</TabsTrigger>
           </TabsList>
 
           <TabsContent value="listas" className="mt-0">
@@ -97,6 +99,10 @@ const Configuracao = () => {
 
           <TabsContent value="alertas" className="mt-0">
             <AlertSettingsForm />
+          </TabsContent>
+
+          <TabsContent value="backup" className="mt-0">
+            <BackupSettingsForm />
           </TabsContent>
         </Tabs>
       </div>
