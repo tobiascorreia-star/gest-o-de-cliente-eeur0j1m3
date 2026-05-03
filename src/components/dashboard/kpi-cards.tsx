@@ -10,11 +10,18 @@ export function KpiCards() {
 
   const total = clients.length
 
-  const pending = clients.filter((c) => {
+  const criticalCount = clients.filter((c) => {
+    if (c.status === baixaStatusId) return false
+    return differenceInDays(new Date(), new Date(c.created)) >= alertSettings.critical_days
+  }).length
+
+  const oldCount = clients.filter((c) => {
     if (c.status === baixaStatusId) return false
     const days = differenceInDays(new Date(), new Date(c.created))
-    return days >= alertSettings.old_days
+    return days >= alertSettings.old_days && days < alertSettings.critical_days
   }).length
+
+  const pending = criticalCount + oldCount
 
   const thisMonthStart = startOfMonth(new Date())
 
@@ -40,6 +47,10 @@ export function KpiCards() {
       icon: AlertCircle,
       color: 'text-amber-500 dark:text-amber-400',
       bg: 'bg-amber-500/10 dark:bg-amber-500/20',
+      thresholds: [
+        { label: 'Antigos', count: oldCount, limit: alertSettings.moderate_threshold },
+        { label: 'Críticos', count: criticalCount, limit: alertSettings.critical_threshold },
+      ],
     },
     {
       title: 'Concluídos no Mês',
@@ -65,17 +76,28 @@ export function KpiCards() {
           className="hover:-translate-y-1 transition-transform duration-300 dark:bg-slate-900/50 dark:border-slate-800"
         >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-slate-500 dark:text-slate-400">
+            <CardTitle className="text-xs font-light text-slate-500 dark:text-slate-400">
               {card.title}
             </CardTitle>
-            <div className={`p-2 rounded-lg ${card.bg}`}>
-              <card.icon className={`h-4 w-4 ${card.color}`} />
+            <div className={`p-1.5 rounded-lg ${card.bg}`}>
+              <card.icon className={`h-3.5 w-3.5 ${card.color}`} strokeWidth={1.25} />
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-semibold text-slate-800 dark:text-slate-100">
+            <div className="text-xl font-light text-slate-800 dark:text-slate-100">
               {card.value}
             </div>
+            {card.thresholds && (
+              <div className="mt-2 flex items-center gap-3 text-[10px] font-light text-slate-500 dark:text-slate-400">
+                {card.thresholds.map((t, idx) => (
+                  <div key={idx} className="flex items-center gap-1">
+                    <span className={t.count >= t.limit ? 'text-red-500 font-medium' : ''}>
+                      {t.label}: {t.count}/{t.limit}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       ))}
