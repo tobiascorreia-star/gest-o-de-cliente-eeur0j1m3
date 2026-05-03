@@ -280,7 +280,12 @@ export default function Usuarios() {
         } else {
           record = await pb.collection('users').update(editingUser.id, userData)
           if (record.id === user?.id) {
-            pb.authStore.save(pb.authStore.token, record)
+            if (pass) {
+              const authData = await pb.collection('users').authWithPassword(email.trim(), pass)
+              record = authData.record
+            } else {
+              pb.authStore.save(pb.authStore.token, record)
+            }
           }
         }
 
