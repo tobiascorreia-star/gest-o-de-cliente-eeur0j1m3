@@ -266,14 +266,24 @@ export function ConfigDataTable({
                         {getTypeLabel(item.type)}
                       </Badge>
                     </TableCell>
-                    <TableCell className="font-medium">{item.name || 'Sem nome'}</TableCell>
+                    <TableCell className="font-medium">
+                      <span
+                        className={cn(
+                          'inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold shadow-sm',
+                          !item.color && 'bg-muted text-foreground',
+                        )}
+                        style={
+                          item.color ? { backgroundColor: item.color, color: '#fff' } : undefined
+                        }
+                      >
+                        {item.name || 'Sem nome'}
+                      </span>
+                    </TableCell>
                     <TableCell>
                       {item.color ? (
-                        <div
-                          className="w-5 h-5 rounded-full border border-black/10 shadow-sm"
-                          style={{ backgroundColor: item.color }}
-                          title={item.color}
-                        />
+                        <span className="text-xs text-muted-foreground font-mono">
+                          {item.color}
+                        </span>
                       ) : (
                         <span className="text-muted-foreground text-sm">-</span>
                       )}

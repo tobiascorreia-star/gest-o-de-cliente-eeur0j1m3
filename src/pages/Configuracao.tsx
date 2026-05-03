@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { ConfigDataTable } from '@/components/configuracao/config-lists'
+import { AlertSettingsForm } from '@/components/configuracao/alert-settings-form'
 import { ErrorBoundary } from '@/components/error-boundary'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   getConfigurations,
   createConfiguration,
@@ -75,17 +77,28 @@ const Configuracao = () => {
           </p>
         </div>
 
-        <div className="mt-4">
-          <ConfigDataTable
-            title="Listas do Sistema"
-            description="Gerencie as opções disponíveis nos formulários."
-            types={CONFIG_TYPES}
-            data={configurations}
-            onAdd={handleAdd}
-            onUpdate={handleUpdate}
-            onDelete={handleDelete}
-          />
-        </div>
+        <Tabs defaultValue="listas" className="w-full">
+          <TabsList className="mb-4">
+            <TabsTrigger value="listas">Listas de Referência</TabsTrigger>
+            <TabsTrigger value="alertas">Alertas de Pendências</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="listas" className="mt-0">
+            <ConfigDataTable
+              title="Listas do Sistema"
+              description="Gerencie as opções disponíveis nos formulários."
+              types={CONFIG_TYPES}
+              data={configurations}
+              onAdd={handleAdd}
+              onUpdate={handleUpdate}
+              onDelete={handleDelete}
+            />
+          </TabsContent>
+
+          <TabsContent value="alertas" className="mt-0">
+            <AlertSettingsForm />
+          </TabsContent>
+        </Tabs>
       </div>
     </ErrorBoundary>
   )
