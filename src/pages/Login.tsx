@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Eye, EyeOff, KeyRound, Mail } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import logoUrl from '@/assets/generatedimage_1777858728629-f0591.png'
+import logoUrl from '@/assets/generatedimage_1777858728629-e6d72.png'
 import { toast } from '@/hooks/use-toast'
 import { ModeToggle } from '@/components/mode-toggle'
 
@@ -52,11 +52,11 @@ export default function Login() {
 
       <div className="w-full max-w-md bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl border border-slate-100 dark:border-slate-800 p-10 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] z-10 animate-fade-in-up transition-colors">
         <div className="flex flex-col items-center mb-10">
-          <div className="w-16 h-16 mb-5 flex items-center justify-center">
+          <div className="w-24 h-24 mb-5 flex items-center justify-center">
             <img
               src={logoUrl}
-              alt="Gestão Cliente Logo"
-              className="w-full h-full object-contain rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800"
+              alt="System Logo"
+              className="w-full h-full object-contain rounded-2xl shadow-md border border-slate-200 dark:border-slate-700"
             />
           </div>
           <h1 className="text-2xl font-medium text-slate-800 dark:text-slate-100 tracking-tight">

@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { useAuth } from '@/hooks/use-auth'
 import { SidebarTrigger } from '@/components/ui/sidebar'
+import { Link } from 'react-router-dom'
+import logoUrl from '@/assets/generatedimage_1777858728629-e6d72.png'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,6 +30,15 @@ export function AppHeader() {
   return (
     <header className="sticky top-0 z-30 flex h-14 w-full items-center gap-4 border-b border-slate-100 bg-white/50 backdrop-blur-md px-4 sm:px-6 dark:border-slate-800 dark:bg-slate-950/50">
       <SidebarTrigger className="shrink-0" />
+
+      <Link to="/" className="flex items-center gap-2 transition-opacity hover:opacity-80">
+        <img
+          src={logoUrl}
+          alt="System Logo"
+          className="h-8 w-8 sm:h-9 sm:w-9 object-contain rounded-md shadow-sm border border-slate-200 dark:border-slate-700"
+        />
+      </Link>
+
       <div className="flex flex-1 items-center justify-end gap-2">
         <ModeToggle />
         <DropdownMenu>
