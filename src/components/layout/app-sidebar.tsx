@@ -11,7 +11,6 @@ import {
   Settings,
   LogOut,
 } from 'lucide-react'
-import logoUrl from '@/assets/generatedimage_1777858728629-f0591.png'
 import {
   Sidebar,
   SidebarContent,
@@ -61,9 +60,12 @@ export function AppSidebar() {
         <div className="flex items-center gap-2 w-full overflow-hidden">
           <div className="shrink-0 flex items-center justify-center">
             <img
-              src={logoUrl}
+              src="/icon.svg"
               alt="Logo"
               className="w-7 h-7 object-contain rounded-lg shadow-sm border border-slate-200 dark:border-slate-700"
+              onError={(e) => {
+                e.currentTarget.src = '/icon-192x192.png'
+              }}
             />
           </div>
           <span className="font-medium tracking-wide text-sm truncate group-data-[collapsible=icon]:hidden text-sidebar-foreground">
