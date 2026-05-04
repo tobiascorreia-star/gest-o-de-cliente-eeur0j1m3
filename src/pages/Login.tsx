@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Eye, EyeOff, KeyRound, Mail } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import logoUrl from '@/assets/generatedimage_1777858728629-e6d72.png'
+import logoUrl from '@/assets/generatedimage_1777858728629-f0591.png'
 import { toast } from '@/hooks/use-toast'
 import { ModeToggle } from '@/components/mode-toggle'
 

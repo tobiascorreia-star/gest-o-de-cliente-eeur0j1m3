@@ -4,9 +4,10 @@ import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Building2, Eye, EyeOff, Loader2 } from 'lucide-react'
+import { Eye, EyeOff, Loader2 } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
 import pb from '@/lib/pocketbase/client'
+import logoUrl from '@/assets/generatedimage_1777858728629-f0591.png'
 import { extractFieldErrors } from '@/lib/pocketbase/errors'
 
 export default function Setup() {
@@ -102,8 +103,8 @@ export default function Setup() {
 
       <div className="w-full max-w-md bg-white/10 backdrop-blur-xl border border-white/20 p-8 rounded-2xl shadow-2xl z-10 animate-fade-in-up">
         <div className="flex flex-col items-center mb-8">
-          <div className="bg-gradient-to-tr from-accent to-yellow-300 w-16 h-16 rounded-2xl flex items-center justify-center mb-4 shadow-lg">
-            <Building2 className="w-8 h-8 text-primary" />
+          <div className="bg-white/90 p-3 w-20 h-20 rounded-2xl flex items-center justify-center mb-5 shadow-lg border border-white/20">
+            <img src={logoUrl} alt="Logo" className="w-full h-full object-contain drop-shadow-sm" />
           </div>
           <h1 className="text-2xl font-bold text-white tracking-wide text-center">
             Primeiro Acesso

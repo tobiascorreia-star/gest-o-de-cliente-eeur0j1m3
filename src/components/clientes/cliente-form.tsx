@@ -53,14 +53,37 @@ export function ClienteForm({ initialData, onSuccess }: ClienteFormProps) {
   const { user } = useAuth()
   const [isFetchingCnpj, setIsFetchingCnpj] = useState(false)
   const [configs, setConfigs] = useState<any[]>([])
+  const [isLoadingConfigs, setIsLoadingConfigs] = useState(true)
+  const [configsError, setConfigsError] = useState<string | null>(null)
   const isAdmin = user?.role?.toLowerCase() === 'admin'
 
+  const fetchConfigs = async () => {
+    try {
+      setIsLoadingConfigs(true)
+      setConfigsError(null)
+      const data = await getConfigurations()
+      setConfigs(data)
+    } catch (error: any) {
+      console.error(error)
+      setConfigsError(
+        'Não foi possível carregar as configurações do sistema. Tente novamente mais tarde.',
+      )
+      toast({
+        title: 'Erro de Conexão',
+        description: 'Falha ao carregar as listas de seleção.',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsLoadingConfigs(false)
+    }
+  }
+
   useEffect(() => {
-    getConfigurations().then(setConfigs).catch(console.error)
+    fetchConfigs()
   }, [])
 
   useRealtime('configurations', () => {
-    getConfigurations().then(setConfigs).catch(console.error)
+    fetchConfigs()
   })
 
   const colaboradores = configs.filter((c) => c.type === 'Colaborador' && c.active !== false)
@@ -117,6 +140,26 @@ export function ClienteForm({ initialData, onSuccess }: ClienteFormProps) {
     setValue('razao_social', 'Empresa Auto-preenchida LTDA', { shouldValidate: true })
     setIsFetchingCnpj(false)
     toast({ title: 'CNPJ Encontrado', description: 'Razão social preenchida automaticamente.' })
+  }
+
+  if (isLoadingConfigs) {
+    return (
+      <div className="flex flex-col items-center justify-center p-12 text-muted-foreground">
+        <Loader2 className="w-8 h-8 animate-spin mb-4 text-primary" />
+        <p>Carregando formulário...</p>
+      </div>
+    )
+  }
+
+  if (configsError) {
+    return (
+      <div className="flex flex-col items-center justify-center p-12 text-destructive text-center">
+        <p className="mb-4 font-medium">{configsError}</p>
+        <Button onClick={fetchConfigs} variant="outline">
+          Tentar Novamente
+        </Button>
+      </div>
+    )
   }
 
   const onSubmit = async (data: FormData) => {
