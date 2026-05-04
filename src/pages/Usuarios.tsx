@@ -91,6 +91,7 @@ export default function Usuarios() {
   const updateUser = (u: any) => setUsers((prev) => prev.map((p) => (p.id === u.id ? u : p)))
 
   const [isOpen, setIsOpen] = useState(false)
+  const [isLoadingUser, setIsLoadingUser] = useState(false)
   const [editingUser, setEditingUser] = useState<any>(null)
   const [accessUser, setAccessUser] = useState<any>(null)
   const [createdUserCredentials, setCreatedUserCredentials] = useState<{
@@ -116,7 +117,9 @@ export default function Usuarios() {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const openForm = async (u?: any) => {
+    setIsOpen(true)
     if (u) {
+      setIsLoadingUser(true)
       try {
         const latestUser = await pb.collection('users').getOne(u.id)
         setEditingUser(latestUser)
@@ -152,6 +155,8 @@ export default function Usuarios() {
         setAvatarPreview(u.avatarUrl || (u.avatar ? pb.files.getURL(u, u.avatar) : null))
         setAvatarFile(null)
         setRemoveAvatar(false)
+      } finally {
+        setIsLoadingUser(false)
       }
     } else {
       setEditingUser(null)
@@ -170,7 +175,6 @@ export default function Usuarios() {
     setShowPassword(false)
     setShowPasswordConfirm(false)
     setIsSaving(false)
-    setIsOpen(true)
   }
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -499,127 +503,109 @@ export default function Usuarios() {
               <DialogTitle>{editingUser ? 'Editar Usuário' : 'Novo Usuário'}</DialogTitle>
               <DialogDescription>Preencha os dados do usuário.</DialogDescription>
             </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="flex flex-col items-center gap-3">
-                <Avatar className="h-20 w-20 border shadow-sm">
-                  {avatarPreview ? (
-                    <AvatarImage src={avatarPreview} />
-                  ) : (
-                    <AvatarFallback>
-                      {(name || email || '?').charAt(0).toUpperCase()}
-                    </AvatarFallback>
-                  )}
-                </Avatar>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
-                    <Upload className="w-4 h-4 mr-2" />
-                    Foto
-                  </Button>
-                  {avatarPreview && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={handleRemoveAvatar}
-                      className="text-destructive w-8 h-8"
-                    >
-                      <Trash2 className="w-4 h-4" strokeWidth={1.5} />
-                    </Button>
-                  )}
-                </div>
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  className="hidden"
-                  accept="image/*"
-                  onChange={handleAvatarChange}
-                />
+            {isLoadingUser ? (
+              <div className="flex flex-col items-center justify-center py-12 space-y-4">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <p className="text-sm text-muted-foreground">Carregando dados do usuário...</p>
               </div>
-
-              <div className="space-y-2">
-                <Label>Nome Completo</Label>
-                <Input
-                  name="name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Ex: Ana Silva"
-                  autoComplete="name"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>E-mail (Login) *</Label>
-                <Input
-                  type="email"
-                  name="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="email@gestao.com"
-                  autoComplete="email"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Telefone</Label>
-                <Input
-                  type="tel"
-                  name="phone"
-                  value={phone}
-                  onChange={(e) => setPhone(formatPhone(e.target.value))}
-                  placeholder="(00) 00000-0000"
-                  autoComplete="tel"
-                />
-              </div>
-
-              {editingUser && editingUser.id === user?.id && (
-                <div className="space-y-2">
-                  <Label>Senha Atual (necessária apenas para alterar a senha)</Label>
-                  <Input
-                    type="password"
-                    name="oldPassword"
-                    value={oldPassword}
-                    onChange={(e) => setOldPassword(e.target.value)}
-                    placeholder="••••••••"
-                    autoComplete="current-password"
-                  />
-                </div>
-              )}
-
-              <div className="space-y-2">
-                <Label>
-                  {editingUser ? 'Nova Senha (deixe em branco para manter)' : 'Senha *'}
-                </Label>
-                <div className="relative">
-                  <Input
-                    type={showPassword ? 'text' : 'password'}
-                    name="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="pr-10"
-                    autoComplete="new-password"
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="absolute right-0 top-0 h-full w-10 text-muted-foreground hover:text-foreground hover:bg-transparent"
-                    onClick={() => setShowPassword(!showPassword)}
-                  >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4" strokeWidth={1.5} />
+            ) : (
+              <div className="space-y-4 py-4">
+                <div className="flex flex-col items-center gap-3">
+                  <Avatar className="h-20 w-20 border shadow-sm">
+                    {avatarPreview ? (
+                      <AvatarImage src={avatarPreview} />
                     ) : (
-                      <Eye className="h-4 w-4" strokeWidth={1.5} />
+                      <AvatarFallback>
+                        {(name || email || '?').charAt(0).toUpperCase()}
+                      </AvatarFallback>
                     )}
-                  </Button>
+                  </Avatar>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <Upload className="w-4 h-4 mr-2" />
+                      Foto
+                    </Button>
+                    {avatarPreview && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={handleRemoveAvatar}
+                        className="text-destructive w-8 h-8"
+                      >
+                        <Trash2 className="w-4 h-4" strokeWidth={1.5} />
+                      </Button>
+                    )}
+                  </div>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    className="hidden"
+                    accept="image/*"
+                    onChange={handleAvatarChange}
+                  />
                 </div>
-              </div>
-              {(!editingUser || password.length > 0) && (
-                <div className="space-y-2 animate-in fade-in slide-in-from-top-1">
-                  <Label>Confirmar {editingUser ? 'Nova ' : ''}Senha *</Label>
+
+                <div className="space-y-2">
+                  <Label>Nome Completo</Label>
+                  <Input
+                    name="name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Ex: Ana Silva"
+                    autoComplete="name"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>E-mail (Login) *</Label>
+                  <Input
+                    type="email"
+                    name="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="email@gestao.com"
+                    autoComplete="email"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Telefone</Label>
+                  <Input
+                    type="tel"
+                    name="phone"
+                    value={phone}
+                    onChange={(e) => setPhone(formatPhone(e.target.value))}
+                    placeholder="(00) 00000-0000"
+                    autoComplete="tel"
+                  />
+                </div>
+
+                {editingUser && editingUser.id === user?.id && (
+                  <div className="space-y-2">
+                    <Label>Senha Atual (necessária apenas para alterar a senha)</Label>
+                    <Input
+                      type="password"
+                      name="oldPassword"
+                      value={oldPassword}
+                      onChange={(e) => setOldPassword(e.target.value)}
+                      placeholder="••••••••"
+                      autoComplete="current-password"
+                    />
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <Label>
+                    {editingUser ? 'Nova Senha (deixe em branco para manter)' : 'Senha *'}
+                  </Label>
                   <div className="relative">
                     <Input
-                      type={showPasswordConfirm ? 'text' : 'password'}
-                      name="passwordConfirm"
-                      value={passwordConfirm}
-                      onChange={(e) => setPasswordConfirm(e.target.value)}
+                      type={showPassword ? 'text' : 'password'}
+                      name="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••"
                       className="pr-10"
                       autoComplete="new-password"
@@ -629,9 +615,9 @@ export default function Usuarios() {
                       variant="ghost"
                       size="icon"
                       className="absolute right-0 top-0 h-full w-10 text-muted-foreground hover:text-foreground hover:bg-transparent"
-                      onClick={() => setShowPasswordConfirm(!showPasswordConfirm)}
+                      onClick={() => setShowPassword(!showPassword)}
                     >
-                      {showPasswordConfirm ? (
+                      {showPassword ? (
                         <EyeOff className="h-4 w-4" strokeWidth={1.5} />
                       ) : (
                         <Eye className="h-4 w-4" strokeWidth={1.5} />
@@ -639,33 +625,68 @@ export default function Usuarios() {
                     </Button>
                   </div>
                 </div>
-              )}
-              <div className="space-y-2">
-                <Label>Perfil de Acesso *</Label>
-                <Select value={role} onValueChange={(v: 'admin' | 'operator') => setRole(v)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="admin">Administrador (Acesso Total)</SelectItem>
-                    <SelectItem value="operator">Operador (Acesso Restrito)</SelectItem>
-                  </SelectContent>
-                </Select>
+                {(!editingUser || password.length > 0) && (
+                  <div className="space-y-2 animate-in fade-in slide-in-from-top-1">
+                    <Label>Confirmar {editingUser ? 'Nova ' : ''}Senha *</Label>
+                    <div className="relative">
+                      <Input
+                        type={showPasswordConfirm ? 'text' : 'password'}
+                        name="passwordConfirm"
+                        value={passwordConfirm}
+                        onChange={(e) => setPasswordConfirm(e.target.value)}
+                        placeholder="••••••••"
+                        className="pr-10"
+                        autoComplete="new-password"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-0 top-0 h-full w-10 text-muted-foreground hover:text-foreground hover:bg-transparent"
+                        onClick={() => setShowPasswordConfirm(!showPasswordConfirm)}
+                      >
+                        {showPasswordConfirm ? (
+                          <EyeOff className="h-4 w-4" strokeWidth={1.5} />
+                        ) : (
+                          <Eye className="h-4 w-4" strokeWidth={1.5} />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+                <div className="space-y-2">
+                  <Label>Perfil de Acesso *</Label>
+                  <Select value={role} onValueChange={(v: 'admin' | 'operator') => setRole(v)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="admin">Administrador (Acesso Total)</SelectItem>
+                      <SelectItem value="operator">Operador (Acesso Restrito)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-center space-x-2 pt-2">
+                  <Switch id="active-user" checked={active} onCheckedChange={setActive} />
+                  <Label htmlFor="active-user" className="cursor-pointer">
+                    Usuário Ativo
+                  </Label>
+                </div>
               </div>
-              <div className="flex items-center space-x-2 pt-2">
-                <Switch id="active-user" checked={active} onCheckedChange={setActive} />
-                <Label htmlFor="active-user" className="cursor-pointer">
-                  Usuário Ativo
-                </Label>
-              </div>
-            </div>
+            )}
             <div className="flex justify-end gap-2 pt-2">
-              <Button variant="outline" onClick={() => setIsOpen(false)} disabled={isSaving}>
+              <Button
+                variant="outline"
+                onClick={() => setIsOpen(false)}
+                disabled={isSaving || isLoadingUser}
+              >
                 Cancelar
               </Button>
               <Button
                 onClick={handleSave}
-                disabled={isSaving || (password.length > 0 && password !== passwordConfirm)}
+                disabled={
+                  isSaving || isLoadingUser || (password.length > 0 && password !== passwordConfirm)
+                }
               >
                 {isSaving ? (
                   <>

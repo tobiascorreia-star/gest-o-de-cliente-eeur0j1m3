@@ -11,41 +11,71 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { CalendarIcon, Printer } from 'lucide-react'
-import { format, isWithinInterval } from 'date-fns'
+import { format, isWithinInterval, startOfDay, endOfDay } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { useState } from 'react'
-import { useApp } from '@/contexts/app-context'
+import { useState, useEffect, useMemo } from 'react'
 import { ClienteList } from '@/components/clientes/cliente-list'
+import { getClients } from '@/services/clients'
+import { getConfigurations } from '@/services/configurations'
+import { useRealtime } from '@/hooks/use-realtime'
+import { Client } from '@/types'
 
 const Relatorio = () => {
-  const { clients, statusList } = useApp()
+  const [clients, setClients] = useState<Client[]>([])
+  const [statusList, setStatusList] = useState<any[]>([])
   const [dateStart, setDateStart] = useState<Date>()
   const [dateEnd, setDateEnd] = useState<Date>()
   const [statusFilter, setStatusFilter] = useState('all')
 
-  const baixaStatusId = statusList.find((s) => s.name === 'Baixa')?.id
+  const loadData = async () => {
+    try {
+      const [clientsData, configsData] = await Promise.all([getClients(), getConfigurations()])
+      setClients(clientsData)
+      setStatusList(configsData.filter((c: any) => c.type === 'Status'))
+    } catch (error) {
+      console.error(error)
+    }
+  }
+
+  useEffect(() => {
+    loadData()
+  }, [])
+
+  useRealtime('clients', loadData)
+  useRealtime('configurations', loadData)
+
+  const baixaStatusId = statusList.find((s) => s.name.toUpperCase() === 'BAIXA')?.id
 
   const handlePrint = () => {
     window.print()
   }
 
-  const filteredClients = clients.filter((c) => {
-    let matchesStatus = true
-    if (statusFilter === 'active') matchesStatus = c.statusId !== baixaStatusId
-    if (statusFilter === 'completed') matchesStatus = c.statusId === baixaStatusId
+  const filteredClients = useMemo(() => {
+    return clients.filter((c) => {
+      let matchesStatus = true
+      if (statusFilter === 'active') matchesStatus = c.status !== baixaStatusId
+      if (statusFilter === 'completed') matchesStatus = c.status === baixaStatusId
 
-    let matchesDate = true
-    if (dateStart && dateEnd) {
-      const cDate = new Date(c.dataCadastro)
-      matchesDate = isWithinInterval(cDate, { start: dateStart, end: dateEnd })
-    } else if (dateStart) {
-      matchesDate = new Date(c.dataCadastro) >= dateStart
-    } else if (dateEnd) {
-      matchesDate = new Date(c.dataCadastro) <= dateEnd
-    }
+      let matchesDate = true
+      if (c.created) {
+        const cDate = new Date(c.created)
+        if (dateStart && dateEnd) {
+          matchesDate = isWithinInterval(cDate, {
+            start: startOfDay(dateStart),
+            end: endOfDay(dateEnd),
+          })
+        } else if (dateStart) {
+          matchesDate = cDate >= startOfDay(dateStart)
+        } else if (dateEnd) {
+          matchesDate = cDate <= endOfDay(dateEnd)
+        }
+      } else if (dateStart || dateEnd) {
+        matchesDate = false // If filtering by date and client has no date, exclude
+      }
 
-    return matchesStatus && matchesDate
-  })
+      return matchesStatus && matchesDate
+    })
+  }, [clients, statusFilter, baixaStatusId, dateStart, dateEnd])
 
   return (
     <div className="space-y-6">
