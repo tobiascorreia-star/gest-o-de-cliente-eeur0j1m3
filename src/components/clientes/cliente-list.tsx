@@ -55,10 +55,10 @@ const ObservationBlock = ({
   if (!client.observacoes) return null
 
   return (
-    <div className="flex flex-col gap-1 w-full min-w-[140px] p-1.5 border rounded-md bg-card shadow-sm print:shadow-none print:border-none print:p-0 overflow-hidden">
+    <div className="flex flex-col gap-1 w-full min-w-[140px] print:min-w-0 p-1.5 border rounded-md bg-card shadow-sm print:shadow-none print:border-none print:p-0 print:bg-transparent overflow-hidden">
       {!client.observacao_lida ? (
         <>
-          <div className="flex items-center justify-between gap-2 flex-wrap">
+          <div className="flex items-center justify-between gap-2 flex-wrap print:hidden">
             <div className="bg-amber-50 text-amber-700 border border-amber-200 px-1.5 py-0.5 rounded-full text-[9px] font-semibold inline-flex items-center gap-1 w-fit tracking-wide">
               <AlertTriangle className="w-2.5 h-2.5" /> PENDENTE
             </div>
@@ -76,9 +76,12 @@ const ObservationBlock = ({
               </Button>
             )}
           </div>
+          <div className="hidden print:block text-[9px] text-amber-700 font-semibold mb-0.5">
+            [Pendente]
+          </div>
           <Tooltip>
             <TooltipTrigger asChild>
-              <div className="text-xs text-foreground truncate cursor-help text-left font-medium opacity-90 hover:opacity-100 transition-opacity w-full block">
+              <div className="text-xs text-foreground truncate cursor-help text-left font-medium opacity-90 hover:opacity-100 transition-opacity w-full block print:whitespace-normal print:break-words print:text-[9px] print:leading-tight">
                 {client.observacoes}
               </div>
             </TooltipTrigger>
@@ -98,7 +101,7 @@ const ObservationBlock = ({
         </>
       ) : (
         <>
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap print:hidden">
             <div className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-1.5 py-0.5 rounded-full text-[9px] font-semibold inline-flex items-center gap-1 w-fit tracking-wide">
               <Check className="w-2.5 h-2.5" strokeWidth={2.5} /> (Obs. Lida)
             </div>
@@ -110,7 +113,7 @@ const ObservationBlock = ({
           </div>
           <Tooltip>
             <TooltipTrigger asChild>
-              <div className="text-xs text-foreground truncate cursor-help text-left font-medium opacity-80 hover:opacity-100 transition-opacity w-full block">
+              <div className="text-xs text-foreground truncate cursor-help text-left font-medium opacity-80 hover:opacity-100 transition-opacity w-full block print:whitespace-normal print:break-words print:text-[9px] print:leading-tight">
                 {client.observacoes}
               </div>
             </TooltipTrigger>
@@ -149,10 +152,12 @@ const ConfigBadge = ({ name, color }: { name?: string; color?: string }) => {
   return (
     <div className="flex items-center gap-2 min-w-0">
       <span
-        className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+        className="w-2.5 h-2.5 rounded-full flex-shrink-0 print:w-1.5 print:h-1.5"
         style={{ backgroundColor: displayColor }}
       />
-      <span className="text-sm truncate font-medium text-muted-foreground">{displayName}</span>
+      <span className="text-sm truncate font-medium text-muted-foreground print:text-[9px] print:leading-tight print:whitespace-normal print:break-words">
+        {displayName}
+      </span>
     </div>
   )
 }
@@ -262,29 +267,35 @@ export function ClienteList({
 
   return (
     <>
-      <div className="hidden md:block print:block rounded-2xl border border-slate-100 bg-white/50 backdrop-blur-sm shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] dark:bg-slate-900/50 dark:border-slate-800 overflow-hidden w-full">
-        <div className="overflow-x-auto w-full pb-2">
-          <Table className="min-w-max w-full">
+      <div className="hidden md:block print:block rounded-2xl border border-slate-100 bg-white/50 backdrop-blur-sm shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] dark:bg-slate-900/50 dark:border-slate-800 overflow-hidden w-full print:border-none print:shadow-none print:rounded-none">
+        <div className="overflow-x-auto w-full pb-2 print:overflow-visible print:p-0">
+          <Table className="min-w-max w-full print:min-w-0 print:w-full print:table-fixed print:text-[10px]">
             <TableHeader>
-              <TableRow className="bg-slate-50/50 dark:bg-slate-800/50 hover:bg-slate-50/50 border-b-slate-100 dark:border-b-slate-800">
-                <TableHead className="font-medium text-slate-500 whitespace-nowrap min-w-[200px]">
+              <TableRow className="bg-slate-50/50 dark:bg-slate-800/50 hover:bg-slate-50/50 border-b-slate-100 dark:border-b-slate-800 print:bg-transparent print:border-b-black">
+                <TableHead className="font-medium text-slate-500 whitespace-nowrap min-w-[200px] print:min-w-0 print:w-[22%] print:whitespace-normal print:px-1 print:py-2 print:text-[10px]">
                   CNPJ / Razão Social
                 </TableHead>
-                <TableHead className="font-medium text-slate-500 whitespace-nowrap">
+                <TableHead className="font-medium text-slate-500 whitespace-nowrap print:whitespace-normal print:w-[18%] print:px-1 print:py-2 print:text-[10px]">
                   Cliente
                 </TableHead>
-                <TableHead className="font-medium text-slate-500 whitespace-nowrap">
+                <TableHead className="font-medium text-slate-500 whitespace-nowrap print:whitespace-normal print:w-[12%] print:px-1 print:py-2 print:text-[10px]">
                   Colaborador
                 </TableHead>
-                <TableHead className="font-medium text-slate-500 whitespace-nowrap">
+                <TableHead className="font-medium text-slate-500 whitespace-nowrap print:whitespace-normal print:w-[12%] print:px-1 print:py-2 print:text-[10px]">
                   Solicitação
                 </TableHead>
-                <TableHead className="font-medium text-slate-500 whitespace-nowrap">
+                <TableHead className="font-medium text-slate-500 whitespace-nowrap print:whitespace-normal print:w-[10%] print:px-1 print:py-2 print:text-[10px]">
                   Status
                 </TableHead>
-                <TableHead className="font-medium text-slate-500 whitespace-nowrap">Pgto</TableHead>
-                <TableHead className="font-medium text-slate-500 min-w-[250px]">Obs</TableHead>
-                <TableHead className="font-medium text-slate-500 whitespace-nowrap">Data</TableHead>
+                <TableHead className="font-medium text-slate-500 whitespace-nowrap print:whitespace-normal print:w-[8%] print:px-1 print:py-2 print:text-[10px]">
+                  Pgto
+                </TableHead>
+                <TableHead className="font-medium text-slate-500 min-w-[250px] print:min-w-0 print:w-[10%] print:whitespace-normal print:px-1 print:py-2 print:text-[10px]">
+                  Obs
+                </TableHead>
+                <TableHead className="font-medium text-slate-500 whitespace-nowrap print:whitespace-normal print:w-[8%] print:px-1 print:py-2 print:text-[10px]">
+                  Data
+                </TableHead>
                 <TableHead className="w-[60px] print:hidden sticky right-0 bg-card"></TableHead>
               </TableRow>
             </TableHeader>
@@ -320,13 +331,13 @@ export function ClienteList({
                         'bg-destructive/5 hover:bg-destructive/10 dark:bg-destructive/10 dark:hover:bg-destructive/20',
                     )}
                   >
-                    <TableCell className="align-top">
-                      <div className="font-medium text-slate-800 dark:text-slate-200 flex items-center gap-2">
-                        {client.razao_social}
+                    <TableCell className="align-top print:px-1 print:py-2 print:break-words">
+                      <div className="font-medium text-slate-800 dark:text-slate-200 flex items-center gap-2 print:text-[10px] print:leading-tight">
+                        <span className="print:block">{client.razao_social}</span>
                         {showCritical && (
                           <Badge
                             variant="destructive"
-                            className="h-5 px-1.5 text-[10px] flex gap-1 items-center font-medium"
+                            className="h-5 px-1.5 text-[10px] flex gap-1 items-center font-medium print:hidden"
                           >
                             <AlertTriangle className="w-3 h-3" /> Crítica
                           </Badge>
@@ -334,13 +345,13 @@ export function ClienteList({
                         {showOld && (
                           <Badge
                             variant="outline"
-                            className="h-5 px-1.5 text-[10px] flex gap-1 items-center font-medium border-amber-500 text-amber-600 bg-amber-50 dark:bg-amber-950 dark:text-amber-500"
+                            className="h-5 px-1.5 text-[10px] flex gap-1 items-center font-medium border-amber-500 text-amber-600 bg-amber-50 dark:bg-amber-950 dark:text-amber-500 print:hidden"
                           >
                             <Clock className="w-3 h-3" /> Antiga
                           </Badge>
                         )}
                       </div>
-                      <div className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1.5 group/cnpj">
+                      <div className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1.5 group/cnpj print:text-[9px] print:leading-tight">
                         {client.cnpj}
                         <button
                           onClick={(e) => handleCopyCnpj(client.cnpj, e)}
@@ -354,48 +365,48 @@ export function ClienteList({
                           )}
                         </button>
                       </div>
-                      <div className="mt-1.5">
+                      <div className="mt-1.5 print:mt-1">
                         <ConfigBadge
                           name={client.expand?.categoria?.name}
                           color={client.expand?.categoria?.color}
                         />
                       </div>
                     </TableCell>
-                    <TableCell className="align-top font-medium text-sm">
+                    <TableCell className="align-top font-medium text-sm print:px-1 print:py-2 print:text-[10px] print:break-words print:leading-tight">
                       {client.nome_cliente}
                     </TableCell>
-                    <TableCell className="align-top">
+                    <TableCell className="align-top print:px-1 print:py-2 print:break-words">
                       <ConfigBadge
                         name={client.expand?.colaborador?.name}
                         color={client.expand?.colaborador?.color}
                       />
                     </TableCell>
-                    <TableCell className="align-top">
+                    <TableCell className="align-top print:px-1 print:py-2 print:break-words">
                       <ConfigBadge
                         name={client.expand?.solicitacao?.name}
                         color={client.expand?.solicitacao?.color}
                       />
                     </TableCell>
-                    <TableCell className="align-top">
+                    <TableCell className="align-top print:px-1 print:py-2 print:break-words">
                       <ConfigBadge
                         name={client.expand?.status?.name}
                         color={client.expand?.status?.color}
                       />
                     </TableCell>
-                    <TableCell className="align-top">
+                    <TableCell className="align-top print:px-1 print:py-2 print:break-words">
                       <ConfigBadge
                         name={client.expand?.pgto?.name}
                         color={client.expand?.pgto?.color}
                       />
                     </TableCell>
-                    <TableCell className="align-top max-w-[300px]">
+                    <TableCell className="align-top max-w-[300px] print:max-w-none print:px-1 print:py-2 print:break-words">
                       <ObservationBlock
                         client={client}
                         isAdmin={isAdmin}
                         onMarkAsRead={handleMarkAsRead}
                       />
                     </TableCell>
-                    <TableCell className="align-top text-sm text-primary font-medium">
+                    <TableCell className="align-top text-sm text-primary font-medium print:text-[10px] print:px-1 print:py-2 print:break-words text-slate-800 dark:text-slate-200">
                       {client.created ? format(new Date(client.created), 'dd/MM/yyyy') : '-'}
                     </TableCell>
                     <TableCell
@@ -518,9 +529,19 @@ export function ClienteList({
                   </h4>
                   <p className="font-medium text-base mt-1">{reportClient.nome_cliente}</p>
                 </div>
+                <div>
+                  <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">
+                    Data de Cadastro
+                  </h4>
+                  <p className="font-medium text-base mt-1">
+                    {reportClient.created
+                      ? format(new Date(reportClient.created), 'dd/MM/yyyy')
+                      : '-'}
+                  </p>
+                </div>
               </div>
             </div>
-          )}
+          )}{' '}
           <DialogFooter className="print:hidden mt-6">
             <Button variant="outline" onClick={() => setReportClient(null)}>
               Fechar
