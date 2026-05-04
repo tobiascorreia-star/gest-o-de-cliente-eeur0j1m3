@@ -45,10 +45,14 @@ export interface HistoryLog {
 
 export interface AuditLog {
   id: string
-  userName: string
+  user?: string
   action: string
-  target: string
-  timestamp: string
+  details?: string
+  created: string
+  updated: string
+  expand?: {
+    user?: User
+  }
 }
 
 export interface User {

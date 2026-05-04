@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-04T13:57:29.294Z",
+  "generatedAt": "2026-05-04T14:24:15.323Z",
   "collections": [
     {
       "name": "users",
@@ -137,8 +137,8 @@
       "name": "audit_logs",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != '' && @request.auth.role = 'admin'",
-        "view": "@request.auth.id != '' && @request.auth.role = 'admin'",
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
         "create": "@request.auth.id != ''",
         "update": null,
         "delete": "@request.auth.id != '' && @request.auth.role = 'admin'"
