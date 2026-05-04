@@ -27,6 +27,7 @@ export function DashboardCharts() {
         const count = clients.filter((c) => c.categoria === cat.id).length
         return { category: cat.name, total: count, fill: cat.color || 'hsl(var(--primary))' }
       })
+      .filter((item) => item.total > 0)
     return data.length > 0 ? data : []
   }, [clients, categories])
 
