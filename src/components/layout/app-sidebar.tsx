@@ -27,6 +27,7 @@ import {
 import { useIsMobile } from '@/hooks/use-mobile'
 import { useSidebar } from '@/components/ui/sidebar'
 import { useAuth } from '@/hooks/use-auth'
+import { APP_VERSION } from '@/constants/version'
 
 const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
@@ -115,8 +116,8 @@ export function AppSidebar() {
           </SidebarMenuItem>
         </SidebarMenu>
         <div className="mt-2 text-center group-data-[collapsible=icon]:hidden">
-          <span className="text-[10px] text-sidebar-foreground/40 font-mono tracking-widest">
-            v0.0.60 (Inspetor)
+          <span className="text-xs text-muted-foreground font-mono tracking-widest">
+            v{APP_VERSION} (Inspetor)
           </span>
         </div>
       </SidebarFooter>
