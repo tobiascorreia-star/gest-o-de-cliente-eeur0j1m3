@@ -158,11 +158,14 @@ export function ProfileDialog({
         formData.append('avatar', '')
       }
 
-      await pb.collection('users').update(user.id, formData)
+      const updatedRecord = await pb.collection('users').update(user.id, formData)
 
-      // Force refresh user in auth store
-      const updatedUser = await pb.collection('users').getOne(user.id)
-      pb.authStore.save(pb.authStore.token, updatedUser)
+      // Se a senha foi alterada, o token atual é invalidado pelo PocketBase. Precisamos refazer o login silenciosamente.
+      if (pass) {
+        await pb.collection('users').authWithPassword(user.email, pass)
+      } else {
+        pb.authStore.save(pb.authStore.token, updatedRecord)
+      }
 
       toast({ title: 'Sucesso', description: 'Perfil atualizado com sucesso!' })
       onOpenChange(false)
@@ -203,7 +206,7 @@ export function ProfileDialog({
           <div className="flex flex-col items-center gap-3">
             <Avatar className="h-20 w-20 border shadow-sm">
               {avatarPreview ? (
-                <AvatarImage src={avatarPreview} />
+                <AvatarImage src={avatarPreview} className="object-cover aspect-square" />
               ) : (
                 <AvatarFallback>
                   {(name || user?.email || '?').charAt(0).toUpperCase()}
