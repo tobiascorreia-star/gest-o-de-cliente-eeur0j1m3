@@ -84,7 +84,7 @@ export default function Clientes() {
     try {
       const configs = await getConfigurations()
       const baixaStatus = configs.find(
-        (c: any) => c.type === 'Status' && c.name.toUpperCase() === 'BAIXA',
+        (c: any) => c.type?.toUpperCase() === 'STATUS' && c.name?.toUpperCase() === 'BAIXA',
       )
       if (!baixaStatus) throw new Error('Status BAIXA não encontrado nas configurações.')
 

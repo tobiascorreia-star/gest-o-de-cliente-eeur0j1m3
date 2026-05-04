@@ -117,7 +117,7 @@ export function AppSidebar() {
         </SidebarMenu>
         <div className="mt-2 text-center group-data-[collapsible=icon]:hidden">
           <span className="text-xs text-muted-foreground font-mono tracking-widest">
-            v{APP_VERSION} (Inspetor)
+            {APP_VERSION} (Inspetor)
           </span>
         </div>
       </SidebarFooter>
