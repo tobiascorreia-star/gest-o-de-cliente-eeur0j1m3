@@ -121,7 +121,7 @@ export function AlertSettingsForm() {
             className="bg-green-500 hover:bg-green-600 text-white gap-2 font-semibold"
           >
             <span className="text-lg">💾</span>
-            Salvar Configurações
+            Salvar Alterações
           </Button>
         </div>
       </CardContent>
