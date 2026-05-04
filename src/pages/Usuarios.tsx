@@ -215,6 +215,7 @@ export default function Usuarios() {
       const userData: any = {
         name: name.trim(),
         email: email.trim(),
+        emailVisibility: true,
         role,
         phone,
         active,
@@ -255,6 +256,7 @@ export default function Usuarios() {
           const formData = new FormData()
           formData.append('name', userData.name || '')
           formData.append('email', userData.email)
+          formData.append('emailVisibility', 'true')
           formData.append('role', userData.role)
           formData.append('phone', userData.phone || '')
           formData.append('active', String(userData.active))
