@@ -35,6 +35,7 @@ import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 
 const HEX_COLORS = [
+  // Standard
   { hex: '#ef4444', label: 'Vermelho' },
   { hex: '#f97316', label: 'Laranja' },
   { hex: '#eab308', label: 'Amarelo' },
@@ -45,7 +46,29 @@ const HEX_COLORS = [
   { hex: '#ec4899', label: 'Rosa' },
   { hex: '#64748b', label: 'Cinza' },
   { hex: '#000000', label: 'Preto' },
+  // Light
+  { hex: '#fca5a5', label: 'Salmão' },
+  { hex: '#fdba74', label: 'Pêssego' },
+  { hex: '#fde047', label: 'Creme' },
+  { hex: '#86efac', label: 'Menta' },
+  { hex: '#67e8f9', label: 'Céu' },
+  { hex: '#93c5fd', label: 'Azul Claro' },
+  { hex: '#d8b4fe', label: 'Lavanda' },
+  { hex: '#f9a8d4', label: 'Rosa Claro' },
+  { hex: '#cbd5e1', label: 'Prata' },
+  { hex: '#f8fafc', label: 'Gelo' },
 ]
+
+const getContrastColor = (hex: string) => {
+  if (!hex) return '#ffffff'
+  const h = hex.replace('#', '')
+  if (h.length !== 6) return '#ffffff'
+  const r = parseInt(h.substring(0, 2), 16)
+  const g = parseInt(h.substring(2, 4), 16)
+  const b = parseInt(h.substring(4, 6), 16)
+  const yiq = (r * 299 + g * 587 + b * 114) / 1000
+  return yiq >= 128 ? '#0f172a' : '#ffffff'
+}
 
 interface ConfigDataTableProps {
   title: string
@@ -273,11 +296,16 @@ export function ConfigDataTable({
                     <TableCell className="font-medium">
                       <span
                         className={cn(
-                          'inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold shadow-sm',
+                          'inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold shadow-sm border border-transparent',
                           !item.color && 'bg-muted text-foreground',
+                          item.color &&
+                            getContrastColor(item.color) === '#0f172a' &&
+                            'border-slate-200 dark:border-slate-800',
                         )}
                         style={
-                          item.color ? { backgroundColor: item.color, color: '#fff' } : undefined
+                          item.color
+                            ? { backgroundColor: item.color, color: getContrastColor(item.color) }
+                            : undefined
                         }
                       >
                         {item.name || 'Sem nome'}
@@ -367,27 +395,33 @@ export function ConfigDataTable({
             </div>
             <div className="grid gap-2">
               <Label>Cor de Destaque</Label>
-              <div className="flex flex-wrap gap-3 mt-1">
-                {HEX_COLORS.map((c) => (
-                  <button
-                    key={c.hex}
-                    type="button"
-                    onClick={() =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        color: prev.color === c.hex ? '' : c.hex,
-                      }))
-                    }
-                    className={cn(
-                      'w-8 h-8 rounded-full border-2 transition-all hover:scale-110',
-                      formData.color === c.hex
-                        ? 'border-primary scale-110 ring-2 ring-primary/20 ring-offset-1'
-                        : 'border-transparent shadow-sm',
-                    )}
-                    style={{ backgroundColor: c.hex }}
-                    title={c.label}
-                  />
-                ))}
+              <div className="grid grid-cols-10 gap-1.5 sm:gap-2 mt-1 w-fit">
+                {HEX_COLORS.map((c) => {
+                  const isLight = getContrastColor(c.hex) === '#0f172a'
+                  return (
+                    <button
+                      key={c.hex}
+                      type="button"
+                      onClick={() =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          color: prev.color === c.hex ? '' : c.hex,
+                        }))
+                      }
+                      className={cn(
+                        'w-6 h-6 sm:w-8 sm:h-8 rounded-full border-2 transition-all hover:scale-110',
+                        formData.color === c.hex
+                          ? 'border-primary scale-110 ring-2 ring-primary/20 ring-offset-1 shadow-md'
+                          : 'border-transparent shadow-sm',
+                        isLight &&
+                          formData.color !== c.hex &&
+                          'border-slate-200 dark:border-slate-700',
+                      )}
+                      style={{ backgroundColor: c.hex }}
+                      title={c.label}
+                    />
+                  )
+                })}
               </div>
             </div>
             <div className="grid gap-2">
