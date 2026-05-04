@@ -126,8 +126,7 @@ export default function Usuarios() {
       setOldPassword('')
       setPassword('')
       setPasswordConfirm('')
-      setRole((u.role as any) || 'operator')
-      setAvatarPreview(u.avatarUrl || (u.avatar ? pb.files.getURL(u, u.avatar) : null))
+      setRole((u.role || 'operator').toLowerCase() as 'admin' | 'operator')      setAvatarPreview(u.avatarUrl || (u.avatar ? pb.files.getURL(u, u.avatar) : null))
       setAvatarFile(null)
       setRemoveAvatar(false)
     } else {

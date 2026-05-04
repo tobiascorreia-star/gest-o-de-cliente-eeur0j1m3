@@ -81,7 +81,8 @@ const ObservationBlock = ({
           </div>
           <Tooltip>
             <TooltipTrigger asChild>
-              <div className="text-xs text-foreground truncate cursor-help text-left font-medium opacity-90 hover:opacity-100 transition-opacity w-full block print:whitespace-normal print:break-words print:text-[9px] print:leading-tight">
+              <div className="text-xs text-foreground truncate cursor-help text-left font-medium opacity-90 hover:opacity-100 transition-opacity w-full block print:whitespace-normal print:break-words print:text-[8px] print:leading-tight">
+                {' '}
                 {client.observacoes}
               </div>
             </TooltipTrigger>
@@ -113,7 +114,8 @@ const ObservationBlock = ({
           </div>
           <Tooltip>
             <TooltipTrigger asChild>
-              <div className="text-xs text-foreground truncate cursor-help text-left font-medium opacity-80 hover:opacity-100 transition-opacity w-full block print:whitespace-normal print:break-words print:text-[9px] print:leading-tight">
+              <div className="text-xs text-foreground truncate cursor-help text-left font-medium opacity-80 hover:opacity-100 transition-opacity w-full block print:whitespace-normal print:break-words print:text-[8px] print:leading-tight">
+                {' '}
                 {client.observacoes}
               </div>
             </TooltipTrigger>
@@ -155,7 +157,8 @@ const ConfigBadge = ({ name, color }: { name?: string; color?: string }) => {
         className="w-2.5 h-2.5 rounded-full flex-shrink-0 print:w-1.5 print:h-1.5"
         style={{ backgroundColor: displayColor }}
       />
-      <span className="text-sm truncate font-medium text-muted-foreground print:text-[9px] print:leading-tight print:whitespace-normal print:break-words">
+      <span className="text-sm truncate font-medium text-muted-foreground print:text-[8px] print:leading-tight print:whitespace-normal print:break-words">
+        {' '}
         {displayName}
       </span>
     </div>
@@ -272,28 +275,28 @@ export function ClienteList({
           <Table className="min-w-max w-full print:min-w-0 print:w-full print:table-fixed print:text-[10px]">
             <TableHeader>
               <TableRow className="bg-slate-50/50 dark:bg-slate-800/50 hover:bg-slate-50/50 border-b-slate-100 dark:border-b-slate-800 print:bg-transparent print:border-b-black">
-                <TableHead className="font-medium text-slate-500 whitespace-nowrap min-w-[200px] print:min-w-0 print:w-[22%] print:whitespace-normal print:px-1 print:py-2 print:text-[10px]">
+                <TableHead className="font-medium text-slate-500 whitespace-nowrap min-w-[200px] print:min-w-0 print:w-[16%] print:whitespace-normal print:px-0.5 print:py-1 print:text-[8px]">
                   CNPJ / Razão Social
                 </TableHead>
-                <TableHead className="font-medium text-slate-500 whitespace-nowrap print:whitespace-normal print:w-[18%] print:px-1 print:py-2 print:text-[10px]">
+                <TableHead className="font-medium text-slate-500 whitespace-nowrap print:whitespace-normal print:w-[16%] print:px-0.5 print:py-1 print:text-[8px]">
                   Cliente
                 </TableHead>
-                <TableHead className="font-medium text-slate-500 whitespace-nowrap print:whitespace-normal print:w-[12%] print:px-1 print:py-2 print:text-[10px]">
+                <TableHead className="font-medium text-slate-500 whitespace-nowrap print:whitespace-normal print:w-[12%] print:px-0.5 print:py-1 print:text-[8px]">
                   Colaborador
                 </TableHead>
-                <TableHead className="font-medium text-slate-500 whitespace-nowrap print:whitespace-normal print:w-[12%] print:px-1 print:py-2 print:text-[10px]">
+                <TableHead className="font-medium text-slate-500 whitespace-nowrap print:whitespace-normal print:w-[12%] print:px-0.5 print:py-1 print:text-[8px]">
                   Solicitação
                 </TableHead>
-                <TableHead className="font-medium text-slate-500 whitespace-nowrap print:whitespace-normal print:w-[10%] print:px-1 print:py-2 print:text-[10px]">
+                <TableHead className="font-medium text-slate-500 whitespace-nowrap print:whitespace-normal print:w-[10%] print:px-0.5 print:py-1 print:text-[8px]">
                   Status
                 </TableHead>
-                <TableHead className="font-medium text-slate-500 whitespace-nowrap print:whitespace-normal print:w-[8%] print:px-1 print:py-2 print:text-[10px]">
+                <TableHead className="font-medium text-slate-500 whitespace-nowrap print:whitespace-normal print:w-[8%] print:px-0.5 print:py-1 print:text-[8px]">
                   Pgto
                 </TableHead>
-                <TableHead className="font-medium text-slate-500 min-w-[250px] print:min-w-0 print:w-[10%] print:whitespace-normal print:px-1 print:py-2 print:text-[10px]">
+                <TableHead className="font-medium text-slate-500 min-w-[250px] print:min-w-0 print:w-[18%] print:whitespace-normal print:px-0.5 print:py-1 print:text-[8px]">
                   Obs
                 </TableHead>
-                <TableHead className="font-medium text-slate-500 whitespace-nowrap print:whitespace-normal print:w-[8%] print:px-1 print:py-2 print:text-[10px]">
+                <TableHead className="font-medium text-slate-500 whitespace-nowrap print:whitespace-normal print:w-[8%] print:px-0.5 print:py-1 print:text-[8px]">
                   Data
                 </TableHead>
                 <TableHead className="w-[60px] print:hidden sticky right-0 bg-card"></TableHead>
@@ -331,8 +334,8 @@ export function ClienteList({
                         'bg-destructive/5 hover:bg-destructive/10 dark:bg-destructive/10 dark:hover:bg-destructive/20',
                     )}
                   >
-                    <TableCell className="align-top print:px-1 print:py-2 print:break-words">
-                      <div className="font-medium text-slate-800 dark:text-slate-200 flex items-center gap-2 print:text-[10px] print:leading-tight">
+                    <TableCell className="align-top print:px-0.5 print:py-1 print:break-words">
+                      <div className="font-medium text-slate-800 dark:text-slate-200 flex items-center gap-2 print:text-[8px] print:leading-tight">
                         <span className="print:block">{client.razao_social}</span>
                         {showCritical && (
                           <Badge
@@ -351,7 +354,7 @@ export function ClienteList({
                           </Badge>
                         )}
                       </div>
-                      <div className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1.5 group/cnpj print:text-[9px] print:leading-tight">
+                      <div className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1.5 group/cnpj print:text-[8px] print:leading-tight">
                         {client.cnpj}
                         <button
                           onClick={(e) => handleCopyCnpj(client.cnpj, e)}
@@ -372,41 +375,41 @@ export function ClienteList({
                         />
                       </div>
                     </TableCell>
-                    <TableCell className="align-top font-medium text-sm print:px-1 print:py-2 print:text-[10px] print:break-words print:leading-tight">
+                    <TableCell className="align-top font-medium text-sm print:px-0.5 print:py-1 print:text-[8px] print:break-words print:leading-tight">
                       {client.nome_cliente}
                     </TableCell>
-                    <TableCell className="align-top print:px-1 print:py-2 print:break-words">
+                    <TableCell className="align-top print:px-0.5 print:py-1 print:break-words">
                       <ConfigBadge
                         name={client.expand?.colaborador?.name}
                         color={client.expand?.colaborador?.color}
                       />
                     </TableCell>
-                    <TableCell className="align-top print:px-1 print:py-2 print:break-words">
+                    <TableCell className="align-top print:px-0.5 print:py-1 print:break-words">
                       <ConfigBadge
                         name={client.expand?.solicitacao?.name}
                         color={client.expand?.solicitacao?.color}
                       />
                     </TableCell>
-                    <TableCell className="align-top print:px-1 print:py-2 print:break-words">
+                    <TableCell className="align-top print:px-0.5 print:py-1 print:break-words">
                       <ConfigBadge
                         name={client.expand?.status?.name}
                         color={client.expand?.status?.color}
                       />
                     </TableCell>
-                    <TableCell className="align-top print:px-1 print:py-2 print:break-words">
+                    <TableCell className="align-top print:px-0.5 print:py-1 print:break-words">
                       <ConfigBadge
                         name={client.expand?.pgto?.name}
                         color={client.expand?.pgto?.color}
                       />
                     </TableCell>
-                    <TableCell className="align-top max-w-[300px] print:max-w-none print:px-1 print:py-2 print:break-words">
+                    <TableCell className="align-top max-w-[300px] print:max-w-none print:px-0.5 print:py-1 print:break-words">
                       <ObservationBlock
                         client={client}
                         isAdmin={isAdmin}
                         onMarkAsRead={handleMarkAsRead}
                       />
                     </TableCell>
-                    <TableCell className="align-top text-sm text-primary font-medium print:text-[10px] print:px-1 print:py-2 print:break-words text-slate-800 dark:text-slate-200">
+                    <TableCell className="align-top text-sm text-primary font-medium print:text-[8px] print:px-0.5 print:py-1 print:break-words text-slate-800 dark:text-slate-200">
                       {client.created ? format(new Date(client.created), 'dd/MM/yyyy') : '-'}
                     </TableCell>
                     <TableCell
@@ -537,6 +540,30 @@ export function ClienteList({
                     {reportClient.created
                       ? format(new Date(reportClient.created), 'dd/MM/yyyy')
                       : '-'}
+                  </p>
+                </div>
+                <div>
+                  <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">
+                    Status
+                  </h4>
+                  <p className="font-medium text-base mt-1">
+                    {reportClient.expand?.status?.name || '-'}
+                  </p>
+                </div>
+                <div>
+                  <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">
+                    Colaborador
+                  </h4>
+                  <p className="font-medium text-base mt-1">
+                    {reportClient.expand?.colaborador?.name || '-'}
+                  </p>
+                </div>
+                <div className="col-span-2">
+                  <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">
+                    Observações
+                  </h4>
+                  <p className="font-medium text-base mt-1 whitespace-pre-wrap text-sm">
+                    {reportClient.observacoes || 'Nenhuma observação registrada.'}
                   </p>
                 </div>
               </div>
