@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Table,
   TableBody,
@@ -22,41 +22,48 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
-
-const MOCK_AUDIT_LOGS = [
-  {
-    id: '1',
-    created: new Date().toISOString(),
-    action: 'Login no sistema',
-    details: 'Autenticação e Sessão',
-    expand: { user: { name: 'Administrador' } },
-  },
-  {
-    id: '2',
-    created: new Date().toISOString(),
-    action: 'Atualização de cliente',
-    details: 'Cliente ID: 12345',
-    expand: { user: { name: 'Administrador' } },
-  },
-  {
-    id: '3',
-    created: new Date().toISOString(),
-    action: 'Backup automático',
-    details: 'Database rotina semanal',
-    expand: null,
-  },
-]
+import { getAuditLogs } from '@/services/audit'
+import { useRealtime } from '@/hooks/use-realtime'
+import pb from '@/lib/pocketbase/client'
+import { AuditLog } from '@/types'
 
 export default function Auditoria() {
-  const [logs, setLogs] = useState<any[]>(MOCK_AUDIT_LOGS)
+  const [logs, setLogs] = useState<AuditLog[]>([])
   const { toast } = useToast()
 
-  const handleClearAudit = () => {
-    setLogs([])
-    toast({
-      title: 'Auditoria limpa',
-      description: 'Todos os registros foram removidos com sucesso.',
-    })
+  const loadLogs = async () => {
+    try {
+      const data = await getAuditLogs()
+      setLogs(data)
+    } catch (error) {
+      console.error('Failed to load audit logs', error)
+    }
+  }
+
+  useEffect(() => {
+    loadLogs()
+  }, [])
+
+  useRealtime('audit_logs', () => {
+    loadLogs()
+  })
+
+  const handleClearAudit = async () => {
+    try {
+      // Exclui os registros um a um pois o PocketBase SDK não suporta deleção em massa nativamente no frontend
+      await Promise.all(logs.map((log) => pb.collection('audit_logs').delete(log.id)))
+      toast({
+        title: 'Auditoria limpa',
+        description: 'Todos os registros foram removidos com sucesso.',
+      })
+      loadLogs()
+    } catch (error) {
+      toast({
+        title: 'Erro ao limpar auditoria',
+        description: 'Ocorreu um erro ao tentar remover os registros.',
+        variant: 'destructive',
+      })
+    }
   }
 
   return (

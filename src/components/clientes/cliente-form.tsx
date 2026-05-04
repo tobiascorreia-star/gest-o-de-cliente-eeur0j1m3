@@ -37,6 +37,7 @@ type FormData = z.infer<typeof formSchema>
 interface ClienteFormProps {
   initialData?: Client | null
   onSuccess: () => void
+  onCancel?: () => void
 }
 
 const applyCnpjMask = (value: string) => {
@@ -163,14 +164,9 @@ export function ClienteForm({ initialData, onSuccess }: ClienteFormProps) {
   }
 
   const onSubmit = async (data: FormData) => {
-    if (isAdmin && !data.pgto) {
-      setError('pgto', { type: 'manual', message: 'Pagamento é obrigatório' })
-      return
-    }
-
     const clientData = {
       ...data,
-      pgto: isAdmin ? data.pgto || '' : initialData?.pgto || '',
+      pgto: data.pgto || '',
       ...(initialData ? {} : { observacao_lida: false, data_leitura_observacao: '' }),
     }
 
@@ -337,7 +333,7 @@ export function ClienteForm({ initialData, onSuccess }: ClienteFormProps) {
 
         {isAdmin && (
           <div className="space-y-2">
-            <Label>Pgto *</Label>
+            <Label>Pgto</Label>
             <Select
               onValueChange={(v) => setValue('pgto', v, { shouldValidate: true })}
               defaultValue={initialData?.pgto}
@@ -369,6 +365,9 @@ export function ClienteForm({ initialData, onSuccess }: ClienteFormProps) {
       </div>
 
       <div className="flex justify-end gap-2 pt-4">
+        <Button type="button" variant="outline" onClick={() => onCancel?.()}>
+          Cancelar
+        </Button>
         <Button type="submit">{initialData ? 'Salvar Alterações' : 'Cadastrar Cliente'}</Button>
       </div>
     </form>
