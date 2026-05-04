@@ -50,7 +50,7 @@ const applyCnpjMask = (value: string) => {
     .substring(0, 18)
 }
 
-export function ClienteForm({ initialData, onSuccess }: ClienteFormProps) {
+export function ClienteForm({ initialData, onSuccess, onCancel }: ClienteFormProps) {
   const { user } = useAuth()
   const [isFetchingCnpj, setIsFetchingCnpj] = useState(false)
   const [configs, setConfigs] = useState<any[]>([])
