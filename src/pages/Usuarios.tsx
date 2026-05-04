@@ -130,6 +130,24 @@ export default function Usuarios() {
       setAvatarPreview(u.avatarUrl || (u.avatar ? pb.files.getURL(u, u.avatar) : null))
       setAvatarFile(null)
       setRemoveAvatar(false)
+
+      try {
+        const freshUser = await pb.collection('users').getOne(u.id)
+        if (freshUser) {
+          setEditingUser(freshUser)
+          setName(freshUser.name || u.name || '')
+          setEmail(freshUser.email || u.email || '')
+          setPhone(formatPhone(freshUser.phone || u.phone || ''))
+          setActive(freshUser.active !== false)
+          setRole((freshUser.role || u.role || 'operator').toLowerCase() as 'admin' | 'operator')
+          setAvatarPreview(
+            freshUser.avatarUrl ||
+              (freshUser.avatar ? pb.files.getURL(freshUser, freshUser.avatar) : null),
+          )
+        }
+      } catch (error) {
+        console.error('Error fetching fresh user data:', error)
+      }
     } else {
       setEditingUser(null)
       setName('')
