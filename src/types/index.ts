@@ -14,6 +14,7 @@ export interface Client {
   status?: string
   categoria?: string
   pgto?: string
+  previous_status?: string | null
   observacoes?: string
   observacao_lida?: boolean
   data_leitura_observacao?: string
@@ -23,6 +24,7 @@ export interface Client {
     colaborador?: { id: string; name: string; color?: string }
     solicitacao?: { id: string; name: string; color?: string }
     status?: { id: string; name: string; color?: string }
+    previous_status?: { id: string; name: string; color?: string }
     categoria?: { id: string; name: string; color?: string }
     pgto?: { id: string; name: string; color?: string }
   }

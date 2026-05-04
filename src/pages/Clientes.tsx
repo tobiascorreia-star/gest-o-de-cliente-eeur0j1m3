@@ -9,7 +9,10 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Plus, Search } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
+import { useAuth } from '@/hooks/use-auth'
 import pb from '@/lib/pocketbase/client'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { startOfMonth } from 'date-fns'
 
 export default function Clientes() {
   const [clients, setClients] = useState<Client[]>([])
@@ -18,7 +21,9 @@ export default function Clientes() {
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [editingClient, setEditingClient] = useState<Client | null>(null)
   const [alertSettings, setAlertSettings] = useState<any>(null)
+  const [activeTab, setActiveTab] = useState('ativos')
   const { toast } = useToast()
+  const { user } = useAuth()
 
   const loadData = async () => {
     try {
@@ -57,12 +62,31 @@ export default function Clientes() {
     if (dateFilter) {
       result = result.filter((c) => {
         if (!c.created) return false
-        // Filters using the explicit created field (YYYY-MM-DD string match prefix)
         return c.created.startsWith(dateFilter)
       })
     }
     return result
   }, [clients, search, dateFilter])
+
+  const thisMonthStart = startOfMonth(new Date())
+
+  const activeClients = useMemo(() => {
+    return filteredClients.filter((c) => {
+      const statusName = c.expand?.status?.name?.toUpperCase() || ''
+      return statusName !== 'BAIXA'
+    })
+  }, [filteredClients])
+
+  const completedClients = useMemo(() => {
+    return filteredClients
+      .filter((c) => {
+        const statusName = c.expand?.status?.name?.toUpperCase() || ''
+        if (statusName !== 'BAIXA') return false
+        const updatedDate = new Date(c.updated)
+        return updatedDate >= thisMonthStart
+      })
+      .sort((a, b) => new Date(b.updated).getTime() - new Date(a.updated).getTime())
+  }, [filteredClients, thisMonthStart])
 
   const handleEdit = (client: Client) => {
     setEditingClient(client)
@@ -82,18 +106,67 @@ export default function Clientes() {
 
   const handleBaixa = async (id: string) => {
     try {
+      const client = clients.find((c) => c.id === id)
+      if (!client) throw new Error('Cliente não encontrado.')
+
       const configs = await getConfigurations()
       const baixaStatus = configs.find(
         (c: any) => c.type?.toUpperCase() === 'STATUS' && c.name?.toUpperCase() === 'BAIXA',
       )
       if (!baixaStatus) throw new Error('Status BAIXA não encontrado nas configurações.')
 
-      await updateClient(id, { status: baixaStatus.id })
+      await updateClient(id, {
+        status: baixaStatus.id,
+        previous_status: client.status || null,
+      })
+
+      try {
+        await pb.collection('audit_logs').create({
+          action: 'Baixa',
+          user: user?.id,
+          details: `Cliente ${client.nome_cliente} marcado como BAIXA.`,
+        })
+      } catch (err) {
+        console.error('Falha ao criar log de auditoria para baixa', err)
+      }
+
       toast({ title: 'Sucesso', description: 'Baixa realizada.' })
     } catch (error: any) {
       toast({
         title: 'Erro',
         description: error.message || 'Falha ao realizar baixa.',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  const handleEstorno = async (id: string) => {
+    try {
+      const client = clients.find((c) => c.id === id)
+      if (!client) throw new Error('Cliente não encontrado.')
+
+      const previousStatus = client.previous_status || ''
+
+      await updateClient(id, {
+        status: previousStatus,
+        previous_status: null,
+      })
+
+      try {
+        await pb.collection('audit_logs').create({
+          action: 'Estorno',
+          user: user?.id,
+          details: `Baixa do cliente ${client.nome_cliente} estornada.`,
+        })
+      } catch (err) {
+        console.error('Falha ao criar log de auditoria para estorno', err)
+      }
+
+      toast({ title: 'Sucesso', description: 'Estorno realizado.' })
+    } catch (error: any) {
+      toast({
+        title: 'Erro',
+        description: error.message || 'Falha ao realizar estorno.',
         variant: 'destructive',
       })
     }
@@ -155,13 +228,36 @@ export default function Clientes() {
           />
         </div>
       ) : (
-        <ClienteList
-          clients={filteredClients}
-          alertSettings={alertSettings}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-          onBaixa={handleBaixa}
-        />
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-4">
+          <TabsList>
+            <TabsTrigger value="ativos">Clientes Ativos ({activeClients.length})</TabsTrigger>
+            <TabsTrigger value="concluidos">
+              Concluídos do Mês ({completedClients.length})
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="ativos" className="m-0">
+            <ClienteList
+              clients={activeClients}
+              alertSettings={alertSettings}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              onBaixa={handleBaixa}
+            />
+          </TabsContent>
+
+          <TabsContent value="concluidos" className="m-0">
+            <ClienteList
+              clients={completedClients}
+              alertSettings={alertSettings}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              onBaixa={handleBaixa}
+              onReverse={handleEstorno}
+              isRestrictedArea={true}
+            />
+          </TabsContent>
+        </Tabs>
       )}
     </div>
   )

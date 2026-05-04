@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-04T17:11:54.485Z",
+  "generatedAt": "2026-05-04T17:21:34.609Z",
   "collections": [
     {
       "name": "users",
@@ -275,6 +275,13 @@
           "type": "date",
           "required": false,
           "system": false
+        },
+        {
+          "name": "previous_status",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "configurations"
         }
       ],
       "indexes": []

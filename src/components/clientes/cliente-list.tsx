@@ -175,7 +175,6 @@ export function ClienteList({
   isRestrictedArea = false,
 }: ClienteListProps) {
   const { user } = useAuth()
-  const isOperator = user?.role?.toLowerCase() === 'operator'
   const isAdmin = user?.role?.toLowerCase() === 'admin'
   const [reportClient, setReportClient] = useState<Client | null>(null)
 
@@ -212,9 +211,9 @@ export function ClienteList({
   const renderActions = (client: Client) => {
     const showEdit = !isRestrictedArea
     const isBaixa = client.expand?.status?.name?.toUpperCase() === 'BAIXA'
-    const showBaixa = !isOperator && !isBaixa && onBaixa && !isRestrictedArea
-    const showEstorno = isBaixa && onReverse && !isOperator
-    const showDelete = !isOperator
+    const showBaixa = isAdmin && !isBaixa && onBaixa && !isRestrictedArea
+    const showEstorno = isAdmin && isBaixa && onReverse
+    const showDelete = isAdmin
 
     return (
       <DropdownMenu>
