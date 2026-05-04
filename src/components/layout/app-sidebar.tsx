@@ -9,9 +9,9 @@ import {
   Archive,
   FileBarChart,
   Settings,
-  Building2,
   LogOut,
 } from 'lucide-react'
+import logoUrl from '@/assets/generatedimage_1777858728629-f0591.png'
 import {
   Sidebar,
   SidebarContent,
@@ -59,8 +59,12 @@ export function AppSidebar() {
     >
       <SidebarHeader className="border-b border-slate-100 h-14 flex items-center justify-center px-4 bg-slate-50/50 dark:bg-slate-900/50 dark:border-slate-800">
         <div className="flex items-center gap-2 w-full overflow-hidden">
-          <div className="bg-primary/10 text-primary p-1.5 rounded-lg shrink-0">
-            <Building2 className="w-4 h-4" />
+          <div className="shrink-0 flex items-center justify-center">
+            <img
+              src={logoUrl}
+              alt="Logo"
+              className="w-7 h-7 object-contain rounded-lg shadow-sm border border-slate-200 dark:border-slate-700"
+            />
           </div>
           <span className="font-medium tracking-wide text-sm truncate group-data-[collapsible=icon]:hidden text-sidebar-foreground">
             Gestão Cliente
