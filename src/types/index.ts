@@ -18,6 +18,7 @@ export interface Client {
   observacoes?: string
   observacao_lida?: boolean
   data_leitura_observacao?: string
+  data_baixa?: string
   created: string
   updated: string
   expand?: {

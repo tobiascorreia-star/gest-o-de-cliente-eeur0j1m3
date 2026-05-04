@@ -82,10 +82,14 @@ export default function Clientes() {
       .filter((c) => {
         const statusName = c.expand?.status?.name?.toUpperCase() || ''
         if (statusName !== 'BAIXA') return false
-        const updatedDate = new Date(c.updated)
-        return updatedDate >= thisMonthStart
+        const baixaDate = c.data_baixa ? new Date(c.data_baixa) : new Date(c.updated)
+        return baixaDate >= thisMonthStart
       })
-      .sort((a, b) => new Date(b.updated).getTime() - new Date(a.updated).getTime())
+      .sort((a, b) => {
+        const dateA = a.data_baixa ? new Date(a.data_baixa) : new Date(a.updated)
+        const dateB = b.data_baixa ? new Date(b.data_baixa) : new Date(b.updated)
+        return dateB.getTime() - dateA.getTime()
+      })
   }, [filteredClients, thisMonthStart])
 
   const handleEdit = (client: Client) => {
@@ -118,6 +122,7 @@ export default function Clientes() {
       await updateClient(id, {
         status: baixaStatus.id,
         previous_status: client.status || null,
+        data_baixa: new Date().toISOString(),
       })
 
       try {
@@ -150,6 +155,7 @@ export default function Clientes() {
       await updateClient(id, {
         status: previousStatus,
         previous_status: null,
+        data_baixa: '',
       })
 
       try {

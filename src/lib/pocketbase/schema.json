@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-04T17:21:34.609Z",
+  "generatedAt": "2026-05-04T17:38:25.325Z",
   "collections": [
     {
       "name": "users",
@@ -282,6 +282,12 @@
           "required": false,
           "system": false,
           "collectionRef": "configurations"
+        },
+        {
+          "name": "data_baixa",
+          "type": "date",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": []

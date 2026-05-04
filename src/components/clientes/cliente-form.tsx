@@ -164,10 +164,19 @@ export function ClienteForm({ initialData, onSuccess, onCancel }: ClienteFormPro
   }
 
   const onSubmit = async (data: FormData) => {
+    const baixaStatus = statusList.find((s) => s.name.toUpperCase() === 'BAIXA')
+    const isBaixa = baixaStatus && data.status === baixaStatus.id
+
     const clientData = {
       ...data,
       pgto: data.pgto || '',
       ...(initialData ? {} : { observacao_lida: false, data_leitura_observacao: '' }),
+      ...(isBaixa && (!initialData || initialData.status !== baixaStatus.id)
+        ? { data_baixa: new Date().toISOString() }
+        : {}),
+      ...(!isBaixa && initialData && initialData.status === baixaStatus?.id
+        ? { data_baixa: '' }
+        : {}),
     }
 
     try {

@@ -56,10 +56,10 @@ const AppRoutes = () => {
           <Route path="/clientes" element={<Clientes />} />
           <Route path="/historico" element={<Historico />} />
           <Route path="/concluidos" element={<Concluidos />} />
-          <Route path="/arquivo" element={<Arquivo />} />
           <Route path="/relatorio" element={<Relatorio />} />
 
           <Route element={<AdminRoute />}>
+            <Route path="/arquivo" element={<Arquivo />} />
             <Route path="/auditoria" element={<Auditoria />} />
             <Route path="/usuarios" element={<Usuarios />} />
             <Route path="/configuracao" element={<Configuracao />} />

@@ -35,8 +35,7 @@ const navigation = [
   { name: 'Histórico', href: '/historico', icon: History },
   { name: 'Auditoria', href: '/auditoria', icon: ShieldAlert, adminOnly: true },
   { name: 'Usuários', href: '/usuarios', icon: UserCog, adminOnly: true },
-  { name: 'Concluídos do Mês', href: '/concluidos', icon: CheckSquare },
-  { name: 'Arquivo', href: '/arquivo', icon: Archive },
+  { name: 'Arquivo', href: '/arquivo', icon: Archive, adminOnly: true },
   { name: 'Relatório', href: '/relatorio', icon: FileBarChart },
   { name: 'Configuração', href: '/configuracao', icon: Settings, adminOnly: true },
 ]
