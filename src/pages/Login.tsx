@@ -12,7 +12,6 @@ import { ModeToggle } from '@/components/mode-toggle'
 import pb from '@/lib/pocketbase/client'
 
 export default function Login() {
-  const { requestPasswordReset } = useApp()
   const { signIn } = useAuth()
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
@@ -102,7 +101,6 @@ export default function Login() {
                     return
                   }
 
-                  requestPasswordReset(email)
                   pb.send('/backend/v1/password-reset-alert', {
                     method: 'POST',
                     body: JSON.stringify({ email }),
@@ -111,7 +109,8 @@ export default function Login() {
 
                   toast({
                     title: 'Recuperação',
-                    description: 'Um e-mail foi enviado com as instruções se a conta existir.',
+                    description:
+                      'Sua solicitação foi enviada ao administrador para redefinição de senha.',
                   })
                 }}
               >

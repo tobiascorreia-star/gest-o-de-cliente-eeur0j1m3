@@ -8,12 +8,9 @@ import { Clock, KeyRound, CheckCircle2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 export function AlertsWidget() {
-  const {
-    currentUser,
-    passwordResetRequests = [],
-    resolvePasswordReset = () => {},
-  } = useApp?.() || {}
-  const { clients, statuses, alertSettings } = useDashboard()
+  const { currentUser } = useApp?.() || {}
+  const { clients, statuses, alertSettings, passwordResetRequests, resolvePasswordReset } =
+    useDashboard()
 
   const baixaStatusId = statuses.find((s) => s.name.toLowerCase() === 'baixa')?.id
 
