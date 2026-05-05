@@ -3,6 +3,7 @@ import { KpiCards } from '@/components/dashboard/kpi-cards'
 import { DashboardCharts } from '@/components/dashboard/charts'
 import { AlertsWidget } from '@/components/dashboard/alerts-widget'
 import { useApp } from '@/contexts/app-context'
+import pb from '@/lib/pocketbase/client'
 import { useAuth } from '@/hooks/use-auth'
 import { useDashboard } from '@/hooks/use-dashboard'
 import {
@@ -28,17 +29,51 @@ const Index = () => {
   const pendingResets = passwordResetRequests.filter((req: any) => req.status === 'pending')
 
   useEffect(() => {
-    if (lastLoginTime && clients.length > 0) {
-      const hasSeenAlert = sessionStorage.getItem('hasSeenNewClientsAlert')
-      if (!hasSeenAlert) {
-        const hasNewClients = clients.some((c) => new Date(c.created) > new Date(lastLoginTime))
-        if (hasNewClients) {
-          setShowLoginAlert(true)
-          sessionStorage.setItem('hasSeenNewClientsAlert', 'true')
+    const initCheck = async () => {
+      if (currentUser && !currentUser.last_clients_check) {
+        try {
+          const now = new Date().toISOString()
+          const updatedUser = await pb.collection('users').update(currentUser.id, {
+            last_clients_check: now,
+          })
+          pb.authStore.save(pb.authStore.token, updatedUser)
+        } catch (e) {
+          console.error('Failed to initialize last_clients_check', e)
         }
       }
     }
-  }, [lastLoginTime, clients])
+    initCheck()
+  }, [currentUser])
+
+  useEffect(() => {
+    if (currentUser?.last_clients_check && clients.length > 0) {
+      const lastCheck = new Date(currentUser.last_clients_check)
+      const hasNewClients = clients.some((c) => new Date(c.created) > lastCheck)
+      if (hasNewClients) {
+        setShowLoginAlert(true)
+      } else {
+        setShowLoginAlert(false)
+      }
+    }
+  }, [currentUser?.last_clients_check, clients])
+
+  const handleCloseAlert = async (open: boolean) => {
+    if (!open) {
+      setShowLoginAlert(false)
+      if (currentUser?.id) {
+        try {
+          const now = new Date()
+          now.setSeconds(now.getSeconds() + 1)
+          const updatedUser = await pb.collection('users').update(currentUser.id, {
+            last_clients_check: now.toISOString(),
+          })
+          pb.authStore.save(pb.authStore.token, updatedUser)
+        } catch (e) {
+          console.error('Failed to update last check', e)
+        }
+      }
+    }
+  }
 
   const baixaStatusId = statuses.find((s) => s.name.toLowerCase() === 'baixa')?.id
   const pendingClients = clients.filter((c) => c.status !== baixaStatusId)
@@ -78,14 +113,14 @@ const Index = () => {
 
   return (
     <div className="space-y-2 animate-fade-in">
-      <Dialog open={showLoginAlert} onOpenChange={setShowLoginAlert}>
-        <DialogContent className="sm:max-w-md">
+      <Dialog open={showLoginAlert} onOpenChange={handleCloseAlert}>
+        <DialogContent className="sm:max-w-md bg-[#0b1121] border-[#1e3a8a] text-white [&>button]:text-slate-400 [&>button]:hover:text-white">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <BellRing className="w-5 h-5 text-primary" />
+            <DialogTitle className="flex items-center gap-2 text-white text-xl">
+              <BellRing className="w-5 h-5 text-blue-500" />
               Novos Clientes Cadastrados
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-slate-300 text-base mt-2">
               Você possui novos clientes cadastrados no sistema desde o seu último acesso. Verifique
               o módulo de clientes para mais detalhes.
             </DialogDescription>
