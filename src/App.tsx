@@ -20,6 +20,7 @@ import Configuracao from './pages/Configuracao'
 import NotFound from './pages/NotFound'
 import Login from './pages/Login'
 import Setup from './pages/Setup'
+import { UpdateNotification } from './components/update-notification'
 
 const ProtectedRoute = () => {
   const { user, loading } = useAuth()
@@ -82,6 +83,7 @@ const App = () => (
               <Toaster />
               <Sonner />
               <AppRoutes />
+              <UpdateNotification />
               <div className="fixed bottom-2 right-4 z-[9999] text-[11px] font-medium text-muted-foreground/50 pointer-events-none select-none">
                 {APP_VERSION} (Inspetor)
               </div>
