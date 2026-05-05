@@ -1,77 +1,38 @@
 import { useEffect, useState } from 'react'
-import { getAuditLogs, clearAuditLogs } from '@/services/audit'
-import { AuditLog } from '@/types'
 import { useRealtime } from '@/hooks/use-realtime'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { Card, CardContent } from '@/components/ui/card'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import pb from '@/lib/pocketbase/client'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Trash2 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog'
-import { useAuth } from '@/hooks/use-auth'
-import { useToast } from '@/hooks/use-toast'
+import { Client } from '@/types'
 
 export default function Historico() {
-  const [logs, setLogs] = useState<AuditLog[]>([])
+  const [clients, setClients] = useState<Client[]>([])
   const [loading, setLoading] = useState(true)
-  const [isClearing, setIsClearing] = useState(false)
-  const { user } = useAuth()
-  const { toast } = useToast()
 
-  const isAdmin = user?.role?.toLowerCase() === 'admin'
-
-  const fetchLogs = async () => {
+  const fetchHistory = async () => {
     try {
-      const data = await getAuditLogs()
-      setLogs(data)
+      const data = await pb.collection('clients').getFullList<Client>({
+        filter: "status.name ~ 'Baixa' || data_baixa != ''",
+        expand: 'colaborador,solicitacao,status,categoria,pgto',
+        sort: '-data_baixa,-updated',
+      })
+      setClients(data)
     } catch (error) {
-      console.error('Error fetching audit logs:', error)
+      console.error('Error fetching history clients:', error)
     } finally {
       setLoading(false)
     }
   }
 
   useEffect(() => {
-    fetchLogs()
+    fetchHistory()
   }, [])
 
-  useRealtime('audit_logs', () => {
-    fetchLogs()
+  useRealtime('clients', () => {
+    fetchHistory()
   })
-
-  const handleClearHistory = async () => {
-    try {
-      setIsClearing(true)
-      await clearAuditLogs()
-      toast({
-        title: 'Sucesso',
-        description: 'Histórico de interações limpo com sucesso.',
-      })
-      await fetchLogs()
-    } catch (error) {
-      console.error('Error clearing audit logs:', error)
-      toast({
-        title: 'Erro',
-        description: 'Ocorreu um erro ao limpar o histórico.',
-        variant: 'destructive',
-      })
-    } finally {
-      setIsClearing(false)
-    }
-  }
 
   if (loading) {
     return (
@@ -95,83 +56,54 @@ export default function Historico() {
     <div className="space-y-6 max-w-4xl mx-auto py-6 px-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Histórico de Interações</h2>
+          <h2 className="text-2xl font-bold tracking-tight">Histórico de Clientes</h2>
           <p className="text-muted-foreground text-sm mt-1">
-            Linha do tempo de todas as ações realizadas nos clientes.
+            Registro de clientes com status de baixa.
           </p>
         </div>
-
-        {isAdmin && logs.length > 0 && (
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button
-                variant="destructive"
-                className="w-full sm:w-auto gap-2"
-                disabled={isClearing}
-              >
-                <Trash2 className="w-4 h-4" />
-                Limpar Histórico
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Limpar Histórico</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Tem certeza que deseja limpar todo o histórico de interações? Esta ação não pode
-                  ser desfeita.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={handleClearHistory}
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                >
-                  {isClearing ? 'Limpando...' : 'Confirmar'}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        )}
       </div>
 
-      {logs.length === 0 ? (
+      {clients.length === 0 ? (
         <Card className="border-border/50 bg-muted/20 shadow-sm">
           <CardContent className="p-12 text-center text-muted-foreground">
-            Nenhuma interação registrada no momento.
+            Nenhum histórico de cliente registrado no momento.
           </CardContent>
         </Card>
       ) : (
         <div className="space-y-6 border-l-2 border-border/50 ml-3 pl-6 relative">
-          {logs.map((log) => (
-            <div key={log.id} className="relative group">
-              <span className="absolute -left-[41px] flex items-center justify-center w-8 h-8 rounded-full bg-background border-2 border-border group-hover:border-primary transition-colors ring-4 ring-background">
-                <Avatar className="w-6 h-6">
-                  <AvatarImage
-                    src={
-                      log.expand?.user?.avatar
-                        ? pb.files.getURL(log.expand.user, log.expand.user.avatar)
-                        : undefined
-                    }
-                  />
-                  <AvatarFallback className="text-[10px] font-medium">
-                    {log.expand?.user?.name?.substring(0, 2).toUpperCase() || 'S'}
-                  </AvatarFallback>
-                </Avatar>
-              </span>
+          {clients.map((client) => (
+            <div key={client.id} className="relative group">
+              <span className="absolute -left-[33px] flex items-center justify-center w-4 h-4 rounded-full bg-primary ring-4 ring-background" />
               <div className="flex flex-col gap-2 p-4 rounded-lg border bg-card shadow-sm hover:border-border/80 transition-colors">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-4">
-                  <h4 className="text-sm font-semibold text-foreground">{log.action}</h4>
+                  <h4 className="text-sm font-semibold text-foreground">{client.nome_cliente}</h4>
                   <span className="text-[11px] font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full w-fit">
-                    {format(new Date(log.created), 'dd/MM/yyyy HH:mm', { locale: ptBR })}
+                    {client.data_baixa
+                      ? format(new Date(client.data_baixa), 'dd/MM/yyyy HH:mm', { locale: ptBR })
+                      : format(new Date(client.updated), 'dd/MM/yyyy HH:mm', { locale: ptBR })}
                   </span>
                 </div>
-                {log.details && (
-                  <p className="text-sm text-muted-foreground/90 leading-relaxed">{log.details}</p>
-                )}
-                <div className="text-xs font-medium text-primary mt-1">
-                  Por: {log.expand?.user?.name || 'Sistema'}
+                <div className="text-sm text-muted-foreground/90 leading-relaxed grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+                  <div>
+                    <span className="font-semibold">CNPJ:</span> {client.cnpj}
+                  </div>
+                  <div>
+                    <span className="font-semibold">Razão Social:</span> {client.razao_social}
+                  </div>
+                  <div>
+                    <span className="font-semibold">Colaborador:</span>{' '}
+                    {client.expand?.colaborador?.name || '-'}
+                  </div>
+                  <div>
+                    <span className="font-semibold">Status:</span>{' '}
+                    {client.expand?.status?.name || 'Baixa'}
+                  </div>
                 </div>
+                {client.observacoes && (
+                  <div className="text-sm text-muted-foreground mt-2 pt-2 border-t border-border/50">
+                    <span className="font-semibold">Observações:</span> {client.observacoes}
+                  </div>
+                )}
               </div>
             </div>
           ))}

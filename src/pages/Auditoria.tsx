@@ -54,7 +54,7 @@ export default function Auditoria() {
       await Promise.all(logs.map((log) => pb.collection('audit_logs').delete(log.id)))
       toast({
         title: 'Auditoria limpa',
-        description: 'Todos os registros foram removidos com sucesso.',
+        description: 'Audit logs cleared successfully',
       })
       loadLogs()
     } catch (error) {
