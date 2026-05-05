@@ -201,6 +201,15 @@ export default function Usuarios() {
       return
     }
 
+    if (pass && pass.length < 8) {
+      toast({
+        title: 'Erro de validação',
+        description: 'A senha deve ter no mínimo 8 caracteres.',
+        variant: 'destructive',
+      })
+      return
+    }
+
     if (pass && pass !== confirm) {
       toast({
         title: 'Erro de validação',
@@ -659,10 +668,7 @@ export default function Usuarios() {
               <Button variant="outline" onClick={() => setIsOpen(false)} disabled={isSaving}>
                 Cancelar
               </Button>
-              <Button
-                onClick={handleSave}
-                disabled={isSaving || (password.length > 0 && password !== passwordConfirm)}
-              >
+              <Button onClick={handleSave} disabled={isSaving}>
                 {isSaving ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />

@@ -23,7 +23,7 @@ routerAdd(
       const passwordConfirm = body.passwordConfirm !== undefined ? String(body.passwordConfirm) : ''
       if (password !== passwordConfirm) {
         throw new BadRequestError('As senhas não coincidem.', {
-          passwordConfirm: new ValidationError('validation_mismatch', 'As senhas não coincidem.'),
+          passwordConfirm: 'As senhas não coincidem.',
         })
       }
       record.setPassword(password)
@@ -36,7 +36,12 @@ routerAdd(
       record.set('avatar', null)
     }
 
-    $app.save(record)
+    try {
+      $app.save(record)
+    } catch (err) {
+      throw new BadRequestError(err.message || 'Erro de validação ao salvar usuário.')
+    }
+
     return e.json(200, record)
   },
   $apis.requireAuth(),
