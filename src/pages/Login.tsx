@@ -110,7 +110,7 @@ export default function Login() {
                   toast({
                     title: 'Recuperação',
                     description:
-                      'Sua solicitação foi enviada ao administrador para redefinição de senha.',
+                      'Solicitação enviada à administração. Por favor, aguarde o contato para redefinição da sua senha.',
                   })
                 }}
               >

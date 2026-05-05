@@ -1,5 +1,9 @@
 import { useApp } from '@/contexts/app-context'
 import { useDashboard } from '@/hooks/use-dashboard'
+import { useEffect, useState } from 'react'
+import pb from '@/lib/pocketbase/client'
+import { AuditLog } from '@/types'
+import { useRealtime } from '@/hooks/use-realtime'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { differenceInDays, format } from 'date-fns'
@@ -9,8 +13,49 @@ import { Button } from '@/components/ui/button'
 
 export function AlertsWidget() {
   const { currentUser } = useApp?.() || {}
-  const { clients, statuses, alertSettings, passwordResetRequests, resolvePasswordReset } =
-    useDashboard()
+  const { clients, statuses, alertSettings } = useDashboard()
+  const [resetRequests, setResetRequests] = useState<AuditLog[]>([])
+
+  useEffect(() => {
+    if (currentUser?.role?.toLowerCase() === 'admin') {
+      pb.collection('audit_logs')
+        .getFullList<AuditLog>({
+          filter: "action = 'password_reset_request'",
+          sort: '-created',
+          expand: 'user',
+        })
+        .then(setResetRequests)
+        .catch(console.error)
+    }
+  }, [currentUser])
+
+  useRealtime(
+    'audit_logs',
+    (e) => {
+      if (e.action === 'create' && e.record.action === 'password_reset_request') {
+        setResetRequests((prev) => [e.record as unknown as AuditLog, ...prev])
+      } else if (e.action === 'delete') {
+        setResetRequests((prev) => prev.filter((r) => r.id !== e.record.id))
+      } else if (e.action === 'update') {
+        if (e.record.action === 'password_reset_request') {
+          setResetRequests((prev) =>
+            prev.map((r) => (r.id === e.record.id ? (e.record as unknown as AuditLog) : r)),
+          )
+        } else {
+          setResetRequests((prev) => prev.filter((r) => r.id !== e.record.id))
+        }
+      }
+    },
+    currentUser?.role?.toLowerCase() === 'admin',
+  )
+
+  const handleResolveReset = async (id: string) => {
+    try {
+      await pb.collection('audit_logs').update(id, { action: 'password_reset_resolved' })
+    } catch (e) {
+      console.error(e)
+    }
+  }
 
   const baixaStatusId = statuses.find((s) => s.name.toLowerCase() === 'baixa')?.id
 
@@ -28,7 +73,7 @@ export function AlertsWidget() {
     .sort((a, b) => b.days - a.days)
     .slice(0, 6)
 
-  const pendingResets = passwordResetRequests.filter((r: any) => r.status === 'pending')
+  const pendingResets = resetRequests
 
   return (
     <div className="space-y-4 mt-4">
@@ -42,28 +87,37 @@ export function AlertsWidget() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {pendingResets.map((req: any) => (
-                <div
-                  key={req.id}
-                  className="flex items-center justify-between bg-background p-3 rounded-lg border shadow-sm"
-                >
-                  <div>
-                    <p className="font-light text-sm">Operador: {req.email}</p>
-                    <p className="text-[11px] font-light text-muted-foreground mt-0.5">
-                      Solicitado em {format(new Date(req.timestamp), "dd/MM/yyyy 'às' HH:mm")}
-                    </p>
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => resolvePasswordReset(req.id)}
-                    className="gap-2 font-light text-xs"
+              {pendingResets.map((req) => {
+                const userEmail =
+                  req.expand?.user?.email ||
+                  req.details?.match(/E-mail: ([^\s|]+)/)?.[1] ||
+                  'Desconhecido'
+                const userName = req.expand?.user?.name
+                  ? `${req.expand.user.name} (${userEmail})`
+                  : userEmail
+                return (
+                  <div
+                    key={req.id}
+                    className="flex items-center justify-between bg-background p-3 rounded-lg border shadow-sm"
                   >
-                    <CheckCircle2 className="w-3.5 h-3.5" strokeWidth={1.25} />
-                    Resolvido
-                  </Button>
-                </div>
-              ))}
+                    <div>
+                      <p className="font-light text-sm">Operador: {userName}</p>
+                      <p className="text-[11px] font-light text-muted-foreground mt-0.5">
+                        Solicitado em {format(new Date(req.created), "dd/MM/yyyy 'às' HH:mm")}
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleResolveReset(req.id)}
+                      className="gap-2 font-light text-xs"
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5" strokeWidth={1.25} />
+                      Resolvido
+                    </Button>
+                  </div>
+                )
+              })}
             </div>
           </CardContent>
         </Card>

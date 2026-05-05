@@ -20,15 +20,38 @@ import { BellRing, KeyRound, CheckCircle, AlertTriangle, Info } from 'lucide-rea
 import { Button } from '@/components/ui/button'
 
 const Index = () => {
-  const {
-    lastLoginTime,
-    passwordResetRequests = [],
-    resolvePasswordReset = () => {},
-  } = useApp?.() || {}
+  const { lastLoginTime } = useApp?.() || {}
   const { user: currentUser } = useAuth()
   const { clients, statuses, alertSettings, loading } = useDashboard()
   const [showLoginAlert, setShowLoginAlert] = useState(false)
-  const pendingResets = passwordResetRequests.filter((req: any) => req.status === 'pending')
+  const [resetRequests, setResetRequests] = useState<any[]>([])
+
+  useEffect(() => {
+    if (currentUser?.role?.toLowerCase() === 'admin') {
+      pb.collection('audit_logs')
+        .getFullList({
+          filter: "action = 'password_reset_request'",
+          sort: '-created',
+          expand: 'user',
+        })
+        .then(setResetRequests)
+        .catch(console.error)
+    }
+  }, [currentUser])
+
+  const pendingResets = resetRequests
+
+  const handleResolveReset = async (id: string) => {
+    try {
+      await pb.collection('audit_logs').update(id, { action: 'password_reset_resolved' })
+      toast({
+        title: 'Resolvido',
+        description: 'Solicitação de senha marcada como resolvida.',
+      })
+    } catch (e) {
+      console.error(e)
+    }
+  }
 
   useEffect(() => {
     const initCheck = async () => {
@@ -66,9 +89,18 @@ const Index = () => {
         if (currentUser?.role?.toLowerCase() === 'admin') {
           toast({
             title: 'Solicitação de Redefinição de Senha',
-            description: e.record.details || 'Um usuário solicitou a redefinição de senha.',
+            description: 'Um usuário solicitou a redefinição de senha. Verifique os alertas.',
             duration: 10000,
           })
+          setResetRequests((prev) => [e.record, ...prev])
+        }
+      } else if (e.action === 'delete') {
+        setResetRequests((prev) => prev.filter((r) => r.id !== e.record.id))
+      } else if (e.action === 'update') {
+        if (e.record.action === 'password_reset_request') {
+          setResetRequests((prev) => prev.map((r) => (r.id === e.record.id ? e.record : r)))
+        } else {
+          setResetRequests((prev) => prev.filter((r) => r.id !== e.record.id))
         }
       }
     },
@@ -161,22 +193,31 @@ const Index = () => {
                 alterar a senha e marque como resolvido.
               </p>
               <div className="space-y-2">
-                {pendingResets.map((req: any) => (
-                  <div
-                    key={req.id}
-                    className="flex items-center justify-between bg-white/50 dark:bg-black/20 p-2 rounded-md border border-yellow-500/10"
-                  >
-                    <span className="text-sm font-medium">{req.email}</span>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-7 text-xs"
-                      onClick={() => resolvePasswordReset(req.id)}
+                {pendingResets.map((req: any) => {
+                  const userEmail =
+                    req.expand?.user?.email ||
+                    req.details?.match(/E-mail: ([^\s|]+)/)?.[1] ||
+                    'Desconhecido'
+                  const userName = req.expand?.user?.name
+                    ? `${req.expand.user.name} (${userEmail})`
+                    : userEmail
+                  return (
+                    <div
+                      key={req.id}
+                      className="flex items-center justify-between bg-white/50 dark:bg-black/20 p-2 rounded-md border border-yellow-500/10"
                     >
-                      <CheckCircle className="w-3.5 h-3.5 mr-1" /> Marcar como Resolvido
-                    </Button>
-                  </div>
-                ))}
+                      <span className="text-sm font-medium">{userName}</span>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs"
+                        onClick={() => handleResolveReset(req.id)}
+                      >
+                        <CheckCircle className="w-3.5 h-3.5 mr-1" /> Marcar como Resolvido
+                      </Button>
+                    </div>
+                  )
+                })}
               </div>
             </div>
           </div>
