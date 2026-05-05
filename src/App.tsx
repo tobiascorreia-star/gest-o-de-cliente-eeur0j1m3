@@ -5,6 +5,7 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import { AppProvider } from '@/contexts/app-context'
 import { AuthProvider, useAuth } from '@/hooks/use-auth'
 import { ThemeProvider } from '@/components/theme-provider'
+import { APP_VERSION } from '@/constants/version'
 import Layout from './components/Layout'
 import { ErrorBoundary } from './components/error-boundary'
 import Index from './pages/Index'
@@ -82,7 +83,7 @@ const App = () => (
               <Sonner />
               <AppRoutes />
               <div className="fixed bottom-2 right-4 z-[9999] text-[11px] font-medium text-muted-foreground/50 pointer-events-none select-none">
-                v0.1.127 (Inspetor)
+                {APP_VERSION} (Inspetor)
               </div>
             </AppProvider>
           </AuthProvider>
