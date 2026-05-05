@@ -187,7 +187,7 @@ export default function Usuarios() {
 
   const handleSave = async () => {
     const pass = password.trim()
-    const confirm = passwordConfirm.trim()
+    const confirm = pass ? passwordConfirm.trim() : ''
 
     if (!email.trim() || !role || (!editingUser && !pass)) {
       toast({
@@ -201,7 +201,7 @@ export default function Usuarios() {
       return
     }
 
-    if (pass || confirm) {
+    if (pass) {
       if (pass.length < 8) {
         toast({
           title: 'Erro de validação',
