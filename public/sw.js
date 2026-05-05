@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gestao-cliente-v2'
+const CACHE_NAME = 'gestao-cliente-v3'
 
 self.addEventListener('install', (event) => {
   self.skipWaiting()
@@ -30,6 +30,18 @@ self.addEventListener('fetch', (event) => {
     return
   }
 
-  // Network-first strategy for everything else
-  event.respondWith(fetch(event.request).catch(() => caches.match(event.request)))
+  // Network-first strategy: try network, cache response, fallback to cache on error
+  event.respondWith(
+    fetch(event.request)
+      .then((response) => {
+        if (event.request.method === 'GET' && response.status === 200) {
+          const responseClone = response.clone()
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseClone)
+          })
+        }
+        return response
+      })
+      .catch(() => caches.match(event.request)),
+  )
 })
