@@ -81,6 +81,9 @@ const App = () => (
               <Toaster />
               <Sonner />
               <AppRoutes />
+              <div className="fixed bottom-2 right-4 z-[9999] text-[11px] font-medium text-muted-foreground/50 pointer-events-none select-none">
+                v0.1.127 (Inspetor)
+              </div>
             </AppProvider>
           </AuthProvider>
         </TooltipProvider>
