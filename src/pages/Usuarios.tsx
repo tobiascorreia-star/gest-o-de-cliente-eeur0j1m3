@@ -259,34 +259,19 @@ export default function Usuarios() {
       }
 
       if (editingUser) {
-        let record
+        let record = await pb.collection('users').update(editingUser.id, formData)
 
-        if (editingUser.id !== user?.id) {
+        if (record.id === user?.id) {
           if (pass) {
-            // Se tem senha e é outro usuário, usa endpoint de admin, sempre enviando FormData (multipart)
-            record = await pb.send(`/backend/v1/users/${editingUser.id}/admin-update`, {
-              method: 'PATCH',
-              body: formData,
-            })
+            const authData = await pb.collection('users').authWithPassword(email.trim(), pass)
+            record = authData.record
           } else {
-            // Se não tem senha, update normal no PocketBase
-            record = await pb.collection('users').update(editingUser.id, formData)
-          }
-        } else {
-          // Próprio usuário
-          record = await pb.collection('users').update(editingUser.id, formData)
-          if (record.id === user?.id) {
-            if (pass) {
-              const authData = await pb.collection('users').authWithPassword(email.trim(), pass)
-              record = authData.record
-            } else {
-              pb.authStore.save(pb.authStore.token, record)
-            }
+            pb.authStore.save(pb.authStore.token, record)
           }
         }
 
         updateUser(record)
-        logAudit('UPDATE_USER', `Usuário ${email} atualizado.`)
+        logAudit('update_user', `Updated profile for user ${name.trim() || email.trim()}`)
         toast({ title: 'Sucesso', description: 'Usuário atualizado com sucesso!' })
       } else {
         const record = await pb.collection('users').create(formData)
@@ -317,13 +302,10 @@ export default function Usuarios() {
           variant: 'destructive',
         })
       } else {
-        const isNotFound = error.status === 404 || error.message?.includes("wasn't found")
         const serverMessage = error.response?.message || error.message
         toast({
-          title: 'Erro ao salvar',
-          description: isNotFound
-            ? 'Usuário não encontrado ou você não tem permissão para editá-lo.'
-            : serverMessage || 'Erro inesperado.',
+          title: 'Erro ao atualizar usuário',
+          description: serverMessage || 'Erro ao atualizar usuário',
           variant: 'destructive',
         })
       }

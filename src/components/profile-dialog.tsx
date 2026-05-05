@@ -15,6 +15,7 @@ import { toast } from '@/hooks/use-toast'
 import pb from '@/lib/pocketbase/client'
 import { extractFieldErrors } from '@/lib/pocketbase/errors'
 import { useAuth } from '@/hooks/use-auth'
+import { logAudit } from '@/services/audit'
 
 const formatPhone = (val: string) => {
   if (!val) return ''
@@ -142,24 +143,23 @@ export function ProfileDialog({
 
     setIsSaving(true)
     try {
-      const payload: any = {
-        name: name.trim(),
-        phone: phone,
-      }
+      const formData = new FormData()
+      formData.append('name', name.trim())
+      formData.append('phone', phone)
 
       if (pass) {
-        payload.oldPassword = oldPassword.trim()
-        payload.password = pass
-        payload.passwordConfirm = confirm
+        formData.append('oldPassword', oldPassword.trim())
+        formData.append('password', pass)
+        formData.append('passwordConfirm', confirm)
       }
 
       if (avatarFile) {
-        payload.avatar = avatarFile
+        formData.append('avatar', avatarFile)
       } else if (removeAvatar) {
-        payload.avatar = ''
+        formData.append('avatar', '')
       }
 
-      const updatedRecord = await pb.collection('users').update(user.id, payload)
+      const updatedRecord = await pb.collection('users').update(user.id, formData)
 
       // Se a senha foi alterada, o token atual é invalidado pelo PocketBase. Precisamos refazer o login silenciosamente.
       if (pass) {
@@ -168,7 +168,8 @@ export function ProfileDialog({
         pb.authStore.save(pb.authStore.token, updatedRecord)
       }
 
-      toast({ title: 'Sucesso', description: 'Perfil atualizado com sucesso!' })
+      logAudit('update_user', `Updated profile for user ${name.trim() || user.email}`)
+      toast({ title: 'Sucesso', description: 'Usuário atualizado com sucesso!' })
       onOpenChange(false)
     } catch (error: any) {
       const fieldErrors = extractFieldErrors(error)
@@ -187,8 +188,8 @@ export function ProfileDialog({
       } else {
         const serverMessage = error.response?.message || error.message
         toast({
-          title: 'Erro ao salvar',
-          description: serverMessage || 'Erro inesperado.',
+          title: 'Erro ao atualizar usuário',
+          description: serverMessage || 'Erro ao atualizar usuário',
           variant: 'destructive',
         })
       }
