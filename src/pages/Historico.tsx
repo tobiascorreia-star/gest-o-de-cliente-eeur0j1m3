@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { getAuditLogs } from '@/services/audit'
+import { getAuditLogs, clearAuditLogs } from '@/services/audit'
 import { AuditLog } from '@/types'
 import { useRealtime } from '@/hooks/use-realtime'
 import { format } from 'date-fns'
@@ -8,10 +8,30 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import pb from '@/lib/pocketbase/client'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Trash2 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
+import { useAuth } from '@/hooks/use-auth'
+import { useToast } from '@/hooks/use-toast'
 
 export default function Historico() {
   const [logs, setLogs] = useState<AuditLog[]>([])
   const [loading, setLoading] = useState(true)
+  const [isClearing, setIsClearing] = useState(false)
+  const { user } = useAuth()
+  const { toast } = useToast()
+
+  const isAdmin = user?.role?.toLowerCase() === 'admin'
 
   const fetchLogs = async () => {
     try {
@@ -32,12 +52,35 @@ export default function Historico() {
     fetchLogs()
   })
 
+  const handleClearHistory = async () => {
+    try {
+      setIsClearing(true)
+      await clearAuditLogs()
+      toast({
+        title: 'Sucesso',
+        description: 'Histórico de interações limpo com sucesso.',
+      })
+      await fetchLogs()
+    } catch (error) {
+      console.error('Error clearing audit logs:', error)
+      toast({
+        title: 'Erro',
+        description: 'Ocorreu um erro ao limpar o histórico.',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsClearing(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="space-y-6 max-w-4xl mx-auto py-6 px-4">
-        <div>
-          <Skeleton className="w-64 h-8 mb-2" />
-          <Skeleton className="w-80 h-4" />
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <Skeleton className="w-64 h-8 mb-2" />
+            <Skeleton className="w-80 h-4" />
+          </div>
         </div>
         <div className="space-y-4">
           <Skeleton className="w-full h-24" />
@@ -50,11 +93,46 @@ export default function Historico() {
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto py-6 px-4">
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight">Histórico de Interações</h2>
-        <p className="text-muted-foreground text-sm mt-1">
-          Linha do tempo de todas as ações realizadas nos clientes.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">Histórico de Interações</h2>
+          <p className="text-muted-foreground text-sm mt-1">
+            Linha do tempo de todas as ações realizadas nos clientes.
+          </p>
+        </div>
+
+        {isAdmin && logs.length > 0 && (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="destructive"
+                className="w-full sm:w-auto gap-2"
+                disabled={isClearing}
+              >
+                <Trash2 className="w-4 h-4" />
+                Limpar Histórico
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Limpar Histórico</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Tem certeza que deseja limpar todo o histórico de interações? Esta ação não pode
+                  ser desfeita.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleClearHistory}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  {isClearing ? 'Limpando...' : 'Confirmar'}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
       </div>
 
       {logs.length === 0 ? (
