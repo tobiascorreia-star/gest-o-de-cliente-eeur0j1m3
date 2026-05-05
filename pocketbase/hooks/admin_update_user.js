@@ -12,15 +12,19 @@ routerAdd(
 
     const body = e.requestInfo().body || {}
 
-    if (body.name !== undefined) record.set('name', String(body.name))
-    if (body.email !== undefined) record.setEmail(String(body.email))
-    if (body.phone !== undefined) record.set('phone', String(body.phone))
-    if (body.role !== undefined) record.set('role', String(body.role))
-    if (body.active !== undefined) record.set('active', String(body.active) === 'true')
+    if (body.name !== undefined && body.name !== null) record.set('name', String(body.name))
+    if (body.email !== undefined && body.email !== null) record.setEmail(String(body.email))
+    if (body.emailVisibility !== undefined && body.emailVisibility !== null)
+      record.set('emailVisibility', String(body.emailVisibility) === 'true')
+    if (body.phone !== undefined && body.phone !== null) record.set('phone', String(body.phone))
+    if (body.role !== undefined && body.role !== null) record.set('role', String(body.role))
+    if (body.active !== undefined && body.active !== null)
+      record.set('active', String(body.active) === 'true')
 
-    const password = body.password !== undefined ? String(body.password) : ''
+    const password = body.password != null ? String(body.password).trim() : ''
+    const passwordConfirm = body.passwordConfirm != null ? String(body.passwordConfirm).trim() : ''
+
     if (password !== '') {
-      const passwordConfirm = body.passwordConfirm !== undefined ? String(body.passwordConfirm) : ''
       if (password !== passwordConfirm) {
         throw new BadRequestError('As senhas não coincidem.', {
           passwordConfirm: 'As senhas não coincidem.',
@@ -36,11 +40,9 @@ routerAdd(
       record.set('avatar', null)
     }
 
-    try {
-      $app.save(record)
-    } catch (err) {
-      throw new BadRequestError(err.message || 'Erro de validação ao salvar usuário.')
-    }
+    // Allow PocketBase to handle the validation error internally and respond with 400
+    // This prevents generic 500 errors and preserves field-specific error messages
+    $app.save(record)
 
     return e.json(200, record)
   },

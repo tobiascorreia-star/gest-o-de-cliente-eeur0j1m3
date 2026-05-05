@@ -201,22 +201,23 @@ export default function Usuarios() {
       return
     }
 
-    if (pass && pass.length < 8) {
-      toast({
-        title: 'Erro de validação',
-        description: 'A senha deve ter no mínimo 8 caracteres.',
-        variant: 'destructive',
-      })
-      return
-    }
-
-    if (pass && pass !== confirm) {
-      toast({
-        title: 'Erro de validação',
-        description: 'As senhas não coincidem.',
-        variant: 'destructive',
-      })
-      return
+    if (pass || confirm) {
+      if (pass.length < 8) {
+        toast({
+          title: 'Erro de validação',
+          description: 'A senha deve ter no mínimo 8 caracteres.',
+          variant: 'destructive',
+        })
+        return
+      }
+      if (pass !== confirm) {
+        toast({
+          title: 'Erro de validação',
+          description: 'As senhas não coincidem.',
+          variant: 'destructive',
+        })
+        return
+      }
     }
 
     setIsSaving(true)
@@ -236,7 +237,7 @@ export default function Usuarios() {
 
       if (pass) {
         userData.password = pass
-        userData.passwordConfirm = pass
+        userData.passwordConfirm = confirm
 
         if (editingUser && editingUser.id === user?.id) {
           if (!oldPassword.trim()) {
