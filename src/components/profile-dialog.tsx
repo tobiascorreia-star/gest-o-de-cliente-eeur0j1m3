@@ -142,23 +142,24 @@ export function ProfileDialog({
 
     setIsSaving(true)
     try {
-      const formData = new FormData()
-      formData.append('name', name.trim())
-      formData.append('phone', phone)
+      const payload: any = {
+        name: name.trim(),
+        phone: phone,
+      }
 
       if (pass) {
-        formData.append('oldPassword', oldPassword.trim())
-        formData.append('password', pass)
-        formData.append('passwordConfirm', confirm)
+        payload.oldPassword = oldPassword.trim()
+        payload.password = pass
+        payload.passwordConfirm = confirm
       }
 
       if (avatarFile) {
-        formData.append('avatar', avatarFile)
+        payload.avatar = avatarFile
       } else if (removeAvatar) {
-        formData.append('avatar', '')
+        payload.avatar = null
       }
 
-      const updatedRecord = await pb.collection('users').update(user.id, formData)
+      const updatedRecord = await pb.collection('users').update(user.id, payload)
 
       // Se a senha foi alterada, o token atual é invalidado pelo PocketBase. Precisamos refazer o login silenciosamente.
       if (pass) {

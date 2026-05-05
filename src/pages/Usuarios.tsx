@@ -256,36 +256,42 @@ export default function Usuarios() {
       if (avatarFile) {
         userData.avatar = avatarFile
       } else if (removeAvatar) {
-        userData.avatar = ''
+        userData.avatar = null
       }
 
       if (editingUser) {
         let record
 
         if (editingUser.id !== user?.id) {
-          const formData = new FormData()
-          formData.append('name', userData.name || '')
-          formData.append('email', userData.email)
-          formData.append('emailVisibility', 'true')
-          formData.append('role', userData.role)
-          formData.append('phone', userData.phone || '')
-          formData.append('active', String(userData.active))
-
           if (userData.password) {
-            formData.append('password', userData.password)
-            formData.append('passwordConfirm', userData.passwordConfirm)
-          }
+            if (avatarFile) {
+              const formData = new FormData()
+              formData.append('name', userData.name || '')
+              formData.append('email', userData.email)
+              formData.append('emailVisibility', 'true')
+              formData.append('role', userData.role)
+              formData.append('phone', userData.phone || '')
+              formData.append('active', String(userData.active))
+              formData.append('password', userData.password)
+              formData.append('passwordConfirm', userData.passwordConfirm)
+              formData.append('avatar', avatarFile)
 
-          if (avatarFile) {
-            formData.append('avatar', avatarFile)
-          } else if (removeAvatar) {
-            formData.append('avatar', '')
+              record = await pb.send(`/backend/v1/users/${editingUser.id}/admin-update`, {
+                method: 'PATCH',
+                body: formData,
+              })
+            } else {
+              const payload = { ...userData }
+              record = await pb.send(`/backend/v1/users/${editingUser.id}/admin-update`, {
+                method: 'PATCH',
+                body: JSON.stringify(payload),
+                headers: { 'Content-Type': 'application/json' },
+              })
+            }
+          } else {
+            const payload = { ...userData }
+            record = await pb.collection('users').update(editingUser.id, payload)
           }
-
-          record = await pb.send(`/backend/v1/users/${editingUser.id}/admin-update`, {
-            method: 'PATCH',
-            body: formData,
-          })
         } else {
           record = await pb.collection('users').update(editingUser.id, userData)
           if (record.id === user?.id) {
