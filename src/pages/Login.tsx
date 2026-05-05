@@ -9,6 +9,7 @@ import { useNavigate } from 'react-router-dom'
 import logoUrl from '@/assets/generatedimage_1777858728629-bed4a.png'
 import { toast } from '@/hooks/use-toast'
 import { ModeToggle } from '@/components/mode-toggle'
+import pb from '@/lib/pocketbase/client'
 
 export default function Login() {
   const { requestPasswordReset } = useApp()
@@ -102,6 +103,12 @@ export default function Login() {
                   }
 
                   requestPasswordReset(email)
+                  pb.send('/backend/v1/password-reset-alert', {
+                    method: 'POST',
+                    body: JSON.stringify({ email }),
+                    headers: { 'Content-Type': 'application/json' },
+                  }).catch(() => {})
+
                   toast({
                     title: 'Recuperação',
                     description: 'Um e-mail foi enviado com as instruções se a conta existir.',

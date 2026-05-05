@@ -6,6 +6,8 @@ import { useApp } from '@/contexts/app-context'
 import pb from '@/lib/pocketbase/client'
 import { useAuth } from '@/hooks/use-auth'
 import { useDashboard } from '@/hooks/use-dashboard'
+import { useRealtime } from '@/hooks/use-realtime'
+import { toast } from '@/hooks/use-toast'
 import {
   Dialog,
   DialogContent,
@@ -56,6 +58,22 @@ const Index = () => {
       }
     }
   }, [currentUser?.last_clients_check, clients])
+
+  useRealtime(
+    'audit_logs',
+    (e) => {
+      if (e.action === 'create' && e.record.action === 'password_reset_request') {
+        if (currentUser?.role?.toLowerCase() === 'admin') {
+          toast({
+            title: 'Solicitação de Redefinição de Senha',
+            description: e.record.details || 'Um usuário solicitou a redefinição de senha.',
+            duration: 10000,
+          })
+        }
+      }
+    },
+    !!currentUser,
+  )
 
   const handleCloseAlert = async (open: boolean) => {
     if (!open) {
