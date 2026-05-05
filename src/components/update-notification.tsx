@@ -48,8 +48,8 @@ export function UpdateNotification() {
           </DialogTitle>
           <DialogDescription className="text-center text-slate-300 text-[15px] max-w-[300px] mx-auto leading-relaxed mt-4">
             O sistema foi atualizado para a versão{' '}
-            <strong className="font-semibold text-white">{APP_VERSION} (Inspetor)</strong>. Diversas
-            melhorias e correções foram aplicadas.
+            <strong className="font-semibold text-white">{APP_VERSION}</strong>. Diversas melhorias
+            e correções foram aplicadas.
           </DialogDescription>
         </DialogHeader>
         <DialogFooter className="sm:justify-center pb-8 pt-4">
