@@ -156,7 +156,7 @@ export function ProfileDialog({
       if (avatarFile) {
         payload.avatar = avatarFile
       } else if (removeAvatar) {
-        payload.avatar = null
+        payload.avatar = ''
       }
 
       const updatedRecord = await pb.collection('users').update(user.id, payload)
@@ -185,9 +185,10 @@ export function ProfileDialog({
           variant: 'destructive',
         })
       } else {
+        const serverMessage = error.response?.message || error.message
         toast({
           title: 'Erro ao salvar',
-          description: error.message || 'Erro inesperado.',
+          description: serverMessage || 'Erro inesperado.',
           variant: 'destructive',
         })
       }

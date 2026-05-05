@@ -222,22 +222,21 @@ export default function Usuarios() {
 
     setIsSaving(true)
     try {
-      const userData: any = {
-        name: name.trim(),
-        email: email.trim(),
-        emailVisibility: true,
-        role,
-        phone,
-        active,
-      }
+      const formData = new FormData()
+      formData.append('name', name.trim())
+      formData.append('email', email.trim())
+      formData.append('emailVisibility', 'true')
+      formData.append('role', role)
+      formData.append('phone', phone)
+      formData.append('active', String(active))
 
       if (!editingUser) {
-        userData.setup_completed = false
+        formData.append('setup_completed', 'false')
       }
 
       if (pass) {
-        userData.password = pass
-        userData.passwordConfirm = confirm
+        formData.append('password', pass)
+        formData.append('passwordConfirm', confirm)
 
         if (editingUser && editingUser.id === user?.id) {
           if (!oldPassword.trim()) {
@@ -249,51 +248,33 @@ export default function Usuarios() {
             setIsSaving(false)
             return
           }
-          userData.oldPassword = oldPassword.trim()
+          formData.append('oldPassword', oldPassword.trim())
         }
       }
 
       if (avatarFile) {
-        userData.avatar = avatarFile
+        formData.append('avatar', avatarFile)
       } else if (removeAvatar) {
-        userData.avatar = null
+        formData.append('avatar', '') // Passar string vazia para remover arquivo
       }
 
       if (editingUser) {
         let record
 
         if (editingUser.id !== user?.id) {
-          if (userData.password) {
-            if (avatarFile) {
-              const formData = new FormData()
-              formData.append('name', userData.name || '')
-              formData.append('email', userData.email)
-              formData.append('emailVisibility', 'true')
-              formData.append('role', userData.role)
-              formData.append('phone', userData.phone || '')
-              formData.append('active', String(userData.active))
-              formData.append('password', userData.password)
-              formData.append('passwordConfirm', userData.passwordConfirm)
-              formData.append('avatar', avatarFile)
-
-              record = await pb.send(`/backend/v1/users/${editingUser.id}/admin-update`, {
-                method: 'PATCH',
-                body: formData,
-              })
-            } else {
-              const payload = { ...userData }
-              record = await pb.send(`/backend/v1/users/${editingUser.id}/admin-update`, {
-                method: 'PATCH',
-                body: JSON.stringify(payload),
-                headers: { 'Content-Type': 'application/json' },
-              })
-            }
+          if (pass) {
+            // Se tem senha e é outro usuário, usa endpoint de admin, sempre enviando FormData (multipart)
+            record = await pb.send(`/backend/v1/users/${editingUser.id}/admin-update`, {
+              method: 'PATCH',
+              body: formData,
+            })
           } else {
-            const payload = { ...userData }
-            record = await pb.collection('users').update(editingUser.id, payload)
+            // Se não tem senha, update normal no PocketBase
+            record = await pb.collection('users').update(editingUser.id, formData)
           }
         } else {
-          record = await pb.collection('users').update(editingUser.id, userData)
+          // Próprio usuário
+          record = await pb.collection('users').update(editingUser.id, formData)
           if (record.id === user?.id) {
             if (pass) {
               const authData = await pb.collection('users').authWithPassword(email.trim(), pass)
@@ -308,11 +289,11 @@ export default function Usuarios() {
         logAudit('UPDATE_USER', `Usuário ${email} atualizado.`)
         toast({ title: 'Sucesso', description: 'Usuário atualizado com sucesso!' })
       } else {
-        const record = await pb.collection('users').create(userData)
+        const record = await pb.collection('users').create(formData)
         addUser(record)
         logAudit('CREATE_USER', `Usuário ${email} criado.`)
         toast({ title: 'Sucesso', description: 'Novo usuário criado!' })
-        setCreatedUserCredentials({ email: userData.email, password: pass })
+        setCreatedUserCredentials({ email: email.trim(), password: pass })
       }
 
       setIsOpen(false)
@@ -337,11 +318,12 @@ export default function Usuarios() {
         })
       } else {
         const isNotFound = error.status === 404 || error.message?.includes("wasn't found")
+        const serverMessage = error.response?.message || error.message
         toast({
           title: 'Erro ao salvar',
           description: isNotFound
             ? 'Usuário não encontrado ou você não tem permissão para editá-lo.'
-            : error.message || 'Erro inesperado.',
+            : serverMessage || 'Erro inesperado.',
           variant: 'destructive',
         })
       }
