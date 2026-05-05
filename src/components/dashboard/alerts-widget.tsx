@@ -14,13 +14,13 @@ import { Button } from '@/components/ui/button'
 export function AlertsWidget() {
   const { currentUser } = useApp?.() || {}
   const { clients, statuses, alertSettings } = useDashboard()
-  const [resetRequests, setResetRequests] = useState<AuditLog[]>([])
+  const [resetRequests, setResetRequests] = useState<any[]>([])
 
   useEffect(() => {
     if (currentUser?.role?.toLowerCase() === 'admin') {
-      pb.collection('audit_logs')
-        .getFullList<AuditLog>({
-          filter: "action = 'password_reset_request'",
+      pb.collection('notifications')
+        .getFullList({
+          filter: "type = 'password_reset' && resolved = false",
           sort: '-created',
           expand: 'user',
         })
@@ -30,19 +30,24 @@ export function AlertsWidget() {
   }, [currentUser])
 
   useRealtime(
-    'audit_logs',
+    'notifications',
     (e) => {
-      if (e.action === 'create' && e.record.action === 'password_reset_request') {
-        setResetRequests((prev) => [e.record as unknown as AuditLog, ...prev])
+      if (e.action === 'create' && e.record.type === 'password_reset' && !e.record.resolved) {
+        setResetRequests((prev) => [e.record, ...prev])
       } else if (e.action === 'delete') {
         setResetRequests((prev) => prev.filter((r) => r.id !== e.record.id))
       } else if (e.action === 'update') {
-        if (e.record.action === 'password_reset_request') {
-          setResetRequests((prev) =>
-            prev.map((r) => (r.id === e.record.id ? (e.record as unknown as AuditLog) : r)),
-          )
-        } else {
-          setResetRequests((prev) => prev.filter((r) => r.id !== e.record.id))
+        if (e.record.type === 'password_reset') {
+          if (e.record.resolved) {
+            setResetRequests((prev) => prev.filter((r) => r.id !== e.record.id))
+          } else {
+            setResetRequests((prev) => {
+              const exists = prev.find((r) => r.id === e.record.id)
+              return exists
+                ? prev.map((r) => (r.id === e.record.id ? e.record : r))
+                : [e.record, ...prev]
+            })
+          }
         }
       }
     },
@@ -51,7 +56,7 @@ export function AlertsWidget() {
 
   const handleResolveReset = async (id: string) => {
     try {
-      await pb.collection('audit_logs').update(id, { action: 'password_reset_resolved' })
+      await pb.collection('notifications').update(id, { resolved: true })
     } catch (e) {
       console.error(e)
     }
@@ -88,10 +93,7 @@ export function AlertsWidget() {
           <CardContent>
             <div className="space-y-3">
               {pendingResets.map((req) => {
-                const userEmail =
-                  req.expand?.user?.email ||
-                  req.details?.match(/E-mail: ([^\s|]+)/)?.[1] ||
-                  'Desconhecido'
+                const userEmail = req.expand?.user?.email || 'Desconhecido'
                 const userName = req.expand?.user?.name
                   ? `${req.expand.user.name} (${userEmail})`
                   : userEmail

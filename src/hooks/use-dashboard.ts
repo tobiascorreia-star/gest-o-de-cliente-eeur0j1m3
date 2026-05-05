@@ -21,9 +21,9 @@ export function useDashboard() {
         pb.collection('clients').getFullList({ expand: 'categoria,status' }),
         pb.collection('configurations').getFullList(),
         pb
-          .collection('audit_logs')
+          .collection('notifications')
           .getFullList({
-            filter: "action = 'password_reset_request'",
+            filter: "type = 'password_reset' && resolved = false",
             sort: '-created',
             expand: 'user',
           })
@@ -48,23 +48,19 @@ export function useDashboard() {
       setStatuses(configData.filter((c) => c.type === 'status'))
 
       setPasswordResetRequests(
-        auditLogsData
-          .filter((log: any) => !log.details.includes('[RESOLVIDO]'))
-          .map((log: any) => {
-            const emailMatch = log.details.match(/e-mail:\s*(.+)$/i)
-            const user = log.expand?.user
-            const identity = user?.name
+        auditLogsData.map((notif: any) => {
+          const user = notif.expand?.user
+          const identity =
+            user?.name && user?.email
               ? `${user.name} (${user.email})`
-              : emailMatch
-                ? emailMatch[1]
-                : 'Desconhecido'
-            return {
-              id: log.id,
-              email: identity,
-              timestamp: log.created,
-              status: 'pending',
-            }
-          }),
+              : user?.email || 'Desconhecido'
+          return {
+            id: notif.id,
+            email: identity,
+            timestamp: notif.created,
+            status: notif.resolved ? 'resolved' : 'pending',
+          }
+        }),
       )
     } catch (e) {
       console.error('Error loading dashboard data', e)
@@ -75,10 +71,7 @@ export function useDashboard() {
 
   const resolvePasswordReset = async (id: string) => {
     try {
-      await pb.send('/backend/v1/password-reset-resolve', {
-        method: 'POST',
-        body: JSON.stringify({ id }),
-      })
+      await pb.collection('notifications').update(id, { resolved: true })
       loadData()
     } catch (e) {
       console.error('Error resolving password reset', e)
@@ -99,6 +92,9 @@ export function useDashboard() {
     loadData()
   })
   useRealtime('audit_logs', () => {
+    loadData()
+  })
+  useRealtime('notifications', () => {
     loadData()
   })
 

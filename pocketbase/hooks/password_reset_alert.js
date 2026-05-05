@@ -5,21 +5,21 @@ routerAdd('POST', '/backend/v1/password-reset-alert', (e) => {
     return e.badRequestError('Email is required')
   }
 
-  const col = $app.findCollectionByNameOrId('audit_logs')
-  const record = new Record(col)
-  record.set('action', 'password_reset_request')
-  record.set('details', `E-mail: ${email} | Solicitado em: ${new Date().toISOString()}`)
-
+  let user
   try {
-    const user = $app.findAuthRecordByEmail('users', email)
-    if (user) {
-      record.set('user', user.id)
-    }
+    user = $app.findAuthRecordByEmail('users', email)
   } catch (_) {
-    // User not found, just log the action without relations
+    // Return success to avoid email enumeration, but do not create notification if user is not found
+    return e.json(200, { success: true })
   }
 
-  $app.save(record)
+  const notifCol = $app.findCollectionByNameOrId('notifications')
+  const notifRecord = new Record(notifCol)
+  notifRecord.set('user', user.id)
+  notifRecord.set('type', 'password_reset')
+  notifRecord.set('resolved', false)
+
+  $app.save(notifRecord)
 
   return e.json(200, { success: true })
 })

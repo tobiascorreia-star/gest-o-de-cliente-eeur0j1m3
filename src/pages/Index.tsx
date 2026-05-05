@@ -28,9 +28,9 @@ const Index = () => {
 
   useEffect(() => {
     if (currentUser?.role?.toLowerCase() === 'admin') {
-      pb.collection('audit_logs')
+      pb.collection('notifications')
         .getFullList({
-          filter: "action = 'password_reset_request'",
+          filter: "type = 'password_reset' && resolved = false",
           sort: '-created',
           expand: 'user',
         })
@@ -43,7 +43,7 @@ const Index = () => {
 
   const handleResolveReset = async (id: string) => {
     try {
-      await pb.collection('audit_logs').update(id, { action: 'password_reset_resolved' })
+      await pb.collection('notifications').update(id, { resolved: true })
       toast({
         title: 'Resolvido',
         description: 'Solicitação de senha marcada como resolvida.',
@@ -83,9 +83,9 @@ const Index = () => {
   }, [currentUser?.last_clients_check, clients])
 
   useRealtime(
-    'audit_logs',
+    'notifications',
     (e) => {
-      if (e.action === 'create' && e.record.action === 'password_reset_request') {
+      if (e.action === 'create' && e.record.type === 'password_reset' && !e.record.resolved) {
         if (currentUser?.role?.toLowerCase() === 'admin') {
           toast({
             title: 'Solicitação de Redefinição de Senha',
@@ -97,10 +97,17 @@ const Index = () => {
       } else if (e.action === 'delete') {
         setResetRequests((prev) => prev.filter((r) => r.id !== e.record.id))
       } else if (e.action === 'update') {
-        if (e.record.action === 'password_reset_request') {
-          setResetRequests((prev) => prev.map((r) => (r.id === e.record.id ? e.record : r)))
-        } else {
-          setResetRequests((prev) => prev.filter((r) => r.id !== e.record.id))
+        if (e.record.type === 'password_reset') {
+          if (e.record.resolved) {
+            setResetRequests((prev) => prev.filter((r) => r.id !== e.record.id))
+          } else {
+            setResetRequests((prev) => {
+              const exists = prev.find((r) => r.id === e.record.id)
+              return exists
+                ? prev.map((r) => (r.id === e.record.id ? e.record : r))
+                : [e.record, ...prev]
+            })
+          }
         }
       }
     },
@@ -179,41 +186,40 @@ const Index = () => {
       </Dialog>
 
       {currentUser?.role?.toLowerCase() === 'admin' && pendingResets.length > 0 && (
-        <div className="mb-6 bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4 animate-fade-in-down">
-          <div className="flex items-start gap-3">
-            <div className="bg-yellow-500/20 p-2 rounded-full mt-0.5">
-              <KeyRound className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
+        <div className="mb-6 bg-[#fdfaf3] border border-amber-200/60 dark:bg-amber-950/20 dark:border-amber-900/50 rounded-xl p-5 animate-fade-in-down shadow-sm">
+          <div className="flex items-start gap-4">
+            <div className="bg-amber-100/80 dark:bg-amber-900/50 p-2.5 rounded-full mt-0.5">
+              <KeyRound className="w-5 h-5 text-amber-700 dark:text-amber-400" />
             </div>
             <div className="flex-1">
-              <h3 className="font-semibold text-yellow-800 dark:text-yellow-300">
+              <h3 className="font-semibold text-amber-900 dark:text-amber-300 text-lg tracking-tight">
                 Solicitações de Redefinição de Senha
               </h3>
-              <p className="text-sm text-yellow-700/80 dark:text-yellow-400/80 mt-1 mb-3">
+              <p className="text-[15px] text-amber-800/80 dark:text-amber-400/80 mt-1 mb-4 leading-relaxed">
                 Operadores solicitaram a redefinição de suas senhas. Acesse o menu de Usuários para
                 alterar a senha e marque como resolvido.
               </p>
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {pendingResets.map((req: any) => {
-                  const userEmail =
-                    req.expand?.user?.email ||
-                    req.details?.match(/E-mail: ([^\s|]+)/)?.[1] ||
-                    'Desconhecido'
+                  const userEmail = req.expand?.user?.email || 'Desconhecido'
                   const userName = req.expand?.user?.name
                     ? `${req.expand.user.name} (${userEmail})`
                     : userEmail
                   return (
                     <div
                       key={req.id}
-                      className="flex items-center justify-between bg-white/50 dark:bg-black/20 p-2 rounded-md border border-yellow-500/10"
+                      className="flex items-center justify-between bg-white dark:bg-slate-900/50 p-3.5 rounded-lg border border-slate-100 dark:border-slate-800 shadow-sm transition-all"
                     >
-                      <span className="text-sm font-medium">{userName}</span>
+                      <span className="text-[15px] font-medium text-slate-700 dark:text-slate-200">
+                        {userName}
+                      </span>
                       <Button
                         size="sm"
                         variant="outline"
-                        className="h-7 text-xs"
+                        className="h-9 px-4 rounded-full text-sm font-medium border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
                         onClick={() => handleResolveReset(req.id)}
                       >
-                        <CheckCircle className="w-3.5 h-3.5 mr-1" /> Marcar como Resolvido
+                        <CheckCircle className="w-4 h-4 mr-2" /> Marcar como Resolvido
                       </Button>
                     </div>
                   )
