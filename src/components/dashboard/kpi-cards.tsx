@@ -75,11 +75,11 @@ export function KpiCards() {
           key={i}
           className="hover:-translate-y-1 transition-transform duration-300 dark:bg-slate-900/50 dark:border-slate-800"
         >
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs font-light text-slate-500 dark:text-slate-400">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 gap-2">
+            <CardTitle className="text-xs font-light text-slate-500 dark:text-slate-400 flex-1 line-clamp-2">
               {card.title}
             </CardTitle>
-            <div className={`p-1.5 rounded-lg ${card.bg}`}>
+            <div className={`p-1.5 rounded-lg shrink-0 ${card.bg}`}>
               <card.icon className={`h-3.5 w-3.5 ${card.color}`} strokeWidth={1.25} />
             </div>
           </CardHeader>
@@ -88,7 +88,7 @@ export function KpiCards() {
               {card.value}
             </div>
             {card.thresholds && (
-              <div className="mt-2 flex items-center gap-3 text-[10px] font-light text-slate-500 dark:text-slate-400">
+              <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] font-light text-slate-500 dark:text-slate-400">
                 {card.thresholds.map((t, idx) => (
                   <div key={idx} className="flex items-center gap-1">
                     <span className={t.count >= t.limit ? 'text-red-500 font-medium' : ''}>

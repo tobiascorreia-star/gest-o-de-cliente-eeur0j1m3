@@ -10,16 +10,22 @@ import {
 import { Button } from '@/components/ui/button'
 import { ShieldAlert, Info } from 'lucide-react'
 import { APP_VERSION } from '@/constants/version'
+import { useAuth } from '@/hooks/use-auth'
 
 export function UpdateNotification() {
   const [isOpen, setIsOpen] = useState(false)
+  const { user } = useAuth()
 
   useEffect(() => {
-    const lastVersion = localStorage.getItem('app-version')
-    if (lastVersion !== APP_VERSION) {
-      setIsOpen(true)
+    if (user) {
+      const lastVersion = localStorage.getItem('app-version')
+      if (lastVersion && lastVersion !== APP_VERSION) {
+        setIsOpen(true)
+      } else if (!lastVersion) {
+        localStorage.setItem('app-version', APP_VERSION)
+      }
     }
-  }, [])
+  }, [user])
 
   const handleClose = () => {
     localStorage.setItem('app-version', APP_VERSION)
