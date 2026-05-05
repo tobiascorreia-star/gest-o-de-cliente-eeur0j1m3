@@ -14,6 +14,7 @@ import { LogOut, User as UserIcon } from 'lucide-react'
 import pb from '@/lib/pocketbase/client'
 import { ProfileDialog } from '../profile-dialog'
 import { ModeToggle } from '@/components/mode-toggle'
+import { NewClientsAlert } from '@/components/new-clients-alert'
 
 export function AppHeader() {
   const { user, signOut } = useAuth()
@@ -63,6 +64,7 @@ export function AppHeader() {
         </DropdownMenu>
       </div>
       <ProfileDialog open={profileOpen} onOpenChange={setProfileOpen} />
+      <NewClientsAlert />
     </header>
   )
 }

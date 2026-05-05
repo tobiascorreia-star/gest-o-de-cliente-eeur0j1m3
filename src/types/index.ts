@@ -67,6 +67,7 @@ export interface User {
   password?: string
   phone?: string
   active?: boolean
+  last_clients_check?: string
 }
 
 export interface PasswordResetRequest {

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-05T01:20:55.476Z",
+  "generatedAt": "2026-05-05T10:19:29.809Z",
   "collections": [
     {
       "name": "users",
@@ -60,6 +60,12 @@
         {
           "name": "setup_completed",
           "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "last_clients_check",
+          "type": "date",
           "required": false,
           "system": false
         }

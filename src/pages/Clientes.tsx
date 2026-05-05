@@ -45,6 +45,14 @@ export default function Clientes() {
     loadData()
   }, [])
 
+  useEffect(() => {
+    if (user?.id) {
+      pb.collection('users')
+        .update(user.id, { last_clients_check: new Date().toISOString() })
+        .catch(console.error)
+    }
+  }, [user?.id])
+
   useRealtime('clients', loadData)
   useRealtime('alert_settings', loadData)
 
