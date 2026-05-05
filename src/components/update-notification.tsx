@@ -41,7 +41,7 @@ export function UpdateNotification() {
     >
       <DialogContent className="sm:max-w-[400px] bg-[#0F172A] border-[#1E293B] text-white shadow-2xl [&>button]:hidden rounded-2xl p-0">
         <DialogHeader className="flex flex-col items-center justify-center space-y-0 pt-10 pb-2 px-6">
-          <div className="relative mb-6">
+          <div className="relative mb-6 inline-flex">
             <div className="flex h-[72px] w-[72px] items-center justify-center rounded-full bg-[#1E293B] border-4 border-[#0F172A] shadow-[0_0_0_2px_rgba(51,65,85,1)]">
               <ShieldAlert className="h-8 w-8 text-[#10B981]" strokeWidth={1.5} />
             </div>

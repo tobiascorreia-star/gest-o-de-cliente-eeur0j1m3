@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gestao-cliente-v3'
+const CACHE_NAME = 'gestao-cliente-v4'
 
 self.addEventListener('install', (event) => {
   self.skipWaiting()
@@ -27,6 +27,26 @@ self.addEventListener('fetch', (event) => {
   // Bypass cache for all PocketBase API requests to ensure PWA session synchronization
   if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/backend/')) {
     event.respondWith(fetch(event.request))
+    return
+  }
+
+  // Force network-first check for the main document and JS files to always get the latest build
+  if (
+    event.request.mode === 'navigate' ||
+    url.pathname.endsWith('.js') ||
+    url.pathname.endsWith('.ts')
+  ) {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          if (response.status === 200) {
+            const responseClone = response.clone()
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone))
+          }
+          return response
+        })
+        .catch(() => caches.match(event.request)),
+    )
     return
   }
 
