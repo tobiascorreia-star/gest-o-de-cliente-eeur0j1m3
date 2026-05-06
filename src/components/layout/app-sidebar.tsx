@@ -10,6 +10,7 @@ import {
   FileBarChart,
   Settings,
   LogOut,
+  Banknote,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -35,6 +36,7 @@ const navigation = [
   { name: 'Histórico', href: '/historico', icon: History },
   { name: 'Auditoria', href: '/auditoria', icon: ShieldAlert, adminOnly: true },
   { name: 'Usuários', href: '/usuarios', icon: UserCog, adminOnly: true },
+  { name: 'Folha de Pagamento', href: '/folha-pagamento', icon: Banknote, adminOnly: true },
   { name: 'Arquivo', href: '/arquivo', icon: Archive, adminOnly: true },
   { name: 'Relatório', href: '/relatorio', icon: FileBarChart },
   { name: 'Configuração', href: '/configuracao', icon: Settings, adminOnly: true },

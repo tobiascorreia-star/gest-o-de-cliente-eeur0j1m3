@@ -58,6 +58,26 @@ export interface AuditLog {
   }
 }
 
+export interface Payroll {
+  id: string
+  employee: string
+  base_salary: number
+  install_commission: number
+  bonus: number
+  extra_1: number
+  extra_2: number
+  extra_3: number
+  extra_4: number
+  total: number
+  reference_date: string
+  status: string
+  created: string
+  updated: string
+  expand?: {
+    employee?: User
+  }
+}
+
 export interface User {
   id: string
   name: string

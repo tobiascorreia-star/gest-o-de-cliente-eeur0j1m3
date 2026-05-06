@@ -12,6 +12,7 @@ import Clientes from './pages/Clientes'
 import Historico from './pages/Historico'
 import Auditoria from './pages/Auditoria'
 import Usuarios from './pages/Usuarios'
+import FolhaPagamento from './pages/FolhaPagamento'
 import Concluidos from './pages/Concluidos'
 import Arquivo from './pages/Arquivo'
 import Relatorio from './pages/Relatorio'
@@ -63,6 +64,7 @@ const AppRoutes = () => {
             <Route path="/arquivo" element={<Arquivo />} />
             <Route path="/auditoria" element={<Auditoria />} />
             <Route path="/usuarios" element={<Usuarios />} />
+            <Route path="/folha-pagamento" element={<FolhaPagamento />} />
             <Route path="/configuracao" element={<Configuracao />} />
           </Route>
         </Route>

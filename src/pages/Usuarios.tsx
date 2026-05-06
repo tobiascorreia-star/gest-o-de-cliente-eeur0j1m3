@@ -15,7 +15,9 @@ import {
   PowerOff,
   Loader2,
   Copy,
+  Banknote,
 } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import {
   Dialog,
   DialogContent,
@@ -67,6 +69,7 @@ const formatPhone = (val: string) => {
 
 export default function Usuarios() {
   const { user } = useAuth()
+  const navigate = useNavigate()
 
   const [users, setUsers] = useState<any[]>([])
 
@@ -427,6 +430,14 @@ export default function Usuarios() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1 sm:gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => navigate(`/folha-pagamento?user=${u.id}`)}
+                          title="Folha de Pagamento"
+                        >
+                          <Banknote className="w-4 h-4 text-muted-foreground" strokeWidth={1.5} />
+                        </Button>
                         <Button
                           variant="ghost"
                           size="icon"

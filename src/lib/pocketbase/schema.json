@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-06T15:36:58.525Z",
+  "generatedAt": "2026-05-06T21:39:05.021Z",
   "collections": [
     {
       "name": "users",
@@ -379,6 +379,102 @@
           "type": "bool",
           "required": false,
           "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "payroll",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.role = 'admin'",
+        "view": "@request.auth.role = 'admin'",
+        "create": "@request.auth.role = 'admin'",
+        "update": "@request.auth.role = 'admin'",
+        "delete": "@request.auth.role = 'admin'"
+      },
+      "fields": [
+        {
+          "name": "employee",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "base_salary",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "install_commission",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "bonus",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "extra_1",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "extra_2",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "extra_3",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "extra_4",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "total",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "reference_date",
+          "type": "date",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["Pendente", "Pago"]
         },
         {
           "name": "created",
