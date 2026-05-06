@@ -8,7 +8,7 @@ export default function Layout() {
     <SidebarProvider>
       <div className="flex h-screen w-full overflow-hidden bg-slate-50 dark:bg-slate-950">
         <AppSidebar />
-        <div className="flex flex-col flex-1 min-w-0 z-10">
+        <div className="flex flex-col flex-1 min-w-0 relative">
           <AppHeader />
           <main className="flex-1 overflow-auto flex flex-col bg-transparent">
             <div className="flex-1 p-4 md:p-8 pb-12 relative">
