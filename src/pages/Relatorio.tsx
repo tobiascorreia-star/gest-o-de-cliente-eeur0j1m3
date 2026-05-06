@@ -11,71 +11,86 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { CalendarIcon, Printer } from 'lucide-react'
-import { format, isWithinInterval, startOfDay, endOfDay } from 'date-fns'
+import { format, startOfDay, endOfDay } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { ClienteList } from '@/components/clientes/cliente-list'
 import { getClients } from '@/services/clients'
 import { getConfigurations } from '@/services/configurations'
 import { useRealtime } from '@/hooks/use-realtime'
 import { Client } from '@/types'
+import { cn } from '@/lib/utils'
 
 const Relatorio = () => {
   const [clients, setClients] = useState<Client[]>([])
-  const [statusList, setStatusList] = useState<any[]>([])
+  const [configs, setConfigs] = useState<any[]>([])
+  const [configsLoaded, setConfigsLoaded] = useState(false)
   const [dateStart, setDateStart] = useState<Date>()
   const [dateEnd, setDateEnd] = useState<Date>()
   const [statusFilter, setStatusFilter] = useState('all')
+  const [isLoading, setIsLoading] = useState(false)
 
-  const loadData = async () => {
+  const loadConfigs = async () => {
     try {
-      const [clientsData, configsData] = await Promise.all([getClients(), getConfigurations()])
-      setClients(clientsData)
-      setStatusList(configsData.filter((c: any) => c.type === 'Status'))
+      const configsData = await getConfigurations()
+      setConfigs(configsData)
     } catch (error) {
       console.error(error)
+    } finally {
+      setConfigsLoaded(true)
     }
   }
 
   useEffect(() => {
-    loadData()
+    loadConfigs()
   }, [])
 
-  useRealtime('clients', loadData)
-  useRealtime('configurations', loadData)
+  const baixaStatusId = useMemo(() => {
+    return configs.find(
+      (c: any) => c.type?.toLowerCase() === 'status' && c.name?.toLowerCase() === 'baixa',
+    )?.id
+  }, [configs])
 
-  const baixaStatusId = statusList.find((s) => s.name.toUpperCase() === 'BAIXA')?.id
+  const loadData = useCallback(async () => {
+    if (!configsLoaded) return
+
+    setIsLoading(true)
+    try {
+      const filters: string[] = []
+
+      if (statusFilter === 'active' && baixaStatusId) {
+        filters.push(`status != '${baixaStatusId}'`)
+      } else if (statusFilter === 'completed' && baixaStatusId) {
+        filters.push(`status = '${baixaStatusId}'`)
+      }
+
+      if (dateStart) {
+        filters.push(`created >= '${startOfDay(dateStart).toISOString().replace('T', ' ')}'`)
+      }
+      if (dateEnd) {
+        filters.push(`created <= '${endOfDay(dateEnd).toISOString().replace('T', ' ')}'`)
+      }
+
+      const filter = filters.join(' && ')
+      const clientsData = await getClients({ filter })
+      setClients(clientsData)
+    } catch (error) {
+      console.error(error)
+    } finally {
+      setIsLoading(false)
+    }
+  }, [statusFilter, dateStart, dateEnd, baixaStatusId, configsLoaded])
+
+  useEffect(() => {
+    loadData()
+  }, [loadData])
+
+  useRealtime('clients', loadData)
+  useRealtime('configurations', loadConfigs)
 
   const handlePrint = () => {
     window.print()
   }
-
-  const filteredClients = useMemo(() => {
-    return clients.filter((c) => {
-      let matchesStatus = true
-      if (statusFilter === 'active') matchesStatus = c.status !== baixaStatusId
-      if (statusFilter === 'completed') matchesStatus = c.status === baixaStatusId
-
-      let matchesDate = true
-      if (c.created) {
-        const cDate = new Date(c.created)
-        if (dateStart && dateEnd) {
-          matchesDate = isWithinInterval(cDate, {
-            start: startOfDay(dateStart),
-            end: endOfDay(dateEnd),
-          })
-        } else if (dateStart) {
-          matchesDate = cDate >= startOfDay(dateStart)
-        } else if (dateEnd) {
-          matchesDate = cDate <= endOfDay(dateEnd)
-        }
-      } else if (dateStart || dateEnd) {
-        matchesDate = false // If filtering by date and client has no date, exclude
-      }
-
-      return matchesStatus && matchesDate
-    })
-  }, [clients, statusFilter, baixaStatusId, dateStart, dateEnd])
 
   return (
     <div className="space-y-6">
@@ -101,14 +116,13 @@ const Relatorio = () => {
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
-                    className="w-full justify-start text-left font-normal rounded-lg"
+                    className={cn(
+                      'w-full justify-start text-left font-normal rounded-lg',
+                      !dateStart && 'text-muted-foreground',
+                    )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dateStart ? (
-                      format(dateStart, 'P', { locale: ptBR })
-                    ) : (
-                      <span className="text-muted-foreground">Selecione</span>
-                    )}
+                    {dateStart ? format(dateStart, 'P', { locale: ptBR }) : <span>Selecione</span>}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0">
@@ -122,14 +136,13 @@ const Relatorio = () => {
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
-                    className="w-full justify-start text-left font-normal rounded-lg"
+                    className={cn(
+                      'w-full justify-start text-left font-normal rounded-lg',
+                      !dateEnd && 'text-muted-foreground',
+                    )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dateEnd ? (
-                      format(dateEnd, 'P', { locale: ptBR })
-                    ) : (
-                      <span className="text-muted-foreground">Selecione</span>
-                    )}
+                    {dateEnd ? format(dateEnd, 'P', { locale: ptBR }) : <span>Selecione</span>}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0">
@@ -153,7 +166,11 @@ const Relatorio = () => {
           </div>
 
           <div className="flex gap-4 pt-6 border-t border-border/50">
-            <Button onClick={handlePrint} className="w-full sm:w-auto rounded-lg">
+            <Button
+              onClick={handlePrint}
+              className="w-full sm:w-auto rounded-lg"
+              disabled={isLoading}
+            >
               <Printer className="w-4 h-4 mr-2" /> Visualizar para PDF
             </Button>
           </div>
@@ -177,26 +194,40 @@ const Relatorio = () => {
             Gerado em {format(new Date(), 'dd/MM/yyyy HH:mm')}
           </p>
         </div>
-        <ClienteList
-          clients={filteredClients}
-          onEdit={() => {}}
-          onDelete={() => {}}
-          onBaixa={() => {}}
-          isRestrictedArea={true}
-        />
+        {clients.length === 0 ? (
+          <p className="text-center text-gray-500 my-8">
+            Nenhum registro encontrado para os filtros selecionados.
+          </p>
+        ) : (
+          <ClienteList
+            clients={clients}
+            onEdit={() => {}}
+            onDelete={() => {}}
+            onBaixa={() => {}}
+            isRestrictedArea={true}
+          />
+        )}
       </div>
 
       <div className="print:hidden pt-4">
         <h3 className="text-lg font-semibold mb-4 text-muted-foreground">
-          Pré-visualização dos Dados ({filteredClients.length} registros)
+          Pré-visualização dos Dados ({clients.length} registros)
         </h3>
-        <ClienteList
-          clients={filteredClients}
-          onEdit={() => {}}
-          onDelete={() => {}}
-          onBaixa={() => {}}
-          isRestrictedArea={true}
-        />
+        {isLoading && clients.length === 0 ? (
+          <div className="py-8 text-center text-muted-foreground">Carregando dados...</div>
+        ) : clients.length === 0 ? (
+          <div className="py-8 text-center border rounded-lg bg-muted/20 text-muted-foreground">
+            Nenhum registro encontrado para os filtros selecionados.
+          </div>
+        ) : (
+          <ClienteList
+            clients={clients}
+            onEdit={() => {}}
+            onDelete={() => {}}
+            onBaixa={() => {}}
+            isRestrictedArea={true}
+          />
+        )}
       </div>
     </div>
   )

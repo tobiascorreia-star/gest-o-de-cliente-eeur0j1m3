@@ -1,10 +1,11 @@
 import pb from '@/lib/pocketbase/client'
 import { Client } from '@/types'
 
-export const getClients = () =>
+export const getClients = (options?: Record<string, any>) =>
   pb.collection('clients').getFullList<Client>({
     expand: 'colaborador,solicitacao,status,categoria,pgto',
     sort: '-created',
+    ...options,
   })
 
 export const getClient = (id: string) =>
