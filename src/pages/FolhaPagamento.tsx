@@ -43,12 +43,14 @@ export default function FolhaPagamento() {
 
   const [filterMonth, setFilterMonth] = useState('')
   const [filterStatus, setFilterStatus] = useState('all')
+  const [filterUser, setFilterUser] = useState(initialUserId || 'all')
 
   const [isOpen, setIsOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [isClosingMonth, setIsClosingMonth] = useState(false)
   const [editingRecord, setEditingRecord] = useState<any>(null)
 
-  const [employee, setEmployee] = useState(initialUserId || '')
+  const [employee, setEmployee] = useState('')
   const [refDate, setRefDate] = useState('')
   const [baseSalary, setBaseSalary] = useState('0')
   const [installComm, setInstallComm] = useState('0')
@@ -58,6 +60,7 @@ export default function FolhaPagamento() {
   const [extra3, setExtra3] = useState('0')
   const [extra4, setExtra4] = useState('0')
   const [status, setStatus] = useState('Pendente')
+  const [observations, setObservations] = useState('')
 
   const [receiptRecord, setReceiptRecord] = useState<any>(null)
 
@@ -75,14 +78,6 @@ export default function FolhaPagamento() {
         sort: 'name',
       })
       setUsers(uData)
-
-      if (initialUserId && !isOpen && !editingRecord) {
-        setIsOpen(true)
-        setEmployee(initialUserId)
-        const now = new Date()
-        setRefDate(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`)
-        setSearchParams({})
-      }
     } catch (err) {
       console.error(err)
       toast({ title: 'Erro', description: 'Falha ao carregar dados.', variant: 'destructive' })
@@ -119,9 +114,10 @@ export default function FolhaPagamento() {
       setExtra3(record.extra_3?.toString() || '0')
       setExtra4(record.extra_4?.toString() || '0')
       setStatus(record.status)
+      setObservations(record.observations || '')
     } else {
       setEditingRecord(null)
-      setEmployee('')
+      setEmployee(filterUser !== 'all' ? filterUser : '')
       const now = new Date()
       setRefDate(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`)
       setBaseSalary('0')
@@ -132,8 +128,21 @@ export default function FolhaPagamento() {
       setExtra3('0')
       setExtra4('0')
       setStatus('Pendente')
+      setObservations('')
     }
     setIsOpen(true)
+  }
+
+  const formatCurrencyInput = (val: string | number) => {
+    const num = typeof val === 'number' ? val : parseFloat(val || '0')
+    if (isNaN(num)) return fmtC(0)
+    return fmtC(num)
+  }
+
+  const parseCurrencyInput = (val: string) => {
+    let v = val.replace(/\D/g, '')
+    if (v === '') v = '0'
+    return (parseInt(v, 10) / 100).toString()
   }
 
   const handleSave = async () => {
@@ -157,7 +166,9 @@ export default function FolhaPagamento() {
         extra_2: parseFloat(extra2) || 0,
         extra_3: parseFloat(extra3) || 0,
         extra_4: parseFloat(extra4) || 0,
+        total: totalCalculated,
         status,
+        observations,
       }
 
       if (editingRecord) {
@@ -230,6 +241,7 @@ export default function FolhaPagamento() {
 
   const filteredPayrolls = payrolls.filter((p) => {
     if (filterStatus !== 'all' && p.status !== filterStatus) return false
+    if (filterUser !== 'all' && p.employee !== filterUser) return false
     if (filterMonth) {
       const d = new Date(p.reference_date)
       const pMonth = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`
@@ -238,8 +250,43 @@ export default function FolhaPagamento() {
     return true
   })
 
+  const handleCloseMonth = async () => {
+    const unclosedRecords = filteredPayrolls.filter((p) => !p.closed)
+    if (unclosedRecords.length === 0) {
+      toast({ title: 'Aviso', description: 'Não há registros abertos nos filtros atuais.' })
+      return
+    }
+
+    if (
+      !confirm(
+        `Tem certeza que deseja fechar o mês para ${unclosedRecords.length} registro(s)? Eles serão bloqueados contra alterações e exclusões.`,
+      )
+    ) {
+      return
+    }
+
+    setIsClosingMonth(true)
+    try {
+      for (const p of unclosedRecords) {
+        await pb.collection('payroll').update(p.id, { closed: true })
+      }
+      toast({ title: 'Sucesso', description: 'Mês fechado com sucesso.' })
+    } catch (err) {
+      console.error(err)
+      toast({
+        title: 'Erro',
+        description: 'Ocorreu um erro ao fechar o mês.',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsClosingMonth(false)
+    }
+  }
+
   const fmtC = (val: number) =>
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val)
+
+  const totalProventos = filteredPayrolls.reduce((sum, p) => sum + (p.total || 0), 0)
 
   return (
     <>
@@ -264,8 +311,8 @@ export default function FolhaPagamento() {
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-4 bg-white/50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
-          <div className="flex-1 space-y-2">
+        <div className="flex flex-col sm:flex-row gap-4 bg-white/50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800 flex-wrap">
+          <div className="flex-1 min-w-[150px] space-y-2">
             <Label>Mês/Ano de Competência</Label>
             <Input
               type="month"
@@ -273,7 +320,33 @@ export default function FolhaPagamento() {
               onChange={(e) => setFilterMonth(e.target.value)}
             />
           </div>
-          <div className="flex-1 space-y-2">
+          <div className="flex-1 min-w-[200px] space-y-2">
+            <Label>Colaborador</Label>
+            <Select
+              value={filterUser}
+              onValueChange={(val) => {
+                setFilterUser(val)
+                if (val !== 'all') {
+                  setSearchParams({ user: val })
+                } else {
+                  setSearchParams({})
+                }
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Todos" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                {users.map((u) => (
+                  <SelectItem key={u.id} value={u.id}>
+                    {u.name || u.email}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex-1 min-w-[150px] space-y-2">
             <Label>Status</Label>
             <Select value={filterStatus} onValueChange={setFilterStatus}>
               <SelectTrigger>
@@ -292,6 +365,8 @@ export default function FolhaPagamento() {
               onClick={() => {
                 setFilterMonth('')
                 setFilterStatus('all')
+                setFilterUser('all')
+                setSearchParams({})
               }}
             >
               Limpar Filtros
@@ -360,19 +435,21 @@ export default function FolhaPagamento() {
                             variant="ghost"
                             size="icon"
                             onClick={() => openForm(p)}
-                            title="Editar"
+                            title={p.closed ? 'Visualizar (Fechado)' : 'Editar'}
                           >
                             <Edit className="w-4 h-4 text-slate-500" />
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDelete(p.id)}
-                            title="Excluir"
-                            className="hover:text-destructive hover:bg-destructive/10"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
+                          {!p.closed && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDelete(p.id)}
+                              title="Excluir"
+                              className="hover:text-destructive hover:bg-destructive/10"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>
@@ -383,20 +460,55 @@ export default function FolhaPagamento() {
           </Table>
         </div>
 
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <div className="bg-white/50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 p-4 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-4 shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] print:hidden">
+          <div className="flex items-center gap-3">
+            <div className="bg-primary/10 p-2 rounded-lg">
+              <Banknote className="w-5 h-5 text-primary" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-slate-500">Total de Proventos</p>
+              <p className="text-2xl font-bold text-slate-800 dark:text-slate-100">
+                {fmtC(totalProventos)}
+              </p>
+            </div>
+          </div>
+          <div>
+            <Button variant="default" onClick={handleCloseMonth} disabled={isClosingMonth}>
+              {isClosingMonth ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Fechando...
+                </>
+              ) : (
+                'Fechar Mês'
+              )}
+            </Button>
+          </div>
+        </div>
+
+        <Dialog open={isOpen} onOpenChange={(v) => !isSaving && setIsOpen(v)}>
           <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
-                {editingRecord ? 'Editar Folha de Pagamento' : 'Novo Lançamento'}
+                {editingRecord
+                  ? editingRecord.closed
+                    ? 'Visualizar Lançamento'
+                    : 'Editar Lançamento'
+                  : 'Novo Lançamento'}
               </DialogTitle>
               <DialogDescription>
-                Preencha os valores; o total é calculado automaticamente.
+                {editingRecord?.closed
+                  ? 'Este lançamento está fechado e não pode ser editado.'
+                  : 'Preencha os valores financeiros. O total é calculado automaticamente.'}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
                 <Label>Colaborador *</Label>
-                <Select value={employee} onValueChange={setEmployee}>
+                <Select
+                  value={employee}
+                  onValueChange={setEmployee}
+                  disabled={editingRecord?.closed}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione um colaborador" />
                   </SelectTrigger>
@@ -417,11 +529,12 @@ export default function FolhaPagamento() {
                     type="month"
                     value={refDate}
                     onChange={(e) => setRefDate(e.target.value)}
+                    disabled={editingRecord?.closed}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label>Status *</Label>
-                  <Select value={status} onValueChange={setStatus}>
+                  <Select value={status} onValueChange={setStatus} disabled={editingRecord?.closed}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -437,28 +550,28 @@ export default function FolhaPagamento() {
                 <div className="space-y-2">
                   <Label>Salário Base</Label>
                   <Input
-                    type="number"
-                    step="0.01"
-                    value={baseSalary}
-                    onChange={(e) => setBaseSalary(e.target.value)}
+                    type="text"
+                    value={formatCurrencyInput(baseSalary)}
+                    onChange={(e) => setBaseSalary(parseCurrencyInput(e.target.value))}
+                    disabled={editingRecord?.closed}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label>Comissões</Label>
                   <Input
-                    type="number"
-                    step="0.01"
-                    value={installComm}
-                    onChange={(e) => setInstallComm(e.target.value)}
+                    type="text"
+                    value={formatCurrencyInput(installComm)}
+                    onChange={(e) => setInstallComm(parseCurrencyInput(e.target.value))}
+                    disabled={editingRecord?.closed}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label>Bônus</Label>
                   <Input
-                    type="number"
-                    step="0.01"
-                    value={bonus}
-                    onChange={(e) => setBonus(e.target.value)}
+                    type="text"
+                    value={formatCurrencyInput(bonus)}
+                    onChange={(e) => setBonus(parseCurrencyInput(e.target.value))}
+                    disabled={editingRecord?.closed}
                   />
                 </div>
               </div>
@@ -467,39 +580,50 @@ export default function FolhaPagamento() {
                 <div className="space-y-2">
                   <Label>Extra 1</Label>
                   <Input
-                    type="number"
-                    step="0.01"
-                    value={extra1}
-                    onChange={(e) => setExtra1(e.target.value)}
+                    type="text"
+                    value={formatCurrencyInput(extra1)}
+                    onChange={(e) => setExtra1(parseCurrencyInput(e.target.value))}
+                    disabled={editingRecord?.closed}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label>Extra 2</Label>
                   <Input
-                    type="number"
-                    step="0.01"
-                    value={extra2}
-                    onChange={(e) => setExtra2(e.target.value)}
+                    type="text"
+                    value={formatCurrencyInput(extra2)}
+                    onChange={(e) => setExtra2(parseCurrencyInput(e.target.value))}
+                    disabled={editingRecord?.closed}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label>Extra 3</Label>
                   <Input
-                    type="number"
-                    step="0.01"
-                    value={extra3}
-                    onChange={(e) => setExtra3(e.target.value)}
+                    type="text"
+                    value={formatCurrencyInput(extra3)}
+                    onChange={(e) => setExtra3(parseCurrencyInput(e.target.value))}
+                    disabled={editingRecord?.closed}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label>Extra 4</Label>
                   <Input
-                    type="number"
-                    step="0.01"
-                    value={extra4}
-                    onChange={(e) => setExtra4(e.target.value)}
+                    type="text"
+                    value={formatCurrencyInput(extra4)}
+                    onChange={(e) => setExtra4(parseCurrencyInput(e.target.value))}
+                    disabled={editingRecord?.closed}
                   />
                 </div>
+              </div>
+
+              <div className="space-y-2 border-t border-slate-100 dark:border-slate-800 pt-4">
+                <Label>Observações</Label>
+                <textarea
+                  className="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                  value={observations}
+                  onChange={(e) => setObservations(e.target.value)}
+                  disabled={editingRecord?.closed}
+                  placeholder="Anotações internas..."
+                />
               </div>
 
               <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-lg mt-4 border border-slate-100 dark:border-slate-800 flex justify-between items-center">
@@ -512,17 +636,19 @@ export default function FolhaPagamento() {
 
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="outline" onClick={() => setIsOpen(false)} disabled={isSaving}>
-                Cancelar
+                {editingRecord?.closed ? 'Fechar' : 'Cancelar'}
               </Button>
-              <Button onClick={handleSave} disabled={isSaving}>
-                {isSaving ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Salvando...
-                  </>
-                ) : (
-                  'Salvar'
-                )}
-              </Button>
+              {!editingRecord?.closed && (
+                <Button onClick={handleSave} disabled={isSaving}>
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Salvando...
+                    </>
+                  ) : (
+                    'Salvar'
+                  )}
+                </Button>
+              )}
             </div>
           </DialogContent>
         </Dialog>

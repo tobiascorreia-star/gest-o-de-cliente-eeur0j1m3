@@ -22,14 +22,27 @@ onRecordAfterUpdateSuccess((e) => {
     const employeeId = e.record.getString('employee')
     const total = e.record.getFloat('total')
 
+    const oldClosed = e.record.original().getBool('closed')
+    const newClosed = e.record.getBool('closed')
+
     const auditCol = $app.findCollectionByNameOrId('audit_logs')
     const log = new Record(auditCol)
-    log.set('action', 'PAYROLL_UPDATED')
-    log.set('user', adminId === 'system' ? '' : adminId)
-    log.set(
-      'details',
-      `Folha de pagamento atualizada. Colaborador: ${employeeId}. Novo Total: R$ ${total}`,
-    )
+
+    if (!oldClosed && newClosed) {
+      log.set('action', 'PAYROLL_CLOSED')
+      log.set('user', adminId === 'system' ? '' : adminId)
+      log.set(
+        'details',
+        `Folha de pagamento fechada. Colaborador: ${employeeId}. Total: R$ ${total}`,
+      )
+    } else {
+      log.set('action', 'PAYROLL_UPDATED')
+      log.set('user', adminId === 'system' ? '' : adminId)
+      log.set(
+        'details',
+        `Folha de pagamento atualizada. Colaborador: ${employeeId}. Novo Total: R$ ${total}`,
+      )
+    }
     $app.save(log)
   } catch (err) {
     $app.logger().error('Error creating audit log for payroll update: ' + err)

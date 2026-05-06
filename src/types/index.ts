@@ -71,6 +71,8 @@ export interface Payroll {
   total: number
   reference_date: string
   status: string
+  observations?: string
+  closed?: boolean
   created: string
   updated: string
   expand?: {
