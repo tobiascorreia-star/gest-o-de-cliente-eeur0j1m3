@@ -94,6 +94,20 @@ const Relatorio = () => {
 
   return (
     <div className="space-y-6">
+      <style>{`
+        @media print {
+          #printable-report td, 
+          #printable-report th,
+          #printable-report p,
+          #printable-report div,
+          #printable-report span {
+            white-space: normal !important;
+            word-break: break-word !important;
+            overflow-wrap: break-word !important;
+            overflow: visible !important;
+          }
+        }
+      `}</style>
       <div className="print:hidden">
         <h2 className="text-2xl font-bold tracking-tight">Relatórios</h2>
         <p className="text-muted-foreground text-sm mt-1">
