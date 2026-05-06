@@ -62,6 +62,7 @@ export interface Payroll {
   id: string
   employee: string
   base_salary: number
+  unit_value?: number
   install_commission: number
   bonus: number
   extra_1: number
@@ -97,4 +98,12 @@ export interface PasswordResetRequest {
   email: string
   timestamp: string
   status: 'pending' | 'resolved'
+}
+
+export interface PayrollSettings {
+  id: string
+  reference_date: string
+  quantity: number
+  created: string
+  updated: string
 }

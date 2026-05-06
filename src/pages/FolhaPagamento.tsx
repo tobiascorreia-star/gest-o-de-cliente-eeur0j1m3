@@ -26,58 +26,146 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { toast } from '@/hooks/use-toast'
 import pb from '@/lib/pocketbase/client'
-import { useRealtime } from '@/hooks/use-realtime'
-import { Plus, Download, Printer, Edit, Trash2, Banknote, Loader2 } from 'lucide-react'
+import { Plus, Download, Printer, Edit, Trash2, Banknote, Loader2, Save, Info } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+
+const InfoTooltip = ({ text }: { text: string }) => (
+  <Tooltip>
+    <TooltipTrigger type="button" tabIndex={-1} className="cursor-help align-middle ml-1">
+      <Info className="w-4 h-4 text-slate-400 hover:text-slate-600 transition-colors" />
+    </TooltipTrigger>
+    <TooltipContent>
+      <p className="max-w-xs text-sm">{text}</p>
+    </TooltipContent>
+  </Tooltip>
+)
+
+const formatCurrencyInput = (val: number | null | undefined): string => {
+  if (val === null || val === undefined) return ''
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val)
+}
+
+const parseCurrencyInput = (val: string): number | null => {
+  if (!val) return null
+  const v = val.replace(/\D/g, '')
+  if (v === '') return null
+  return parseInt(v, 10) / 100
+}
 
 export default function FolhaPagamento() {
   const [searchParams, setSearchParams] = useSearchParams()
   const initialUserId = searchParams.get('user')
 
-  const [payrolls, setPayrolls] = useState<any[]>([])
   const [users, setUsers] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
 
-  const [filterMonth, setFilterMonth] = useState('')
+  const [filterMonth, setFilterMonth] = useState(() => {
+    const now = new Date()
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+  })
   const [filterStatus, setFilterStatus] = useState('all')
   const [filterUser, setFilterUser] = useState(initialUserId || 'all')
 
+  const [draftPayrolls, setDraftPayrolls] = useState<any[]>([])
+  const [globalQty, setGlobalQty] = useState<string>('')
+  const [settingsId, setSettingsId] = useState<string>('')
+
   const [isOpen, setIsOpen] = useState(false)
-  const [isSaving, setIsSaving] = useState(false)
+  const [isConsolidating, setIsConsolidating] = useState(false)
+  const [savingRowId, setSavingRowId] = useState<string | null>(null)
   const [isClosingMonth, setIsClosingMonth] = useState(false)
+
   const [editingRecord, setEditingRecord] = useState<any>(null)
 
   const [employee, setEmployee] = useState('')
-  const [refDate, setRefDate] = useState('')
-  const [baseSalary, setBaseSalary] = useState('0')
-  const [installComm, setInstallComm] = useState('0')
-  const [bonus, setBonus] = useState('0')
-  const [extra1, setExtra1] = useState('0')
-  const [extra2, setExtra2] = useState('0')
-  const [extra3, setExtra3] = useState('0')
-  const [extra4, setExtra4] = useState('0')
+  const [baseSalary, setBaseSalary] = useState<number | null>(null)
+  const [unitValue, setUnitValue] = useState<number | null>(null)
+  const [installComm, setInstallComm] = useState<number | null>(null)
+  const [bonus, setBonus] = useState<number | null>(null)
+  const [extra1, setExtra1] = useState<number | null>(null)
+  const [extra2, setExtra2] = useState<number | null>(null)
+  const [extra3, setExtra3] = useState<number | null>(null)
+  const [extra4, setExtra4] = useState<number | null>(null)
   const [status, setStatus] = useState('Pendente')
   const [observations, setObservations] = useState('')
+  const [isClosed, setIsClosed] = useState(false)
 
   const [receiptRecord, setReceiptRecord] = useState<any>(null)
 
-  const loadData = async () => {
+  const loadMonthData = async () => {
     setLoading(true)
     try {
-      const pData = await pb.collection('payroll').getFullList({
-        expand: 'employee',
-        sort: '-reference_date',
-      })
-      setPayrolls(pData)
-
       const uData = await pb.collection('users').getFullList({
         filter: 'active = true',
         sort: 'name',
       })
       setUsers(uData)
+
+      if (!filterMonth) {
+        setDraftPayrolls([])
+        setLoading(false)
+        return
+      }
+
+      const [yStr, mStr] = filterMonth.split('-')
+      const y = parseInt(yStr, 10)
+      const m = parseInt(mStr, 10) - 1
+
+      const startOfMo = new Date(Date.UTC(y, m, 1, 0, 0, 0)).toISOString()
+      const endOfMo = new Date(Date.UTC(y, m + 1, 1, 0, 0, 0)).toISOString()
+
+      const pData = await pb.collection('payroll').getFullList({
+        filter: `reference_date >= '${startOfMo}' && reference_date < '${endOfMo}'`,
+        expand: 'employee',
+        sort: '-created',
+      })
+
+      let qty = ''
+      let sId = ''
+      try {
+        const sData = await pb
+          .collection('payroll_settings')
+          .getFirstListItem(`reference_date >= '${startOfMo}' && reference_date < '${endOfMo}'`)
+        qty = sData.quantity?.toString() || ''
+        sId = sData.id
+      } catch {
+        /* intentionally ignored */
+      }
+
+      if (pData.length > 0) {
+        setDraftPayrolls(pData.map((p) => ({ ...p, _isDraft: false, _isModified: false })))
+      } else {
+        const prevStart = new Date(Date.UTC(y, m - 1, 1, 0, 0, 0)).toISOString()
+        const prevEnd = new Date(Date.UTC(y, m, 1, 0, 0, 0)).toISOString()
+        const prevData = await pb.collection('payroll').getFullList({
+          filter: `reference_date >= '${prevStart}' && reference_date < '${prevEnd}'`,
+          expand: 'employee',
+          sort: '-created',
+        })
+
+        if (prevData.length > 0) {
+          setDraftPayrolls(
+            prevData.map((p) => ({
+              ...p,
+              id: undefined,
+              reference_date: startOfMo,
+              status: 'Pendente',
+              closed: false,
+              _isDraft: true,
+              _isModified: true,
+              extra_1: 0,
+            })),
+          )
+        } else {
+          setDraftPayrolls([])
+        }
+      }
+      setGlobalQty(qty)
+      setSettingsId(sId)
     } catch (err) {
       console.error(err)
       toast({ title: 'Erro', description: 'Falha ao carregar dados.', variant: 'destructive' })
@@ -87,113 +175,279 @@ export default function FolhaPagamento() {
   }
 
   useEffect(() => {
-    loadData()
-  }, [initialUserId])
-  useRealtime('payroll', () => loadData())
+    loadMonthData()
+  }, [filterMonth])
 
-  const totalCalculated =
-    (parseFloat(baseSalary) || 0) +
-    (parseFloat(installComm) || 0) +
-    (parseFloat(bonus) || 0) +
-    (parseFloat(extra1) || 0) +
-    (parseFloat(extra2) || 0) +
-    (parseFloat(extra3) || 0) +
-    (parseFloat(extra4) || 0)
+  const handleMonthChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const hasUnsaved = draftPayrolls.some((p) => p._isDraft || p._isModified)
+    if (hasUnsaved) {
+      if (
+        !confirm(
+          'Existem alterações não salvas. Deseja realmente mudar de mês e perder essas alterações?',
+        )
+      ) {
+        return
+      }
+    }
+    setFilterMonth(e.target.value)
+  }
 
-  const openForm = (record?: any) => {
-    if (record) {
-      setEditingRecord(record)
-      setEmployee(record.employee)
-      const d = new Date(record.reference_date)
-      setRefDate(`${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`)
-      setBaseSalary(record.base_salary?.toString() || '0')
-      setInstallComm(record.install_commission?.toString() || '0')
-      setBonus(record.bonus?.toString() || '0')
-      setExtra1(record.extra_1?.toString() || '0')
-      setExtra2(record.extra_2?.toString() || '0')
-      setExtra3(record.extra_3?.toString() || '0')
-      setExtra4(record.extra_4?.toString() || '0')
-      setStatus(record.status)
-      setObservations(record.observations || '')
+  const handleGlobalQtyChange = (val: string) => {
+    setGlobalQty(val)
+    const q = parseFloat(val) || 0
+    setDraftPayrolls((prev) =>
+      prev.map((p) => {
+        if (p.closed) return p
+        const unit = p.unit_value || 0
+        const extra1 = unit * q
+        const total =
+          (p.base_salary || 0) +
+          (p.install_commission || 0) +
+          (p.bonus || 0) +
+          extra1 +
+          (p.extra_2 || 0) +
+          (p.extra_3 || 0) +
+          (p.extra_4 || 0)
+        return {
+          ...p,
+          extra_1: extra1,
+          total,
+          _isModified: true,
+        }
+      }),
+    )
+  }
+
+  const openForm = (p?: any) => {
+    if (p) {
+      setEditingRecord(p)
+      setEmployee(p.employee)
+      setBaseSalary(p.base_salary ?? null)
+      setUnitValue(p.unit_value ?? null)
+      setInstallComm(p.install_commission ?? null)
+      setBonus(p.bonus ?? null)
+      setExtra1(p.extra_1 ?? null)
+      setExtra2(p.extra_2 ?? null)
+      setExtra3(p.extra_3 ?? null)
+      setExtra4(p.extra_4 ?? null)
+      setStatus(p.status || 'Pendente')
+      setObservations(p.observations || '')
+      setIsClosed(p.closed || false)
     } else {
       setEditingRecord(null)
       setEmployee(filterUser !== 'all' ? filterUser : '')
-      const now = new Date()
-      setRefDate(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`)
-      setBaseSalary('0')
-      setInstallComm('0')
-      setBonus('0')
-      setExtra1('0')
-      setExtra2('0')
-      setExtra3('0')
-      setExtra4('0')
+      setBaseSalary(null)
+      setUnitValue(null)
+      setInstallComm(null)
+      setBonus(null)
+      setExtra1(null)
+      setExtra2(null)
+      setExtra3(null)
+      setExtra4(null)
       setStatus('Pendente')
       setObservations('')
+      setIsClosed(false)
     }
     setIsOpen(true)
   }
 
-  const formatCurrencyInput = (val: string | number) => {
-    const num = typeof val === 'number' ? val : parseFloat(val || '0')
-    if (isNaN(num)) return fmtC(0)
-    return fmtC(num)
+  const handleUnitValueChange = (val: string) => {
+    const uv = parseCurrencyInput(val)
+    setUnitValue(uv)
+    const q = parseFloat(globalQty) || 0
+    setExtra1((uv || 0) * q)
   }
 
-  const parseCurrencyInput = (val: string) => {
-    let v = val.replace(/\D/g, '')
-    if (v === '') v = '0'
-    return (parseInt(v, 10) / 100).toString()
-  }
-
-  const handleSave = async () => {
-    if (!employee || !refDate || !status) {
-      toast({
-        title: 'Erro',
-        description: 'Preencha os campos obrigatórios.',
-        variant: 'destructive',
-      })
+  const handleSaveToMemory = () => {
+    if (!employee) {
+      toast({ title: 'Erro', description: 'Selecione o colaborador.', variant: 'destructive' })
       return
     }
-    setIsSaving(true)
+
+    const q = parseFloat(globalQty) || 0
+    const calculatedExtra1 = (unitValue || 0) * q
+    const total =
+      (baseSalary || 0) +
+      (installComm || 0) +
+      (bonus || 0) +
+      calculatedExtra1 +
+      (extra2 || 0) +
+      (extra3 || 0) +
+      (extra4 || 0)
+
+    const [y, m] = filterMonth.split('-')
+    const startOfMo = new Date(Date.UTC(parseInt(y), parseInt(m) - 1, 1, 0, 0, 0)).toISOString()
+
+    const data = {
+      employee,
+      reference_date: startOfMo,
+      base_salary: baseSalary || 0,
+      unit_value: unitValue || 0,
+      install_commission: installComm || 0,
+      bonus: bonus || 0,
+      extra_1: calculatedExtra1,
+      extra_2: extra2 || 0,
+      extra_3: extra3 || 0,
+      extra_4: extra4 || 0,
+      total,
+      status,
+      observations,
+      closed: isClosed,
+    }
+
+    if (editingRecord) {
+      setDraftPayrolls((prev) =>
+        prev.map((item) => {
+          if (item === editingRecord) {
+            return {
+              ...item,
+              ...data,
+              expand: { ...item.expand, employee: users.find((u) => u.id === employee) },
+              _isModified: true,
+            }
+          }
+          return item
+        }),
+      )
+    } else {
+      setDraftPayrolls([
+        ...draftPayrolls,
+        {
+          ...data,
+          expand: { employee: users.find((u) => u.id === employee) },
+          _isDraft: true,
+          _isModified: true,
+        },
+      ])
+    }
+    setIsOpen(false)
+  }
+
+  const handleSaveRow = async (p: any) => {
+    setSavingRowId(p.employee)
     try {
-      const data = {
-        employee,
-        reference_date: new Date(`${refDate}-01T12:00:00Z`).toISOString(),
-        base_salary: parseFloat(baseSalary) || 0,
-        install_commission: parseFloat(installComm) || 0,
-        bonus: parseFloat(bonus) || 0,
-        extra_1: parseFloat(extra1) || 0,
-        extra_2: parseFloat(extra2) || 0,
-        extra_3: parseFloat(extra3) || 0,
-        extra_4: parseFloat(extra4) || 0,
-        total: totalCalculated,
-        status,
-        observations,
+      let currentSettingsId = settingsId
+      const [y, m] = filterMonth.split('-')
+      const startOfMo = new Date(Date.UTC(parseInt(y), parseInt(m) - 1, 1, 0, 0, 0)).toISOString()
+
+      if (!currentSettingsId && globalQty) {
+        const s = await pb.collection('payroll_settings').create({
+          reference_date: startOfMo,
+          quantity: parseFloat(globalQty) || 0,
+        })
+        setSettingsId(s.id)
+        currentSettingsId = s.id
+      } else if (currentSettingsId) {
+        await pb.collection('payroll_settings').update(currentSettingsId, {
+          quantity: parseFloat(globalQty) || 0,
+        })
       }
 
-      if (editingRecord) {
-        await pb.collection('payroll').update(editingRecord.id, data)
-        toast({ title: 'Sucesso', description: 'Registro atualizado com sucesso.' })
-      } else {
-        await pb.collection('payroll').create(data)
-        toast({ title: 'Sucesso', description: 'Registro criado com sucesso.' })
+      const data = {
+        employee: p.employee,
+        reference_date: p.reference_date,
+        base_salary: p.base_salary,
+        unit_value: p.unit_value,
+        install_commission: p.install_commission,
+        bonus: p.bonus,
+        extra_1: p.extra_1,
+        extra_2: p.extra_2,
+        extra_3: p.extra_3,
+        extra_4: p.extra_4,
+        total: p.total,
+        status: p.status,
+        observations: p.observations,
       }
-      setIsOpen(false)
-    } catch (err) {
-      toast({ title: 'Erro', description: 'Falha ao salvar.', variant: 'destructive' })
+
+      let saved
+      if (p.id) {
+        saved = await pb.collection('payroll').update(p.id, data, { expand: 'employee' })
+      } else {
+        saved = await pb.collection('payroll').create(data, { expand: 'employee' })
+      }
+
+      setDraftPayrolls((prev) =>
+        prev.map((item) =>
+          item === p ? { ...item, ...saved, _isDraft: false, _isModified: false } : item,
+        ),
+      )
+      toast({ title: 'Sucesso', description: 'Registro gravado.' })
+    } catch (e) {
+      toast({ title: 'Erro', description: 'Falha ao gravar.', variant: 'destructive' })
     } finally {
-      setIsSaving(false)
+      setSavingRowId(null)
     }
   }
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Tem certeza que deseja excluir?')) return
+  const handleConsolidate = async () => {
+    setIsConsolidating(true)
     try {
-      await pb.collection('payroll').delete(id)
-      toast({ title: 'Sucesso', description: 'Registro excluído.' })
-    } catch (err) {
-      toast({ title: 'Erro', description: 'Falha ao excluir.', variant: 'destructive' })
+      let currentSettingsId = settingsId
+      const [y, m] = filterMonth.split('-')
+      const startOfMo = new Date(Date.UTC(parseInt(y), parseInt(m) - 1, 1, 0, 0, 0)).toISOString()
+
+      if (!currentSettingsId && globalQty !== '') {
+        const s = await pb.collection('payroll_settings').create({
+          reference_date: startOfMo,
+          quantity: parseFloat(globalQty) || 0,
+        })
+        setSettingsId(s.id)
+      } else if (currentSettingsId) {
+        await pb.collection('payroll_settings').update(currentSettingsId, {
+          quantity: parseFloat(globalQty) || 0,
+        })
+      }
+
+      const updatedDrafts = [...draftPayrolls]
+      for (let i = 0; i < updatedDrafts.length; i++) {
+        const p = updatedDrafts[i]
+        if (!p._isDraft && !p._isModified) continue
+
+        const data = {
+          employee: p.employee,
+          reference_date: p.reference_date,
+          base_salary: p.base_salary,
+          unit_value: p.unit_value,
+          install_commission: p.install_commission,
+          bonus: p.bonus,
+          extra_1: p.extra_1,
+          extra_2: p.extra_2,
+          extra_3: p.extra_3,
+          extra_4: p.extra_4,
+          total: p.total,
+          status: p.status,
+          observations: p.observations,
+        }
+
+        let saved
+        if (p.id) {
+          saved = await pb.collection('payroll').update(p.id, data, { expand: 'employee' })
+        } else {
+          saved = await pb.collection('payroll').create(data, { expand: 'employee' })
+        }
+        updatedDrafts[i] = { ...p, ...saved, _isDraft: false, _isModified: false }
+      }
+      setDraftPayrolls(updatedDrafts)
+      toast({ title: 'Sucesso', description: 'Todos os registros foram consolidados.' })
+    } catch (e) {
+      toast({ title: 'Erro', description: 'Falha ao consolidar o mês.', variant: 'destructive' })
+    } finally {
+      setIsConsolidating(false)
     }
+  }
+
+  const handleDelete = async (p: any) => {
+    if (!confirm('Tem certeza que deseja excluir?')) return
+    if (p.id) {
+      try {
+        await pb.collection('payroll').delete(p.id)
+        toast({ title: 'Sucesso', description: 'Registro excluído.' })
+      } catch (err) {
+        toast({ title: 'Erro', description: 'Falha ao excluir.', variant: 'destructive' })
+        return
+      }
+    }
+    setDraftPayrolls((prev) => prev.filter((item) => item !== p))
   }
 
   const handleExportCSV = () => {
@@ -201,24 +455,28 @@ export default function FolhaPagamento() {
       'Colaborador',
       'Competência',
       'Salário Base',
+      'Valor Individual',
       'Comissões',
       'Bônus',
-      'Extras',
+      'Extra 1',
+      'Extras (2 ao 4)',
       'Total',
       'Status',
     ]
     const rows = filteredPayrolls.map((p) => {
-      const extras = (p.extra_1 || 0) + (p.extra_2 || 0) + (p.extra_3 || 0) + (p.extra_4 || 0)
+      const extras = (p.extra_2 || 0) + (p.extra_3 || 0) + (p.extra_4 || 0)
       const d = new Date(p.reference_date)
       const comp = `${String(d.getUTCMonth() + 1).padStart(2, '0')}/${d.getUTCFullYear()}`
       return [
         p.expand?.employee?.name || p.expand?.employee?.email || 'Desconhecido',
         comp,
-        p.base_salary,
-        p.install_commission,
-        p.bonus,
+        p.base_salary || 0,
+        p.unit_value || 0,
+        p.install_commission || 0,
+        p.bonus || 0,
+        p.extra_1 || 0,
         extras,
-        p.total,
+        p.total || 0,
         p.status,
       ]
         .map((v) => `"${v}"`)
@@ -239,18 +497,17 @@ export default function FolhaPagamento() {
     window.print()
   }
 
-  const filteredPayrolls = payrolls.filter((p) => {
-    if (filterStatus !== 'all' && p.status !== filterStatus) return false
-    if (filterUser !== 'all' && p.employee !== filterUser) return false
-    if (filterMonth) {
-      const d = new Date(p.reference_date)
-      const pMonth = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`
-      if (pMonth !== filterMonth) return false
-    }
-    return true
-  })
-
   const handleCloseMonth = async () => {
+    const hasUnsaved = draftPayrolls.some((p) => p._isDraft || p._isModified)
+    if (hasUnsaved) {
+      toast({
+        title: 'Aviso',
+        description: 'Consolide o mês primeiro antes de fechar.',
+        variant: 'destructive',
+      })
+      return
+    }
+
     const unclosedRecords = filteredPayrolls.filter((p) => !p.closed)
     if (unclosedRecords.length === 0) {
       toast({ title: 'Aviso', description: 'Não há registros abertos nos filtros atuais.' })
@@ -259,7 +516,7 @@ export default function FolhaPagamento() {
 
     if (
       !confirm(
-        `Tem certeza que deseja fechar o mês para ${unclosedRecords.length} registro(s)? Eles serão bloqueados contra alterações e exclusões.`,
+        `Tem certeza que deseja fechar o mês para ${unclosedRecords.length} registro(s)? Eles serão bloqueados contra alterações.`,
       )
     ) {
       return
@@ -270,9 +527,9 @@ export default function FolhaPagamento() {
       for (const p of unclosedRecords) {
         await pb.collection('payroll').update(p.id, { closed: true })
       }
+      setDraftPayrolls((prev) => prev.map((p) => ({ ...p, closed: true })))
       toast({ title: 'Sucesso', description: 'Mês fechado com sucesso.' })
     } catch (err) {
-      console.error(err)
       toast({
         title: 'Erro',
         description: 'Ocorreu um erro ao fechar o mês.',
@@ -281,6 +538,19 @@ export default function FolhaPagamento() {
     } finally {
       setIsClosingMonth(false)
     }
+  }
+
+  const filteredPayrolls = draftPayrolls.filter((p) => {
+    if (filterStatus !== 'all' && p.status !== filterStatus) return false
+    if (filterUser !== 'all' && p.employee !== filterUser) return false
+    return true
+  })
+
+  const getHeaderCompetence = (isoString: string) => {
+    if (!isoString) return ''
+    const d = new Date(isoString)
+    const m = format(d, 'MMMM yyyy', { locale: ptBR })
+    return m.charAt(0).toUpperCase() + m.slice(1)
   }
 
   const fmtC = (val: number) =>
@@ -302,7 +572,20 @@ export default function FolhaPagamento() {
           <div className="flex gap-2">
             <Button variant="outline" onClick={handleExportCSV}>
               <Download className="w-4 h-4 mr-2" />
-              Exportar CSV
+              Exportar
+            </Button>
+            <Button
+              variant="default"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+              onClick={handleConsolidate}
+              disabled={isConsolidating}
+            >
+              {isConsolidating ? (
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+              ) : (
+                <Save className="w-4 h-4 mr-2" />
+              )}
+              Gravar Mês
             </Button>
             <Button onClick={() => openForm()}>
               <Plus className="w-4 h-4 mr-2" />
@@ -311,13 +594,22 @@ export default function FolhaPagamento() {
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-4 bg-white/50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800 flex-wrap">
+        <div className="flex flex-col sm:flex-row gap-4 bg-white/50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800 flex-wrap items-end">
           <div className="flex-1 min-w-[150px] space-y-2">
             <Label>Mês/Ano de Competência</Label>
+            <Input type="month" value={filterMonth} onChange={handleMonthChange} />
+          </div>
+          <div className="flex-1 min-w-[150px] space-y-2">
+            <Label className="flex items-center">
+              Qtde Global
+              <InfoTooltip text="Quantidade geral multiplicada pelo Valor Individual de cada colaborador para calcular o Extra 1." />
+            </Label>
             <Input
-              type="month"
-              value={filterMonth}
-              onChange={(e) => setFilterMonth(e.target.value)}
+              type="number"
+              step="0.01"
+              placeholder="Ex: 10"
+              value={globalQty}
+              onChange={(e) => handleGlobalQtyChange(e.target.value)}
             />
           </div>
           <div className="flex-1 min-w-[200px] space-y-2">
@@ -359,19 +651,6 @@ export default function FolhaPagamento() {
               </SelectContent>
             </Select>
           </div>
-          <div className="flex items-end pb-1">
-            <Button
-              variant="ghost"
-              onClick={() => {
-                setFilterMonth('')
-                setFilterStatus('all')
-                setFilterUser('all')
-                setSearchParams({})
-              }}
-            >
-              Limpar Filtros
-            </Button>
-          </div>
         </div>
 
         <div className="border border-slate-100 rounded-2xl bg-white/50 backdrop-blur-sm shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] dark:bg-slate-900/50 dark:border-slate-800 overflow-hidden">
@@ -380,7 +659,15 @@ export default function FolhaPagamento() {
               <TableRow>
                 <TableHead className="font-medium text-slate-500">Colaborador</TableHead>
                 <TableHead className="font-medium text-slate-500">Competência</TableHead>
-                <TableHead className="font-medium text-slate-500">Status</TableHead>
+                <TableHead className="font-medium text-slate-500 hidden md:table-cell">
+                  Status
+                </TableHead>
+                <TableHead className="text-right font-medium text-slate-500 hidden sm:table-cell">
+                  Valor Ind.
+                </TableHead>
+                <TableHead className="text-right font-medium text-slate-500 hidden sm:table-cell">
+                  Extra 1
+                </TableHead>
                 <TableHead className="text-right font-medium text-slate-500">Total</TableHead>
                 <TableHead className="text-right font-medium text-slate-500">Ações</TableHead>
               </TableRow>
@@ -388,27 +675,26 @@ export default function FolhaPagamento() {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                     <Loader2 className="w-5 h-5 animate-spin mx-auto" />
                   </TableCell>
                 </TableRow>
               ) : filteredPayrolls.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                     Nenhum registro encontrado.
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredPayrolls.map((p) => {
-                  const d = new Date(p.reference_date)
-                  const monthName = format(d, 'MMMM/yyyy', { locale: ptBR })
+                filteredPayrolls.map((p, idx) => {
+                  const isUnsaved = p._isDraft || p._isModified
                   return (
-                    <TableRow key={p.id}>
+                    <TableRow key={p.id || `draft-${idx}`}>
                       <TableCell className="font-medium">
                         {p.expand?.employee?.name || p.expand?.employee?.email || 'Desconhecido'}
                       </TableCell>
-                      <TableCell className="capitalize">{monthName}</TableCell>
-                      <TableCell>
+                      <TableCell>{getHeaderCompetence(p.reference_date)}</TableCell>
+                      <TableCell className="hidden md:table-cell">
                         <Badge
                           variant={p.status === 'Pago' ? 'default' : 'secondary'}
                           className={
@@ -418,11 +704,33 @@ export default function FolhaPagamento() {
                           {p.status}
                         </Badge>
                       </TableCell>
+                      <TableCell className="text-right font-medium text-slate-700 dark:text-slate-300 hidden sm:table-cell">
+                        {fmtC(p.unit_value || 0)}
+                      </TableCell>
+                      <TableCell className="text-right font-medium text-slate-700 dark:text-slate-300 hidden sm:table-cell">
+                        {fmtC(p.extra_1 || 0)}
+                      </TableCell>
                       <TableCell className="text-right font-medium text-slate-700 dark:text-slate-300">
                         {fmtC(p.total)}
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
+                        <div className="flex justify-end gap-2 items-center">
+                          {isUnsaved && !p.closed && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-900/20"
+                              onClick={() => handleSaveRow(p)}
+                              disabled={savingRowId === p.employee}
+                              title="Gravar Registro"
+                            >
+                              {savingRowId === p.employee ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <Save className="w-4 h-4" />
+                              )}
+                            </Button>
+                          )}
                           <Button
                             variant="ghost"
                             size="icon"
@@ -443,7 +751,7 @@ export default function FolhaPagamento() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              onClick={() => handleDelete(p.id)}
+                              onClick={() => handleDelete(p)}
                               title="Excluir"
                               className="hover:text-destructive hover:bg-destructive/10"
                             >
@@ -485,7 +793,7 @@ export default function FolhaPagamento() {
           </div>
         </div>
 
-        <Dialog open={isOpen} onOpenChange={(v) => !isSaving && setIsOpen(v)}>
+        <Dialog open={isOpen} onOpenChange={(v) => setIsOpen(v)}>
           <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
@@ -498,7 +806,7 @@ export default function FolhaPagamento() {
               <DialogDescription>
                 {editingRecord?.closed
                   ? 'Este lançamento está fechado e não pode ser editado.'
-                  : 'Preencha os valores financeiros. O total é calculado automaticamente.'}
+                  : 'Preencha os valores financeiros. O Extra 1 e o Total são calculados automaticamente.'}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
@@ -507,7 +815,7 @@ export default function FolhaPagamento() {
                 <Select
                   value={employee}
                   onValueChange={setEmployee}
-                  disabled={editingRecord?.closed}
+                  disabled={editingRecord?.closed || editingRecord}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione um colaborador" />
@@ -524,15 +832,6 @@ export default function FolhaPagamento() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Competência *</Label>
-                  <Input
-                    type="month"
-                    value={refDate}
-                    onChange={(e) => setRefDate(e.target.value)}
-                    disabled={editingRecord?.closed}
-                  />
-                </div>
-                <div className="space-y-2">
                   <Label>Status *</Label>
                   <Select value={status} onValueChange={setStatus} disabled={editingRecord?.closed}>
                     <SelectTrigger>
@@ -546,31 +845,64 @@ export default function FolhaPagamento() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 border-t border-slate-100 dark:border-slate-800 pt-4">
+              <div className="grid grid-cols-2 gap-4 border-t border-slate-100 dark:border-slate-800 pt-4">
                 <div className="space-y-2">
-                  <Label>Salário Base</Label>
+                  <Label className="flex items-center">
+                    Salário Base
+                    <InfoTooltip text="Salário fixo do colaborador." />
+                  </Label>
                   <Input
                     type="text"
                     value={formatCurrencyInput(baseSalary)}
                     onChange={(e) => setBaseSalary(parseCurrencyInput(e.target.value))}
+                    onFocus={() => {
+                      if (baseSalary === null) setBaseSalary(0)
+                    }}
                     disabled={editingRecord?.closed}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Comissões</Label>
+                  <Label className="flex items-center">
+                    Valor Individual
+                    <InfoTooltip text="Valor unitário multiplicado pela Qtde Global para gerar o Extra 1." />
+                  </Label>
+                  <Input
+                    type="text"
+                    value={formatCurrencyInput(unitValue)}
+                    onChange={(e) => handleUnitValueChange(e.target.value)}
+                    onFocus={() => {
+                      if (unitValue === null) setUnitValue(0)
+                    }}
+                    disabled={editingRecord?.closed}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="flex items-center">
+                    Comissões
+                    <InfoTooltip text="Valor pago por comissões de vendas ou metas." />
+                  </Label>
                   <Input
                     type="text"
                     value={formatCurrencyInput(installComm)}
                     onChange={(e) => setInstallComm(parseCurrencyInput(e.target.value))}
+                    onFocus={() => {
+                      if (installComm === null) setInstallComm(0)
+                    }}
                     disabled={editingRecord?.closed}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Bônus</Label>
+                  <Label className="flex items-center">
+                    Bônus
+                    <InfoTooltip text="Bonificações extras por desempenho." />
+                  </Label>
                   <Input
                     type="text"
                     value={formatCurrencyInput(bonus)}
                     onChange={(e) => setBonus(parseCurrencyInput(e.target.value))}
+                    onFocus={() => {
+                      if (bonus === null) setBonus(0)
+                    }}
                     disabled={editingRecord?.closed}
                   />
                 </div>
@@ -578,38 +910,59 @@ export default function FolhaPagamento() {
 
               <div className="grid grid-cols-2 gap-4 border-t border-slate-100 dark:border-slate-800 pt-4">
                 <div className="space-y-2">
-                  <Label>Extra 1</Label>
+                  <Label className="flex items-center">
+                    Extra 1 (Automático)
+                    <InfoTooltip text="Calculado automaticamente: Valor Individual × Qtde Global." />
+                  </Label>
                   <Input
                     type="text"
                     value={formatCurrencyInput(extra1)}
-                    onChange={(e) => setExtra1(parseCurrencyInput(e.target.value))}
-                    disabled={editingRecord?.closed}
+                    readOnly
+                    className="bg-slate-50 dark:bg-slate-800 text-slate-500 font-medium"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Extra 2</Label>
+                  <Label className="flex items-center">
+                    Extra 2
+                    <InfoTooltip text="Valores adicionais diversos (Ex: Ajuda de Custo)." />
+                  </Label>
                   <Input
                     type="text"
                     value={formatCurrencyInput(extra2)}
                     onChange={(e) => setExtra2(parseCurrencyInput(e.target.value))}
+                    onFocus={() => {
+                      if (extra2 === null) setExtra2(0)
+                    }}
                     disabled={editingRecord?.closed}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Extra 3</Label>
+                  <Label className="flex items-center">
+                    Extra 3
+                    <InfoTooltip text="Valores adicionais diversos." />
+                  </Label>
                   <Input
                     type="text"
                     value={formatCurrencyInput(extra3)}
                     onChange={(e) => setExtra3(parseCurrencyInput(e.target.value))}
+                    onFocus={() => {
+                      if (extra3 === null) setExtra3(0)
+                    }}
                     disabled={editingRecord?.closed}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Extra 4</Label>
+                  <Label className="flex items-center">
+                    Extra 4
+                    <InfoTooltip text="Valores adicionais diversos." />
+                  </Label>
                   <Input
                     type="text"
                     value={formatCurrencyInput(extra4)}
                     onChange={(e) => setExtra4(parseCurrencyInput(e.target.value))}
+                    onFocus={() => {
+                      if (extra4 === null) setExtra4(0)
+                    }}
                     disabled={editingRecord?.closed}
                   />
                 </div>
@@ -618,7 +971,7 @@ export default function FolhaPagamento() {
               <div className="space-y-2 border-t border-slate-100 dark:border-slate-800 pt-4">
                 <Label>Observações</Label>
                 <textarea
-                  className="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex min-h-[80px] w-full rounded-md border border-slate-200 bg-white/50 px-3 py-2 text-sm placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-800 dark:bg-slate-900/50"
                   value={observations}
                   onChange={(e) => setObservations(e.target.value)}
                   disabled={editingRecord?.closed}
@@ -630,24 +983,26 @@ export default function FolhaPagamento() {
                 <span className="font-medium text-slate-500 dark:text-slate-400">
                   Total a Pagar
                 </span>
-                <span className="text-2xl font-semibold text-primary">{fmtC(totalCalculated)}</span>
+                <span className="text-2xl font-semibold text-primary">
+                  {fmtC(
+                    (baseSalary || 0) +
+                      (installComm || 0) +
+                      (bonus || 0) +
+                      (extra1 || 0) +
+                      (extra2 || 0) +
+                      (extra3 || 0) +
+                      (extra4 || 0),
+                  )}
+                </span>
               </div>
             </div>
 
             <div className="flex justify-end gap-2 pt-2">
-              <Button variant="outline" onClick={() => setIsOpen(false)} disabled={isSaving}>
+              <Button variant="outline" onClick={() => setIsOpen(false)}>
                 {editingRecord?.closed ? 'Fechar' : 'Cancelar'}
               </Button>
               {!editingRecord?.closed && (
-                <Button onClick={handleSave} disabled={isSaving}>
-                  {isSaving ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Salvando...
-                    </>
-                  ) : (
-                    'Salvar'
-                  )}
-                </Button>
+                <Button onClick={handleSaveToMemory}>Salvar na Lista</Button>
               )}
             </div>
           </DialogContent>
@@ -662,66 +1017,69 @@ export default function FolhaPagamento() {
               <div className="p-6 border border-slate-200 dark:border-slate-800 rounded-lg bg-white dark:bg-slate-950 shadow-sm text-slate-800 dark:text-slate-200">
                 <div className="text-center mb-6">
                   <h3 className="font-bold text-lg">RECIBO DE PAGAMENTO</h3>
-                  <p className="text-sm text-slate-500 capitalize">
+                  <p className="text-sm text-slate-500">
                     Competência:{' '}
-                    {receiptRecord
-                      ? format(new Date(receiptRecord.reference_date), 'MMMM/yyyy', {
-                          locale: ptBR,
-                        })
-                      : ''}
+                    {receiptRecord ? getHeaderCompetence(receiptRecord.reference_date) : ''}
                   </p>
                 </div>
                 <div className="space-y-2 text-sm border-b border-slate-100 dark:border-slate-800 pb-4 mb-4">
                   <div className="flex justify-between">
-                    <span className="text-slate-500">Colaborador:</span>{' '}
+                    <span className="text-slate-500">Colaborador:</span>
                     <span className="font-medium">
                       {receiptRecord?.expand?.employee?.name ||
                         receiptRecord?.expand?.employee?.email}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-500">Status:</span>{' '}
+                    <span className="text-slate-500">Status:</span>
                     <span>{receiptRecord?.status}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-500">Data de Emissão:</span>{' '}
+                    <span className="text-slate-500">Data de Emissão:</span>
                     <span>{format(new Date(), 'dd/MM/yyyy')}</span>
                   </div>
                 </div>
                 <div className="space-y-2 text-sm border-b border-slate-100 dark:border-slate-800 pb-4 mb-4">
                   {!!receiptRecord?.base_salary && (
                     <div className="flex justify-between">
-                      <span>Salário Base</span> <span>{fmtC(receiptRecord.base_salary)}</span>
+                      <span>Salário Base</span>
+                      <span>{fmtC(receiptRecord.base_salary)}</span>
                     </div>
                   )}
                   {!!receiptRecord?.install_commission && (
                     <div className="flex justify-between">
-                      <span>Comissões</span> <span>{fmtC(receiptRecord.install_commission)}</span>
+                      <span>Comissões</span>
+                      <span>{fmtC(receiptRecord.install_commission)}</span>
                     </div>
                   )}
                   {!!receiptRecord?.bonus && (
                     <div className="flex justify-between">
-                      <span>Bônus</span> <span>{fmtC(receiptRecord.bonus)}</span>
+                      <span>Bônus</span>
+                      <span>{fmtC(receiptRecord.bonus)}</span>
                     </div>
                   )}
                   {!!receiptRecord?.extra_1 && (
                     <div className="flex justify-between">
-                      <span>Extra 1</span> <span>{fmtC(receiptRecord.extra_1)}</span>
+                      <span>Extra 1</span>
+                      <span>{fmtC(receiptRecord.extra_1)}</span>
                     </div>
                   )}
                   {!!receiptRecord?.extra_2 && (
                     <div className="flex justify-between">
-                      <span>Extra 2</span> <span>{fmtC(receiptRecord.extra_2)}</span>
+                      <span>Extra 2</span>
+                      <span>{fmtC(receiptRecord.extra_2)}</span>
                     </div>
                   )}
                   {!!receiptRecord?.extra_3 && (
                     <div className="flex justify-between">
-                      <span>Extra 3</span> <span>{fmtC(receiptRecord.extra_3)}</span>
+                      <span>Extra 3</span>
+                      <span>{fmtC(receiptRecord.extra_3)}</span>
                     </div>
                   )}
                   {!!receiptRecord?.extra_4 && (
                     <div className="flex justify-between">
-                      <span>Extra 4</span> <span>{fmtC(receiptRecord.extra_4)}</span>
+                      <span>Extra 4</span>
+                      <span>{fmtC(receiptRecord.extra_4)}</span>
                     </div>
                   )}
                 </div>
@@ -750,11 +1108,7 @@ export default function FolhaPagamento() {
               body * { visibility: hidden; }
               #receipt-print-section, #receipt-print-section * { visibility: visible; }
               #receipt-print-section {
-                position: absolute;
-                left: 0;
-                top: 0;
-                width: 100%;
-                margin: 0;
+                position: absolute; left: 0; top: 0; width: 100%; margin: 0;
               }
             }
           `}</style>
@@ -766,9 +1120,8 @@ export default function FolhaPagamento() {
               <h1 className="text-3xl font-bold uppercase tracking-wider text-black">
                 Recibo de Pagamento
               </h1>
-              <p className="text-lg mt-2 capitalize text-slate-700">
-                Competência:{' '}
-                {format(new Date(receiptRecord.reference_date), 'MMMM/yyyy', { locale: ptBR })}
+              <p className="text-lg mt-2 text-slate-700">
+                Competência: {getHeaderCompetence(receiptRecord.reference_date)}
               </p>
             </div>
 
