@@ -20,7 +20,9 @@ import Configuracao from './pages/Configuracao'
 import NotFound from './pages/NotFound'
 import Login from './pages/Login'
 import Setup from './pages/Setup'
+import PagamentosAdmin from './pages/PagamentosAdmin'
 import { UpdateNotification } from './components/update-notification'
+import { AdminPaymentsAlert } from './components/admin-payments-alert'
 
 const ProtectedRoute = () => {
   const { user, loading } = useAuth()
@@ -59,14 +61,14 @@ const AppRoutes = () => {
           <Route path="/historico" element={<Historico />} />
           <Route path="/concluidos" element={<Concluidos />} />
           <Route path="/relatorio" element={<Relatorio />} />
-
           <Route element={<AdminRoute />}>
             <Route path="/arquivo" element={<Arquivo />} />
             <Route path="/auditoria" element={<Auditoria />} />
             <Route path="/usuarios" element={<Usuarios />} />
             <Route path="/folha-pagamento" element={<FolhaPagamento />} />
+            <Route path="/pagamentos-admin" element={<PagamentosAdmin />} />
             <Route path="/configuracao" element={<Configuracao />} />
-          </Route>
+          </Route>{' '}
         </Route>
       </Route>
       <Route path="*" element={<NotFound />} />
@@ -85,6 +87,7 @@ const App = () => (
               <Sonner />
               <AppRoutes />
               <UpdateNotification />
+              <AdminPaymentsAlert />
             </AppProvider>
           </AuthProvider>
         </TooltipProvider>

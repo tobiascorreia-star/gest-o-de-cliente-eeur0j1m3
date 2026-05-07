@@ -107,3 +107,16 @@ export interface PayrollSettings {
   created: string
   updated: string
 }
+
+export interface AdminPayment {
+  id: string
+  name: string
+  due_date: string
+  status: boolean
+  value?: number
+  observation?: string
+  reference_month: string
+  admin: string
+  created: string
+  updated: string
+}

@@ -1,0 +1,20 @@
+import pb from '@/lib/pocketbase/client'
+import type { AdminPayment } from '@/types'
+
+export const getAdminPayments = () =>
+  pb.collection('admin_payments').getFullList<AdminPayment>({ sort: 'due_date' })
+
+export const createAdminPayment = (data: Partial<AdminPayment>) =>
+  pb.collection('admin_payments').create<AdminPayment>(data)
+
+export const updateAdminPayment = (id: string, data: Partial<AdminPayment>) =>
+  pb.collection('admin_payments').update<AdminPayment>(id, data)
+
+export const deleteAdminPayment = (id: string) => pb.collection('admin_payments').delete(id)
+
+export const cloneMonthPayments = (sourceMonth: string) =>
+  pb.send('/backend/v1/admin-payments/clone', {
+    method: 'POST',
+    body: JSON.stringify({ source_month: sourceMonth }),
+    headers: { 'Content-Type': 'application/json' },
+  })
