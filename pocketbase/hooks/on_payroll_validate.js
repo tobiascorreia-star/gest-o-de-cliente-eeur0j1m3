@@ -1,3 +1,29 @@
+onRecordCreateRequest((e) => {
+  const employee = e.record.getString('employee')
+  const refDate = e.record.getString('reference_date')
+
+  if (employee && refDate) {
+    try {
+      const d = new Date(refDate)
+      const y = d.getUTCFullYear()
+      const m = d.getUTCMonth()
+      const startOfMo = new Date(Date.UTC(y, m, 1, 0, 0, 0)).toISOString()
+      const endOfMo = new Date(Date.UTC(y, m + 1, 1, 0, 0, 0)).toISOString()
+
+      const existing = $app.findFirstRecordByFilter(
+        'payroll',
+        `employee = '${employee}' && reference_date >= '${startOfMo}' && reference_date < '${endOfMo}'`,
+      )
+      if (existing) {
+        return e.badRequestError('Já existe um lançamento para este colaborador neste mês.')
+      }
+    } catch (err) {
+      // not found, safe to create
+    }
+  }
+  e.next()
+}, 'payroll')
+
 onRecordUpdateRequest((e) => {
   const original = e.record.original()
   if (original.getBool('closed')) {

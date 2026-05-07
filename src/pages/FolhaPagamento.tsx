@@ -111,6 +111,7 @@ export default function FolhaPagamento() {
 
   const loadMonthData = async () => {
     setLoading(true)
+    setDraftPayrolls([])
     try {
       const uData = await pb.collection('users').getFullList({
         filter: 'active = true',
@@ -149,34 +150,44 @@ export default function FolhaPagamento() {
         /* intentionally ignored */
       }
 
-      if (pData.length > 0) {
-        setDraftPayrolls(pData.map((p) => ({ ...p, _isDraft: false, _isModified: false })))
-      } else {
-        const prevStart = new Date(Date.UTC(y, m - 1, 1, 0, 0, 0)).toISOString()
-        const prevEnd = new Date(Date.UTC(y, m, 1, 0, 0, 0)).toISOString()
-        const prevData = await pb.collection('payroll').getFullList({
-          filter: `reference_date >= '${prevStart}' && reference_date < '${prevEnd}'`,
-          expand: 'employee',
-          sort: '-created',
-        })
+      const prevStart = new Date(Date.UTC(y, m - 1, 1, 0, 0, 0)).toISOString()
+      const prevEnd = new Date(Date.UTC(y, m, 1, 0, 0, 0)).toISOString()
+      const prevData = await pb.collection('payroll').getFullList({
+        filter: `reference_date >= '${prevStart}' && reference_date < '${prevEnd}'`,
+        expand: 'employee',
+        sort: '-created',
+      })
 
-        if (prevData.length > 0) {
-          setDraftPayrolls(
-            prevData.map((p) => ({
-              ...p,
-              id: undefined,
-              reference_date: startOfMo,
-              status: 'Pendente',
-              closed: false,
-              _isDraft: true,
-              _isModified: true,
-              install_commission: 0,
-            })),
-          )
-        } else {
-          setDraftPayrolls([])
+      // Combine current month records with template from previous month
+      const currentEmployees = new Set(pData.map((p) => p.employee))
+      const combined = pData.map((p) => ({ ...p, _isDraft: false, _isModified: false }))
+
+      // Only add prevData if the employee doesn't already have a record this month
+      for (const p of prevData) {
+        if (!currentEmployees.has(p.employee)) {
+          combined.push({
+            ...p,
+            id: undefined,
+            reference_date: startOfMo,
+            status: 'Pendente',
+            closed: false,
+            _isDraft: true,
+            _isModified: true,
+            install_commission: 0,
+            unit_value: p.unit_value || 0,
+            total:
+              (p.base_salary || 0) +
+              (p.bonus || 0) +
+              (p.extra_1 || 0) +
+              (p.extra_2 || 0) +
+              (p.extra_3 || 0) +
+              (p.extra_4 || 0),
+          })
+          currentEmployees.add(p.employee)
         }
       }
+
+      setDraftPayrolls(combined)
       setGlobalQty(qty)
       setSettingsId(sId)
     } catch (err) {
@@ -329,6 +340,16 @@ export default function FolhaPagamento() {
         }),
       )
     } else {
+      const exists = draftPayrolls.some((p) => p.employee === employee)
+      if (exists) {
+        toast({
+          title: 'Erro',
+          description: 'Colaborador já possui lançamento neste mês.',
+          variant: 'destructive',
+        })
+        return
+      }
+
       setDraftPayrolls([
         ...draftPayrolls,
         {
@@ -583,25 +604,25 @@ export default function FolhaPagamento() {
 
     setIsRevertingMonth(true)
     try {
-      const closedRecords = draftPayrolls.filter((p) => p.closed && p.id)
+      const [yStr, mStr] = filterMonth.split('-')
+      const y = parseInt(yStr, 10)
+      const m = parseInt(mStr, 10) - 1
 
-      if (closedRecords.length > 0) {
+      const startOfMo = new Date(Date.UTC(y, m, 1, 0, 0, 0)).toISOString()
+      const endOfMo = new Date(Date.UTC(y, m + 1, 1, 0, 0, 0)).toISOString()
+
+      const recordsToRevert = await pb.collection('payroll').getFullList({
+        filter: `reference_date >= '${startOfMo}' && reference_date < '${endOfMo}' && closed = true`,
+      })
+
+      if (recordsToRevert.length > 0) {
         await Promise.all(
-          closedRecords.map((p) => pb.collection('payroll').update(p.id, { closed: false })),
+          recordsToRevert.map((p) => pb.collection('payroll').update(p.id, { closed: false })),
         )
       }
 
-      setDraftPayrolls((prev) =>
-        prev.map((p) => {
-          if (closedRecords.some((cr) => cr.id === p.id)) {
-            return { ...p, closed: false }
-          }
-          return p
-        }),
-      )
+      await loadMonthData()
 
-      const [y, m] = filterMonth.split('-')
-      const startOfMo = new Date(Date.UTC(parseInt(y), parseInt(m) - 1, 1, 0, 0, 0)).toISOString()
       const competenceStr = getHeaderCompetence(startOfMo)
 
       await logAudit('estornar_mes', `Competência ${competenceStr} estornada.`)
