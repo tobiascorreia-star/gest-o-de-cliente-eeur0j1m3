@@ -124,8 +124,8 @@ export function AppSidebar() {
                         <item.icon className="w-4 h-4 mr-2" />
                         <span>{item.name}</span>
                         {item.name === 'Pag. Admin' && pendingAdminPaymentsCount > 0 && (
-                          <span className="ml-auto bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full animate-pulse shadow-sm">
-                            {pendingAdminPaymentsCount}
+                          <span className="ml-auto flex items-center justify-center bg-red-500 text-white text-[10px] font-bold w-5 h-5 rounded-full animate-pulse shadow-sm">
+                            {pendingAdminPaymentsCount > 99 ? '99+' : pendingAdminPaymentsCount}
                           </span>
                         )}
                       </Link>

@@ -49,7 +49,7 @@ export function PaymentModal({
           descricao: initialData.descricao,
           dono_pagamento: initialData.dono_pagamento,
           data_notificacao: initialData.data_notificacao
-            ? initialData.data_notificacao.split(' ')[0]
+            ? initialData.data_notificacao.substring(0, 10)
             : '',
           observacao: initialData.observacao || '',
           mes_referencia: initialData.mes_referencia,
@@ -77,7 +77,7 @@ export function PaymentModal({
       const payload = {
         ...formData,
         data_notificacao: formData.data_notificacao
-          ? `${formData.data_notificacao} 12:00:00.000Z`
+          ? new Date(`${formData.data_notificacao}T12:00:00Z`).toISOString()
           : '',
       }
       await onSave(payload)
@@ -132,6 +132,7 @@ export function PaymentModal({
             <Label>Descrição</Label>
             <Input
               required
+              autoFocus
               placeholder="Ex: Mensalidade Sistema"
               value={formData.descricao}
               onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}

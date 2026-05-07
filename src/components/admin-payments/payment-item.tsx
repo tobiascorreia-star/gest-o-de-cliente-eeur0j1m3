@@ -2,7 +2,7 @@ import { AdminPayment } from '@/types'
 import { useState, useRef, useEffect } from 'react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Button } from '@/components/ui/button'
-import { Pencil, Trash2, Clock, AlertCircle } from 'lucide-react'
+import { Pencil, Trash2, Clock, AlertCircle, ChevronDown, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { updateAdminPayment, deleteAdminPayment } from '@/services/admin_payments'
 import { toast } from 'sonner'
@@ -16,11 +16,16 @@ interface Props {
 export function PaymentItem({ item, onEdit }: Props) {
   const [isEditing, setIsEditing] = useState(false)
   const [desc, setDesc] = useState(item.descricao)
+  const [isExpanded, setIsExpanded] = useState(!item.status)
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     setDesc(item.descricao)
   }, [item.descricao])
+
+  useEffect(() => {
+    setIsExpanded(!item.status)
+  }, [item.status])
 
   useEffect(() => {
     if (isEditing && inputRef.current) {
@@ -106,34 +111,52 @@ export function PaymentItem({ item, onEdit }: Props) {
               {item.descricao}
             </p>
           )}
-        </div>
-
-        <div className="flex items-center gap-2 mt-1 flex-wrap">
-          {item.status && item.data_pagamento_realizado && (
-            <span className="inline-flex items-center gap-1 text-[10px] text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10 px-1.5 py-0.5 rounded-full font-medium whitespace-nowrap">
-              <Clock className="w-3 h-3" />
-              Pago em:{' '}
-              {format(
-                new Date(item.data_pagamento_realizado.replace(' ', 'T')),
-                'dd/MM/yyyy HH:mm',
+          {item.status && (
+            <button
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="ml-auto text-slate-400 hover:text-slate-600 transition-colors p-0.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800"
+            >
+              {isExpanded ? (
+                <ChevronDown className="w-4 h-4" />
+              ) : (
+                <ChevronRight className="w-4 h-4" />
               )}
-            </span>
+            </button>
           )}
         </div>
 
-        <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground flex-wrap">
-          <span className={cn('flex items-center gap-1', isLate && 'text-red-500 font-semibold')}>
-            {isLate && <AlertCircle className="w-3 h-3" />}
-            {item.data_notificacao
-              ? `Vence: ${format(new Date(item.data_notificacao.replace(' ', 'T')), 'dd/MM/yyyy')}`
-              : 'Sem vencimento'}
-          </span>
-          {item.observacao && (
-            <span className="truncate max-w-[200px] text-slate-500" title={item.observacao}>
-              • {item.observacao}
-            </span>
-          )}
-        </div>
+        {isExpanded && (
+          <>
+            <div className="flex items-center gap-2 mt-1 flex-wrap">
+              {item.status && item.data_pagamento_realizado && (
+                <span className="inline-flex items-center gap-1 text-[10px] text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10 px-1.5 py-0.5 rounded-full font-medium whitespace-nowrap">
+                  <Clock className="w-3 h-3" />
+                  Pago em:{' '}
+                  {format(
+                    new Date(item.data_pagamento_realizado.replace(' ', 'T')),
+                    'dd/MM/yyyy HH:mm',
+                  )}
+                </span>
+              )}
+            </div>
+
+            <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground flex-wrap">
+              <span
+                className={cn('flex items-center gap-1', isLate && 'text-red-500 font-semibold')}
+              >
+                {isLate && <AlertCircle className="w-3 h-3" />}
+                {item.data_notificacao
+                  ? `Vence: ${format(new Date(item.data_notificacao.replace(' ', 'T')), 'dd/MM/yyyy')}`
+                  : 'Sem vencimento'}
+              </span>
+              {item.observacao && (
+                <span className="truncate max-w-[200px] text-slate-500" title={item.observacao}>
+                  • {item.observacao}
+                </span>
+              )}
+            </div>
+          </>
+        )}
       </div>
 
       <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity self-start -mt-1 -mr-1">
