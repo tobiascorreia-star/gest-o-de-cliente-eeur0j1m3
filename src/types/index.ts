@@ -112,7 +112,7 @@ export interface AdminPayment {
   id: string
   dono_pagamento: string
   descricao: string
-  data_notificacao: string
+  data_notificacao?: string
   data_pagamento_realizado?: string
   status: boolean
   observacao?: string

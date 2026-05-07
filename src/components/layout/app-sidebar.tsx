@@ -1,4 +1,7 @@
 import { Link, useLocation } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import pb from '@/lib/pocketbase/client'
+import { useRealtime } from '@/hooks/use-realtime'
 import {
   LayoutDashboard,
   Users,
@@ -50,6 +53,30 @@ export function AppSidebar() {
   const { setOpenMobile } = useSidebar()
   const { user, signOut } = useAuth()
 
+  const [pendingAdminPaymentsCount, setPendingAdminPaymentsCount] = useState(0)
+
+  const fetchPendingAdminPayments = async () => {
+    if (user?.role?.toLowerCase() !== 'admin') return
+    try {
+      const today = new Date().toISOString()
+      const res = await pb.collection('admin_payments').getList(1, 1, {
+        filter: `status = false && data_notificacao != '' && data_notificacao <= "${today}"`,
+        $autoCancel: false,
+      })
+      setPendingAdminPaymentsCount(res.totalItems)
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  useEffect(() => {
+    fetchPendingAdminPayments()
+  }, [user])
+
+  useRealtime('admin_payments', () => {
+    fetchPendingAdminPayments()
+  })
+
   const filteredNavigation = navigation.filter((item) => {
     if (item.adminOnly && user?.role?.toLowerCase() !== 'admin') return false
     return true
@@ -93,9 +120,14 @@ export function AppSidebar() {
                       onClick={() => isMobile && setOpenMobile(false)}
                       className="data-[active=true]:bg-primary/10 data-[active=true]:text-primary data-[active=true]:font-medium transition-all text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-800"
                     >
-                      <Link to={item.href}>
-                        <item.icon className="w-4 h-4" />
+                      <Link to={item.href} className="flex items-center w-full">
+                        <item.icon className="w-4 h-4 mr-2" />
                         <span>{item.name}</span>
+                        {item.name === 'Pag. Admin' && pendingAdminPaymentsCount > 0 && (
+                          <span className="ml-auto bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full animate-pulse shadow-sm">
+                            {pendingAdminPaymentsCount}
+                          </span>
+                        )}
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>

@@ -48,7 +48,9 @@ export function PaymentModal({
         setFormData({
           descricao: initialData.descricao,
           dono_pagamento: initialData.dono_pagamento,
-          data_notificacao: initialData.data_notificacao.split(' ')[0],
+          data_notificacao: initialData.data_notificacao
+            ? initialData.data_notificacao.split(' ')[0]
+            : '',
           observacao: initialData.observacao || '',
           mes_referencia: initialData.mes_referencia,
           ano_referencia: initialData.ano_referencia,
@@ -136,11 +138,10 @@ export function PaymentModal({
             />
           </div>
           <div className="space-y-2">
-            <Label>Data de Notificação</Label>
+            <Label>Data de Notificação (Opcional)</Label>
             <Input
               type="date"
-              required
-              value={formData.data_notificacao}
+              value={formData.data_notificacao || ''}
               onChange={(e) => setFormData({ ...formData, data_notificacao: e.target.value })}
             />
           </div>

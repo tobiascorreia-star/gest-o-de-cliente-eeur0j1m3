@@ -67,7 +67,7 @@ export function PaymentItem({ item, onEdit }: Props) {
 
   const isLate =
     !item.status &&
-    item.data_notificacao &&
+    !!item.data_notificacao &&
     startOfDay(new Date(item.data_notificacao.replace(' ', 'T'))) <= startOfDay(new Date())
 
   return (
@@ -124,7 +124,9 @@ export function PaymentItem({ item, onEdit }: Props) {
         <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground flex-wrap">
           <span className={cn('flex items-center gap-1', isLate && 'text-red-500 font-semibold')}>
             {isLate && <AlertCircle className="w-3 h-3" />}
-            Vence: {format(new Date(item.data_notificacao.replace(' ', 'T')), 'dd/MM/yyyy')}
+            {item.data_notificacao
+              ? `Vence: ${format(new Date(item.data_notificacao.replace(' ', 'T')), 'dd/MM/yyyy')}`
+              : 'Sem vencimento'}
           </span>
           {item.observacao && (
             <span className="truncate max-w-[200px] text-slate-500" title={item.observacao}>

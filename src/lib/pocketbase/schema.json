@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-07T22:23:09.945Z",
+  "generatedAt": "2026-05-07T22:41:04.109Z",
   "collections": [
     {
       "name": "users",
@@ -604,7 +604,7 @@
         {
           "name": "data_notificacao",
           "type": "date",
-          "required": true,
+          "required": false,
           "system": false
         },
         {

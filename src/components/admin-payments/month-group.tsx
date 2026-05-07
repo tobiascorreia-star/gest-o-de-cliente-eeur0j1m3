@@ -101,55 +101,49 @@ export function MonthGroup({ mes, ano, items, onEditItem, onAddForOwner }: Props
             </Button>
           </div>
         ) : (
-          <Accordion
-            type="multiple"
-            defaultValue={groupedByOwner.map((g) => g[0])}
-            className="w-full space-y-3"
-          >
+          <div className="flex flex-col gap-4">
             {groupedByOwner.map(([owner, ownerItems]) => {
               const ownerPaid = ownerItems.filter((i) => i.status).length
               return (
-                <AccordionItem key={owner} value={owner} className="border-none bg-transparent">
-                  <div className="flex items-center justify-between group">
-                    <AccordionTrigger className="px-1 py-2 hover:no-underline flex-1 justify-start gap-2 text-sm">
-                      <span className="font-semibold text-slate-700 dark:text-slate-200 uppercase tracking-tight text-xs">
+                <div
+                  key={owner}
+                  className="flex flex-col rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 shadow-sm shrink-0 overflow-hidden"
+                >
+                  <div className="flex items-center justify-between px-3 py-2 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-slate-700 dark:text-slate-200 text-xs tracking-wide uppercase">
                         {owner}
                       </span>
                       <span
                         className={cn(
-                          'text-[10px] px-1.5 py-0.5 rounded-full font-medium',
+                          'text-[10px] px-1.5 py-0.5 rounded-md font-bold',
                           ownerPaid === ownerItems.length
-                            ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                            ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400'
                             : 'bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-400',
                         )}
                       >
                         {ownerPaid}/{ownerItems.length}
                       </span>
-                    </AccordionTrigger>
+                    </div>
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="w-6 h-6 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-slate-500 hover:text-primary"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        onAddForOwner(mes, ano, owner)
-                      }}
+                      className="w-7 h-7 shrink-0 text-slate-500 hover:text-primary hover:bg-slate-200 dark:hover:bg-slate-800 rounded-md"
+                      onClick={() => onAddForOwner(mes, ano, owner)}
                       title={`Adicionar para ${owner}`}
                     >
                       <Plus className="w-4 h-4" />
                     </Button>
                   </div>
-                  <AccordionContent className="pb-1 pt-0">
-                    <div className="space-y-2">
-                      {ownerItems.map((item) => (
-                        <PaymentItem key={item.id} item={item} onEdit={onEditItem} />
-                      ))}
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
+                  <div className="max-h-[300px] overflow-y-auto p-2 space-y-2 scrollbar-thin bg-slate-50/50 dark:bg-slate-950">
+                    {ownerItems.map((item) => (
+                      <PaymentItem key={item.id} item={item} onEdit={onEditItem} />
+                    ))}
+                  </div>
+                </div>
               )
             })}
-          </Accordion>
+          </div>
         )}
       </div>
     </div>
