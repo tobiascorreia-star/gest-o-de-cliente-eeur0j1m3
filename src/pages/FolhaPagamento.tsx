@@ -150,42 +150,7 @@ export default function FolhaPagamento() {
         /* intentionally ignored */
       }
 
-      const prevStart = new Date(Date.UTC(y, m - 1, 1, 0, 0, 0)).toISOString()
-      const prevEnd = new Date(Date.UTC(y, m, 1, 0, 0, 0)).toISOString()
-      const prevData = await pb.collection('payroll').getFullList({
-        filter: `reference_date >= '${prevStart}' && reference_date < '${prevEnd}'`,
-        expand: 'employee',
-        sort: '-created',
-      })
-
-      // Combine current month records with template from previous month
-      const currentEmployees = new Set(pData.map((p) => p.employee))
       const combined = pData.map((p) => ({ ...p, _isDraft: false, _isModified: false }))
-
-      // Only add prevData if the employee doesn't already have a record this month
-      for (const p of prevData) {
-        if (!currentEmployees.has(p.employee)) {
-          combined.push({
-            ...p,
-            id: undefined,
-            reference_date: startOfMo,
-            status: 'Pendente',
-            closed: false,
-            _isDraft: true,
-            _isModified: true,
-            install_commission: 0,
-            unit_value: p.unit_value || 0,
-            total:
-              (p.base_salary || 0) +
-              (p.bonus || 0) +
-              (p.extra_1 || 0) +
-              (p.extra_2 || 0) +
-              (p.extra_3 || 0) +
-              (p.extra_4 || 0),
-          })
-          currentEmployees.add(p.employee)
-        }
-      }
 
       setDraftPayrolls(combined)
       setGlobalQty(qty)
@@ -200,6 +165,9 @@ export default function FolhaPagamento() {
 
   useEffect(() => {
     loadMonthData()
+    return () => {
+      setDraftPayrolls([])
+    }
   }, [filterMonth])
 
   const handleMonthChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -489,7 +457,9 @@ export default function FolhaPagamento() {
         return
       }
     }
-    setDraftPayrolls((prev) => prev.filter((item) => item !== p))
+    setDraftPayrolls((prev) =>
+      prev.filter((item) => (p.id ? item.id !== p.id : item.employee !== p.employee)),
+    )
   }
 
   const handleExportCSV = () => {
@@ -793,10 +763,10 @@ export default function FolhaPagamento() {
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredPayrolls.map((p, idx) => {
+                filteredPayrolls.map((p) => {
                   const isUnsaved = p._isDraft || p._isModified
                   return (
-                    <TableRow key={p.id || `draft-${idx}`}>
+                    <TableRow key={p.id || p.employee}>
                       <TableCell className="font-medium">
                         {p.expand?.employee?.name || p.expand?.employee?.email || 'Desconhecido'}
                       </TableCell>
