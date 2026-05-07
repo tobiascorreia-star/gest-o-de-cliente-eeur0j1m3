@@ -29,7 +29,18 @@ import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { toast } from '@/hooks/use-toast'
 import pb from '@/lib/pocketbase/client'
-import { Plus, Download, Printer, Edit, Trash2, Banknote, Loader2, Save, Info } from 'lucide-react'
+import {
+  Plus,
+  Download,
+  Printer,
+  Edit,
+  Trash2,
+  Banknote,
+  Loader2,
+  Save,
+  Info,
+  RotateCcw,
+} from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
@@ -78,6 +89,7 @@ export default function FolhaPagamento() {
   const [isConsolidating, setIsConsolidating] = useState(false)
   const [savingRowId, setSavingRowId] = useState<string | null>(null)
   const [isClosingMonth, setIsClosingMonth] = useState(false)
+  const [isRevertingMonth, setIsRevertingMonth] = useState(false)
 
   const [editingRecord, setEditingRecord] = useState<any>(null)
 
@@ -157,7 +169,7 @@ export default function FolhaPagamento() {
               closed: false,
               _isDraft: true,
               _isModified: true,
-              extra_1: 0,
+              install_commission: 0,
             })),
           )
         } else {
@@ -199,18 +211,18 @@ export default function FolhaPagamento() {
       prev.map((p) => {
         if (p.closed) return p
         const unit = p.unit_value || 0
-        const extra1 = unit * q
+        const calculatedInstallComm = unit * q
         const total =
           (p.base_salary || 0) +
-          (p.install_commission || 0) +
+          calculatedInstallComm +
           (p.bonus || 0) +
-          extra1 +
+          (p.extra_1 || 0) +
           (p.extra_2 || 0) +
           (p.extra_3 || 0) +
           (p.extra_4 || 0)
         return {
           ...p,
-          extra_1: extra1,
+          install_commission: calculatedInstallComm,
           total,
           _isModified: true,
         }
@@ -224,7 +236,11 @@ export default function FolhaPagamento() {
       setEmployee(p.employee)
       setBaseSalary(p.base_salary ?? null)
       setUnitValue(p.unit_value ?? null)
-      setInstallComm(p.install_commission ?? null)
+      if (!p.closed) {
+        setInstallComm((p.unit_value || 0) * (parseFloat(globalQty) || 0))
+      } else {
+        setInstallComm(p.install_commission ?? null)
+      }
       setBonus(p.bonus ?? null)
       setExtra1(p.extra_1 ?? null)
       setExtra2(p.extra_2 ?? null)
@@ -238,7 +254,7 @@ export default function FolhaPagamento() {
       setEmployee(filterUser !== 'all' ? filterUser : '')
       setBaseSalary(null)
       setUnitValue(null)
-      setInstallComm(null)
+      setInstallComm(0)
       setBonus(null)
       setExtra1(null)
       setExtra2(null)
@@ -254,8 +270,10 @@ export default function FolhaPagamento() {
   const handleUnitValueChange = (val: string) => {
     const uv = parseCurrencyInput(val)
     setUnitValue(uv)
-    const q = parseFloat(globalQty) || 0
-    setExtra1((uv || 0) * q)
+    if (!editingRecord?.closed) {
+      const q = parseFloat(globalQty) || 0
+      setInstallComm((uv || 0) * q)
+    }
   }
 
   const handleSaveToMemory = () => {
@@ -265,12 +283,12 @@ export default function FolhaPagamento() {
     }
 
     const q = parseFloat(globalQty) || 0
-    const calculatedExtra1 = (unitValue || 0) * q
+    const calculatedInstallComm = (unitValue || 0) * q
     const total =
       (baseSalary || 0) +
-      (installComm || 0) +
+      calculatedInstallComm +
       (bonus || 0) +
-      calculatedExtra1 +
+      (extra1 || 0) +
       (extra2 || 0) +
       (extra3 || 0) +
       (extra4 || 0)
@@ -283,9 +301,9 @@ export default function FolhaPagamento() {
       reference_date: startOfMo,
       base_salary: baseSalary || 0,
       unit_value: unitValue || 0,
-      install_commission: installComm || 0,
+      install_commission: calculatedInstallComm,
       bonus: bonus || 0,
-      extra_1: calculatedExtra1,
+      extra_1: extra1 || 0,
       extra_2: extra2 || 0,
       extra_3: extra3 || 0,
       extra_4: extra4 || 0,
@@ -330,7 +348,7 @@ export default function FolhaPagamento() {
       const [y, m] = filterMonth.split('-')
       const startOfMo = new Date(Date.UTC(parseInt(y), parseInt(m) - 1, 1, 0, 0, 0)).toISOString()
 
-      if (!currentSettingsId && globalQty) {
+      if (!currentSettingsId && globalQty !== '') {
         const s = await pb.collection('payroll_settings').create({
           reference_date: startOfMo,
           quantity: parseFloat(globalQty) || 0,
@@ -357,6 +375,7 @@ export default function FolhaPagamento() {
         total: p.total,
         status: p.status,
         observations: p.observations,
+        closed: p.closed,
       }
 
       let saved
@@ -417,6 +436,7 @@ export default function FolhaPagamento() {
           total: p.total,
           status: p.status,
           observations: p.observations,
+          closed: p.closed,
         }
 
         let saved
@@ -455,8 +475,8 @@ export default function FolhaPagamento() {
       'Colaborador',
       'Competência',
       'Salário Base',
-      'Valor Individual',
-      'Comissões',
+      'Valor do Install',
+      'Incentivo',
       'Bônus',
       'Extra 1',
       'Extras (2 ao 4)',
@@ -540,17 +560,44 @@ export default function FolhaPagamento() {
     }
   }
 
+  const handleRevertMonth = async () => {
+    if (!confirm('Tem certeza que deseja estornar o mês? Isso reabrirá os registros para edição.'))
+      return
+
+    setIsRevertingMonth(true)
+    try {
+      const closedRecords = filteredPayrolls.filter((p) => p.closed)
+      for (const p of closedRecords) {
+        await pb.collection('payroll').update(p.id, { closed: false })
+      }
+      setDraftPayrolls((prev) => prev.map((p) => ({ ...p, closed: false })))
+      toast({ title: 'Sucesso', description: 'Mês estornado com sucesso.' })
+    } catch (err) {
+      toast({
+        title: 'Erro',
+        description: 'Ocorreu um erro ao estornar o mês.',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsRevertingMonth(false)
+    }
+  }
+
   const filteredPayrolls = draftPayrolls.filter((p) => {
     if (filterStatus !== 'all' && p.status !== filterStatus) return false
     if (filterUser !== 'all' && p.employee !== filterUser) return false
     return true
   })
 
+  const hasClosedRecords = filteredPayrolls.some((p) => p.closed)
+  const hasOpenRecords = filteredPayrolls.some((p) => !p.closed)
+
   const getHeaderCompetence = (isoString: string) => {
     if (!isoString) return ''
     const d = new Date(isoString)
     const m = format(d, 'MMMM yyyy', { locale: ptBR })
-    return m.charAt(0).toUpperCase() + m.slice(1)
+    let formatted = m.charAt(0).toUpperCase() + m.slice(1)
+    return formatted.replace(' de ', ' ')
   }
 
   const fmtC = (val: number) =>
@@ -585,7 +632,7 @@ export default function FolhaPagamento() {
               ) : (
                 <Save className="w-4 h-4 mr-2" />
               )}
-              Gravar Mês
+              Gravar Mês (Consolidar)
             </Button>
             <Button onClick={() => openForm()}>
               <Plus className="w-4 h-4 mr-2" />
@@ -601,8 +648,8 @@ export default function FolhaPagamento() {
           </div>
           <div className="flex-1 min-w-[150px] space-y-2">
             <Label className="flex items-center">
-              Qtde Global
-              <InfoTooltip text="Quantidade geral multiplicada pelo Valor Individual de cada colaborador para calcular o Extra 1." />
+              Qtde Install
+              <InfoTooltip text="Quantidade geral multiplicada pelo Valor do Install de cada colaborador para calcular o Incentivo." />
             </Label>
             <Input
               type="number"
@@ -663,10 +710,10 @@ export default function FolhaPagamento() {
                   Status
                 </TableHead>
                 <TableHead className="text-right font-medium text-slate-500 hidden sm:table-cell">
-                  Valor Ind.
+                  Valor Install
                 </TableHead>
                 <TableHead className="text-right font-medium text-slate-500 hidden sm:table-cell">
-                  Extra 1
+                  Incentivo
                 </TableHead>
                 <TableHead className="text-right font-medium text-slate-500">Total</TableHead>
                 <TableHead className="text-right font-medium text-slate-500">Ações</TableHead>
@@ -708,7 +755,7 @@ export default function FolhaPagamento() {
                         {fmtC(p.unit_value || 0)}
                       </TableCell>
                       <TableCell className="text-right font-medium text-slate-700 dark:text-slate-300 hidden sm:table-cell">
-                        {fmtC(p.extra_1 || 0)}
+                        {fmtC(p.install_commission || 0)}
                       </TableCell>
                       <TableCell className="text-right font-medium text-slate-700 dark:text-slate-300">
                         {fmtC(p.total)}
@@ -722,7 +769,7 @@ export default function FolhaPagamento() {
                               className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-900/20"
                               onClick={() => handleSaveRow(p)}
                               disabled={savingRowId === p.employee}
-                              title="Gravar Registro"
+                              title="Gravar Individual"
                             >
                               {savingRowId === p.employee ? (
                                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -774,14 +821,36 @@ export default function FolhaPagamento() {
               <Banknote className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <p className="text-sm font-medium text-slate-500">Total de Proventos</p>
+              <p className="text-sm font-medium text-slate-500 flex items-center">
+                Total de Proventos
+                <InfoTooltip text="Soma de todos os pagamentos consolidados na tela atual." />
+              </p>
               <p className="text-2xl font-bold text-slate-800 dark:text-slate-100">
                 {fmtC(totalProventos)}
               </p>
             </div>
           </div>
-          <div>
-            <Button variant="default" onClick={handleCloseMonth} disabled={isClosingMonth}>
+          <div className="flex gap-2">
+            {hasClosedRecords && (
+              <Button
+                variant="outline"
+                className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 dark:border-red-900/50 dark:text-red-400 dark:hover:bg-red-900/20"
+                onClick={handleRevertMonth}
+                disabled={isClosingMonth || isRevertingMonth}
+              >
+                {isRevertingMonth ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <RotateCcw className="w-4 h-4 mr-2" />
+                )}
+                Estornar Mês
+              </Button>
+            )}
+            <Button
+              variant="default"
+              onClick={handleCloseMonth}
+              disabled={isClosingMonth || isRevertingMonth || !hasOpenRecords}
+            >
               {isClosingMonth ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Fechando...
@@ -806,7 +875,7 @@ export default function FolhaPagamento() {
               <DialogDescription>
                 {editingRecord?.closed
                   ? 'Este lançamento está fechado e não pode ser editado.'
-                  : 'Preencha os valores financeiros. O Extra 1 e o Total são calculados automaticamente.'}
+                  : 'Preencha os valores financeiros. O Incentivo e o Total são calculados automaticamente.'}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
@@ -849,46 +918,37 @@ export default function FolhaPagamento() {
                 <div className="space-y-2">
                   <Label className="flex items-center">
                     Salário Base
-                    <InfoTooltip text="Salário fixo do colaborador." />
+                    <InfoTooltip text="Valor fixo do salário do colaborador." />
                   </Label>
                   <Input
                     type="text"
                     value={formatCurrencyInput(baseSalary)}
                     onChange={(e) => setBaseSalary(parseCurrencyInput(e.target.value))}
-                    onFocus={() => {
-                      if (baseSalary === null) setBaseSalary(0)
-                    }}
                     disabled={editingRecord?.closed}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label className="flex items-center">
-                    Valor Individual
-                    <InfoTooltip text="Valor unitário multiplicado pela Qtde Global para gerar o Extra 1." />
+                    Valor do Install
+                    <InfoTooltip text="Valor unitário por install. Multiplica pela Qtde Install para gerar o Incentivo." />
                   </Label>
                   <Input
                     type="text"
                     value={formatCurrencyInput(unitValue)}
                     onChange={(e) => handleUnitValueChange(e.target.value)}
-                    onFocus={() => {
-                      if (unitValue === null) setUnitValue(0)
-                    }}
                     disabled={editingRecord?.closed}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label className="flex items-center">
-                    Comissões
-                    <InfoTooltip text="Valor pago por comissões de vendas ou metas." />
+                    Incentivo (Automático)
+                    <InfoTooltip text="Valor calculado automaticamente (Valor Install x Qtde Install)." />
                   </Label>
                   <Input
                     type="text"
                     value={formatCurrencyInput(installComm)}
-                    onChange={(e) => setInstallComm(parseCurrencyInput(e.target.value))}
-                    onFocus={() => {
-                      if (installComm === null) setInstallComm(0)
-                    }}
-                    disabled={editingRecord?.closed}
+                    readOnly
+                    className="bg-slate-50 dark:bg-slate-800 text-slate-500 font-medium"
                   />
                 </div>
                 <div className="space-y-2">
@@ -900,9 +960,6 @@ export default function FolhaPagamento() {
                     type="text"
                     value={formatCurrencyInput(bonus)}
                     onChange={(e) => setBonus(parseCurrencyInput(e.target.value))}
-                    onFocus={() => {
-                      if (bonus === null) setBonus(0)
-                    }}
                     disabled={editingRecord?.closed}
                   />
                 </div>
@@ -911,14 +968,14 @@ export default function FolhaPagamento() {
               <div className="grid grid-cols-2 gap-4 border-t border-slate-100 dark:border-slate-800 pt-4">
                 <div className="space-y-2">
                   <Label className="flex items-center">
-                    Extra 1 (Automático)
-                    <InfoTooltip text="Calculado automaticamente: Valor Individual × Qtde Global." />
+                    Extra 1
+                    <InfoTooltip text="Valores adicionais diversos." />
                   </Label>
                   <Input
                     type="text"
                     value={formatCurrencyInput(extra1)}
-                    readOnly
-                    className="bg-slate-50 dark:bg-slate-800 text-slate-500 font-medium"
+                    onChange={(e) => setExtra1(parseCurrencyInput(e.target.value))}
+                    disabled={editingRecord?.closed}
                   />
                 </div>
                 <div className="space-y-2">
@@ -930,9 +987,6 @@ export default function FolhaPagamento() {
                     type="text"
                     value={formatCurrencyInput(extra2)}
                     onChange={(e) => setExtra2(parseCurrencyInput(e.target.value))}
-                    onFocus={() => {
-                      if (extra2 === null) setExtra2(0)
-                    }}
                     disabled={editingRecord?.closed}
                   />
                 </div>
@@ -945,9 +999,6 @@ export default function FolhaPagamento() {
                     type="text"
                     value={formatCurrencyInput(extra3)}
                     onChange={(e) => setExtra3(parseCurrencyInput(e.target.value))}
-                    onFocus={() => {
-                      if (extra3 === null) setExtra3(0)
-                    }}
                     disabled={editingRecord?.closed}
                   />
                 </div>
@@ -960,9 +1011,6 @@ export default function FolhaPagamento() {
                     type="text"
                     value={formatCurrencyInput(extra4)}
                     onChange={(e) => setExtra4(parseCurrencyInput(e.target.value))}
-                    onFocus={() => {
-                      if (extra4 === null) setExtra4(0)
-                    }}
                     disabled={editingRecord?.closed}
                   />
                 </div>
@@ -980,8 +1028,9 @@ export default function FolhaPagamento() {
               </div>
 
               <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-lg mt-4 border border-slate-100 dark:border-slate-800 flex justify-between items-center">
-                <span className="font-medium text-slate-500 dark:text-slate-400">
+                <span className="font-medium text-slate-500 dark:text-slate-400 flex items-center">
                   Total a Pagar
+                  <InfoTooltip text="Soma de todos os proventos (Valor calculado automaticamente)." />
                 </span>
                 <span className="text-2xl font-semibold text-primary">
                   {fmtC(
@@ -1048,7 +1097,7 @@ export default function FolhaPagamento() {
                   )}
                   {!!receiptRecord?.install_commission && (
                     <div className="flex justify-between">
-                      <span>Comissões</span>
+                      <span>Incentivo</span>
                       <span>{fmtC(receiptRecord.install_commission)}</span>
                     </div>
                   )}
@@ -1155,7 +1204,7 @@ export default function FolhaPagamento() {
                   )}
                   {!!receiptRecord?.install_commission && (
                     <tr>
-                      <td className="py-2 text-slate-700">Comissões</td>
+                      <td className="py-2 text-slate-700">Incentivo</td>
                       <td className="text-right font-semibold">
                         {fmtC(receiptRecord.install_commission)}
                       </td>
