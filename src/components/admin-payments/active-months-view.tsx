@@ -10,7 +10,7 @@ interface Props {
 export function ActiveMonthsView({ months, onEditItem, onAddForOwner }: Props) {
   if (months.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-64 text-center">
+      <div className="flex flex-col items-center justify-center h-full text-center">
         <p className="text-muted-foreground">Nenhum mês ativo no momento.</p>
         <p className="text-sm text-muted-foreground mt-1">Crie um novo pagamento para começar.</p>
       </div>
@@ -18,16 +18,17 @@ export function ActiveMonthsView({ months, onEditItem, onAddForOwner }: Props) {
   }
 
   return (
-    <div className="max-w-4xl">
+    <div className="flex h-full gap-4 overflow-x-auto pb-4 snap-x pr-8 scrollbar-thin">
       {months.map((m) => (
-        <MonthGroup
-          key={`${m.ano}-${m.mes}`}
-          mes={m.mes}
-          ano={m.ano}
-          items={m.items}
-          onEditItem={onEditItem}
-          onAddForOwner={onAddForOwner}
-        />
+        <div key={`${m.ano}-${m.mes}`} className="w-80 shrink-0 snap-start flex flex-col min-h-0">
+          <MonthGroup
+            mes={m.mes}
+            ano={m.ano}
+            items={m.items}
+            onEditItem={onEditItem}
+            onAddForOwner={onAddForOwner}
+          />
+        </div>
       ))}
     </div>
   )

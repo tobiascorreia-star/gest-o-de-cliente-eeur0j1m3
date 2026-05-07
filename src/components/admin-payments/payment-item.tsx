@@ -1,11 +1,12 @@
 import { AdminPayment } from '@/types'
+import { useState, useRef, useEffect } from 'react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Button } from '@/components/ui/button'
-import { Pencil, Trash2, Clock } from 'lucide-react'
+import { Pencil, Trash2, Clock, AlertCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { updateAdminPayment, deleteAdminPayment } from '@/services/admin_payments'
 import { toast } from 'sonner'
-import { format } from 'date-fns'
+import { format, startOfDay } from 'date-fns'
 
 interface Props {
   item: AdminPayment
@@ -13,6 +14,34 @@ interface Props {
 }
 
 export function PaymentItem({ item, onEdit }: Props) {
+  const [isEditing, setIsEditing] = useState(false)
+  const [desc, setDesc] = useState(item.descricao)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    setDesc(item.descricao)
+  }, [item.descricao])
+
+  useEffect(() => {
+    if (isEditing && inputRef.current) {
+      inputRef.current.focus()
+    }
+  }, [isEditing])
+
+  const handleSaveDesc = async () => {
+    if (desc.trim() !== item.descricao && desc.trim()) {
+      try {
+        await updateAdminPayment(item.id, { descricao: desc.trim() })
+        toast.success('Descrição atualizada')
+      } catch {
+        toast.error('Erro ao atualizar descrição')
+        setDesc(item.descricao)
+      }
+    } else {
+      setDesc(item.descricao)
+    }
+    setIsEditing(false)
+  }
   const handleToggle = async () => {
     try {
       const newStatus = !item.status
@@ -36,45 +65,76 @@ export function PaymentItem({ item, onEdit }: Props) {
     }
   }
 
+  const isLate =
+    !item.status &&
+    item.data_notificacao &&
+    startOfDay(new Date(item.data_notificacao.replace(' ', 'T'))) <= startOfDay(new Date())
+
   return (
-    <div className="group flex items-start gap-3 p-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors border border-transparent hover:border-slate-100 dark:hover:border-slate-800">
+    <div
+      className={cn(
+        'group flex items-start gap-3 p-3 rounded-lg bg-white dark:bg-slate-950 transition-colors border',
+        isLate ? 'border-red-200 dark:border-red-900/50' : 'border-slate-100 dark:border-slate-800',
+        'hover:border-slate-300 dark:hover:border-slate-700 shadow-sm',
+      )}
+    >
       <Checkbox
         checked={item.status}
         onCheckedChange={handleToggle}
         className="mt-1 transition-all"
       />
       <div className={cn('flex-1 min-w-0 transition-opacity', item.status && 'opacity-60')}>
-        <div className="flex items-center gap-2">
-          <p
-            className={cn(
-              'text-sm font-medium text-slate-900 dark:text-slate-100',
-              item.status && 'line-through text-slate-500',
-            )}
-          >
-            {item.descricao}
-          </p>
+        <div className="flex items-center gap-2 flex-wrap">
+          {isEditing ? (
+            <input
+              ref={inputRef}
+              type="text"
+              value={desc}
+              onChange={(e) => setDesc(e.target.value)}
+              onBlur={handleSaveDesc}
+              onKeyDown={(e) => e.key === 'Enter' && handleSaveDesc()}
+              className="flex-1 min-w-[120px] text-sm font-medium bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2 py-0.5 focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+          ) : (
+            <p
+              onClick={() => setIsEditing(true)}
+              className={cn(
+                'text-sm font-medium text-slate-900 dark:text-slate-100 cursor-text hover:bg-slate-100 dark:hover:bg-slate-800 px-1 -ml-1 rounded transition-colors',
+                item.status && 'line-through text-slate-500',
+              )}
+            >
+              {item.descricao}
+            </p>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2 mt-1 flex-wrap">
           {item.status && item.data_pagamento_realizado && (
-            <span className="inline-flex items-center gap-1 text-[10px] text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10 px-1.5 py-0.5 rounded-full font-medium">
+            <span className="inline-flex items-center gap-1 text-[10px] text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10 px-1.5 py-0.5 rounded-full font-medium whitespace-nowrap">
               <Clock className="w-3 h-3" />
-              {format(new Date(item.data_pagamento_realizado.replace(' ', 'T')), 'HH:mm')}
+              Pago em:{' '}
+              {format(
+                new Date(item.data_pagamento_realizado.replace(' ', 'T')),
+                'dd/MM/yyyy HH:mm',
+              )}
             </span>
           )}
         </div>
 
-        <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
-          <span>
+        <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground flex-wrap">
+          <span className={cn('flex items-center gap-1', isLate && 'text-red-500 font-semibold')}>
+            {isLate && <AlertCircle className="w-3 h-3" />}
             Vence: {format(new Date(item.data_notificacao.replace(' ', 'T')), 'dd/MM/yyyy')}
           </span>
           {item.observacao && (
-            <>
-              <span>•</span>
-              <span className="truncate max-w-[200px]">{item.observacao}</span>
-            </>
+            <span className="truncate max-w-[200px] text-slate-500" title={item.observacao}>
+              • {item.observacao}
+            </span>
           )}
         </div>
       </div>
 
-      <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity self-start -mt-1 -mr-1">
         <Button
           variant="ghost"
           size="icon"

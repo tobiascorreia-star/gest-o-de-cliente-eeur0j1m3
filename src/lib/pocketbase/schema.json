@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-07T22:08:48.503Z",
+  "generatedAt": "2026-05-07T22:23:09.945Z",
   "collections": [
     {
       "name": "users",
@@ -633,7 +633,8 @@
         }
       ],
       "indexes": [
-        "CREATE INDEX `idx_admin_payments_ref` ON `admin_payments` (ano_referencia, mes_referencia)"
+        "CREATE INDEX `idx_admin_payments_ref` ON `admin_payments` (ano_referencia, mes_referencia)",
+        "CREATE INDEX `idx_admin_payments_ref_dono` ON `admin_payments` (ano_referencia, mes_referencia, dono_pagamento)"
       ]
     }
   ]
