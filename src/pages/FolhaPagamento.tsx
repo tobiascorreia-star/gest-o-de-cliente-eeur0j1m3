@@ -593,6 +593,11 @@ export default function FolhaPagamento() {
         )
       }
 
+      // Force clean state before fetching to prevent ghost data
+      setDraftPayrolls([])
+      setReceiptRecord(null)
+      setIsOpen(false)
+
       await loadMonthData()
 
       const competenceStr = getHeaderCompetence(startOfMo)
