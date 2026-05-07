@@ -29,18 +29,7 @@ import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { toast } from '@/hooks/use-toast'
 import pb from '@/lib/pocketbase/client'
-import {
-  Plus,
-  Download,
-  Printer,
-  Edit,
-  Trash2,
-  Banknote,
-  Loader2,
-  Save,
-  Info,
-  RotateCcw,
-} from 'lucide-react'
+import { Plus, Printer, Edit, Trash2, Banknote, Loader2, Save, Info, RotateCcw } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { logAudit } from '@/services/audit'
@@ -462,49 +451,6 @@ export default function FolhaPagamento() {
     )
   }
 
-  const handleExportCSV = () => {
-    const headers = [
-      'Colaborador',
-      'Competência',
-      'Salário Base',
-      'Valor do Install',
-      'Incentivo',
-      'Bônus',
-      'Extra 1',
-      'Extras (2 ao 4)',
-      'Total',
-      'Status',
-    ]
-    const rows = filteredPayrolls.map((p) => {
-      const extras = (p.extra_2 || 0) + (p.extra_3 || 0) + (p.extra_4 || 0)
-      const d = new Date(p.reference_date)
-      const comp = `${String(d.getUTCMonth() + 1).padStart(2, '0')}/${d.getUTCFullYear()}`
-      return [
-        p.expand?.employee?.name || p.expand?.employee?.email || 'Desconhecido',
-        comp,
-        p.base_salary || 0,
-        p.unit_value || 0,
-        p.install_commission || 0,
-        p.bonus || 0,
-        p.extra_1 || 0,
-        extras,
-        p.total || 0,
-        p.status,
-      ]
-        .map((v) => `"${v}"`)
-        .join(',')
-    })
-
-    const csv = [headers.join(','), ...rows].join('\n')
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-    const link = document.createElement('a')
-    link.href = URL.createObjectURL(blob)
-    link.setAttribute('download', `folha_pagamento_${format(new Date(), 'yyyyMMddHHmmss')}.csv`)
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-  }
-
   const handlePrintReceipt = () => {
     window.print()
   }
@@ -537,13 +483,15 @@ export default function FolhaPagamento() {
     setIsClosingMonth(true)
     try {
       await Promise.all(
-        unclosedRecords.map((p) => pb.collection('payroll').update(p.id, { closed: true })),
+        unclosedRecords.map((p) =>
+          pb.collection('payroll').update(p.id, { closed: true, status: 'Pago' }),
+        ),
       )
 
       setDraftPayrolls((prev) =>
         prev.map((p) => {
           if (unclosedRecords.some((ur) => ur.id === p.id)) {
-            return { ...p, closed: true }
+            return { ...p, closed: true, status: 'Pago' }
           }
           return p
         }),
@@ -653,14 +601,10 @@ export default function FolhaPagamento() {
             </h2>
             <p className="text-slate-500 text-sm">Gerencie salários e comissões da equipe.</p>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={handleExportCSV}>
-              <Download className="w-4 h-4 mr-2" />
-              Exportar
-            </Button>
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto mt-4 sm:mt-0">
             <Button
               variant="default"
-              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white w-full sm:w-auto"
               onClick={handleConsolidate}
               disabled={isConsolidating}
             >
@@ -671,7 +615,7 @@ export default function FolhaPagamento() {
               )}
               Gravar Mês (Consolidar)
             </Button>
-            <Button onClick={() => openForm()}>
+            <Button onClick={() => openForm()} className="w-full sm:w-auto">
               <Plus className="w-4 h-4 mr-2" />
               Novo Lançamento
             </Button>
