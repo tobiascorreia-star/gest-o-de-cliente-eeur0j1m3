@@ -74,11 +74,17 @@ export function PaymentModal({
     e.preventDefault()
     setLoading(true)
     try {
+      let data_notificacao = ''
+      if (formData.data_notificacao) {
+        const dateObj = new Date(`${formData.data_notificacao}T12:00:00Z`)
+        if (!isNaN(dateObj.getTime())) {
+          data_notificacao = dateObj.toISOString()
+        }
+      }
+
       const payload = {
         ...formData,
-        data_notificacao: formData.data_notificacao
-          ? new Date(`${formData.data_notificacao}T12:00:00Z`).toISOString()
-          : '',
+        data_notificacao,
       }
       await onSave(payload)
     } finally {
