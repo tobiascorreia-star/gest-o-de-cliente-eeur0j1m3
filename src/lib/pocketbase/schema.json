@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-07T21:24:13.490Z",
+  "generatedAt": "2026-05-07T22:08:48.503Z",
   "collections": [
     {
       "name": "users",
@@ -563,39 +563,9 @@
       },
       "fields": [
         {
-          "name": "name",
-          "type": "text",
-          "required": true,
-          "system": false
-        },
-        {
-          "name": "due_date",
-          "type": "date",
-          "required": true,
-          "system": false
-        },
-        {
           "name": "status",
           "type": "bool",
           "required": false,
-          "system": false
-        },
-        {
-          "name": "value",
-          "type": "number",
-          "required": false,
-          "system": false
-        },
-        {
-          "name": "observation",
-          "type": "text",
-          "required": false,
-          "system": false
-        },
-        {
-          "name": "reference_month",
-          "type": "date",
-          "required": true,
           "system": false
         },
         {
@@ -618,9 +588,53 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "dono_pagamento",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "descricao",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "data_notificacao",
+          "type": "date",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "data_pagamento_realizado",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "observacao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "mes_referencia",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "ano_referencia",
+          "type": "number",
+          "required": true,
+          "system": false
         }
       ],
-      "indexes": ["CREATE INDEX idx_admin_payments_ref_month ON admin_payments (reference_month)"]
+      "indexes": [
+        "CREATE INDEX `idx_admin_payments_ref` ON `admin_payments` (ano_referencia, mes_referencia)"
+      ]
     }
   ]
 }

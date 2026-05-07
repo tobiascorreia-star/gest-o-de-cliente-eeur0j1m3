@@ -41,16 +41,16 @@ export function AdminPaymentsAlert() {
 
       payments.forEach((payment) => {
         if (alertedIds.current.has(payment.id)) return
-        if (!payment.due_date) return
+        if (!payment.data_notificacao) return
 
-        const dueDateStr = payment.due_date.replace(' ', 'T')
+        const dueDateStr = payment.data_notificacao.replace(' ', 'T')
         const dueDate = startOfDay(new Date(dueDateStr))
 
         if (isToday(dueDate) || isPast(dueDate)) {
           alertedIds.current.add(payment.id)
           shouldBeep = true
 
-          toast.warning(`Aviso de Pagamento: ${payment.name}`, {
+          toast.warning(`Aviso de Pagamento: ${payment.descricao}`, {
             description: isToday(dueDate)
               ? 'O pagamento vence hoje.'
               : 'O pagamento está em atraso.',

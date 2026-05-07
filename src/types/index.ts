@@ -110,12 +110,14 @@ export interface PayrollSettings {
 
 export interface AdminPayment {
   id: string
-  name: string
-  due_date: string
+  dono_pagamento: string
+  descricao: string
+  data_notificacao: string
+  data_pagamento_realizado?: string
   status: boolean
-  value?: number
-  observation?: string
-  reference_month: string
+  observacao?: string
+  mes_referencia: number
+  ano_referencia: number
   admin: string
   created: string
   updated: string

@@ -7,46 +7,43 @@ routerAdd(
     }
 
     const body = e.requestInfo().body
-    const sourceMonthStr = body.source_month
-    if (!sourceMonthStr) return e.badRequestError('source_month is required')
-
-    const dStart = new Date(sourceMonthStr)
-    const startStr = dStart.toISOString().replace('T', ' ')
-
-    const dEnd = new Date(dStart)
-    dEnd.setUTCMonth(dEnd.getUTCMonth() + 1)
-    const endStr = dEnd.toISOString().replace('T', ' ')
+    const mes = Number(body.mes)
+    const ano = Number(body.ano)
+    if (!mes || !ano) return e.badRequestError('mes and ano are required')
 
     const exactRecords = $app.findRecordsByFilter(
       'admin_payments',
-      'reference_month >= {:s} && reference_month < {:e}',
+      'mes_referencia = {:m} && ano_referencia = {:a}',
       '',
       1000,
       0,
-      { s: startStr, e: endStr },
+      { m: mes, a: ano },
     )
+
+    let nextMes = mes + 1
+    let nextAno = ano
+    if (nextMes > 12) {
+      nextMes = 1
+      nextAno = ano + 1
+    }
 
     $app.runInTransaction((txApp) => {
       const col = txApp.findCollectionByNameOrId('admin_payments')
       for (const rec of exactRecords) {
         const newRec = new Record(col)
-        newRec.set('name', rec.getString('name'))
-        newRec.set('value', rec.get('value'))
-        newRec.set('observation', rec.getString('observation'))
+        newRec.set('descricao', rec.getString('descricao'))
+        newRec.set('dono_pagamento', rec.getString('dono_pagamento'))
+        newRec.set('observacao', rec.getString('observacao'))
         newRec.set('status', false)
-
-        const refStr = rec.getString('reference_month')
-        const refD = new Date(refStr.replace(' ', 'T'))
-        refD.setUTCMonth(refD.getUTCMonth() + 1)
-        newRec.set('reference_month', refD.toISOString().replace('T', ' '))
-
+        newRec.set('mes_referencia', nextMes)
+        newRec.set('ano_referencia', nextAno)
         newRec.set('admin', e.auth.id)
 
-        const dueStr = rec.getString('due_date')
-        if (dueStr) {
-          const dueD = new Date(dueStr.replace(' ', 'T'))
-          dueD.setUTCMonth(dueD.getUTCMonth() + 1)
-          newRec.set('due_date', dueD.toISOString().replace('T', ' '))
+        const notifStr = rec.getString('data_notificacao')
+        if (notifStr) {
+          const notifD = new Date(notifStr.replace(' ', 'T'))
+          notifD.setUTCMonth(notifD.getUTCMonth() + 1)
+          newRec.set('data_notificacao', notifD.toISOString().replace('T', ' '))
         }
 
         txApp.save(newRec)
