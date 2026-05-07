@@ -43,6 +43,7 @@ import {
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { logAudit } from '@/services/audit'
 
 const InfoTooltip = ({ text }: { text: string }) => (
   <Tooltip>
@@ -528,9 +529,9 @@ export default function FolhaPagamento() {
       return
     }
 
-    const unclosedRecords = filteredPayrolls.filter((p) => !p.closed)
+    const unclosedRecords = draftPayrolls.filter((p) => !p.closed && p.id)
     if (unclosedRecords.length === 0) {
-      toast({ title: 'Aviso', description: 'Não há registros abertos nos filtros atuais.' })
+      toast({ title: 'Aviso', description: 'Não há registros abertos nesta competência.' })
       return
     }
 
@@ -544,12 +545,28 @@ export default function FolhaPagamento() {
 
     setIsClosingMonth(true)
     try {
-      for (const p of unclosedRecords) {
-        await pb.collection('payroll').update(p.id, { closed: true })
-      }
-      setDraftPayrolls((prev) => prev.map((p) => ({ ...p, closed: true })))
+      await Promise.all(
+        unclosedRecords.map((p) => pb.collection('payroll').update(p.id, { closed: true })),
+      )
+
+      setDraftPayrolls((prev) =>
+        prev.map((p) => {
+          if (unclosedRecords.some((ur) => ur.id === p.id)) {
+            return { ...p, closed: true }
+          }
+          return p
+        }),
+      )
+
+      const [y, m] = filterMonth.split('-')
+      const startOfMo = new Date(Date.UTC(parseInt(y), parseInt(m) - 1, 1, 0, 0, 0)).toISOString()
+      const competenceStr = getHeaderCompetence(startOfMo)
+
+      await logAudit('fechar_mes', `Competência ${competenceStr} fechada.`)
+
       toast({ title: 'Sucesso', description: 'Mês fechado com sucesso.' })
     } catch (err) {
+      console.error(err)
       toast({
         title: 'Erro',
         description: 'Ocorreu um erro ao fechar o mês.',
@@ -566,13 +583,35 @@ export default function FolhaPagamento() {
 
     setIsRevertingMonth(true)
     try {
-      const closedRecords = filteredPayrolls.filter((p) => p.closed)
-      for (const p of closedRecords) {
-        await pb.collection('payroll').update(p.id, { closed: false })
+      const closedRecords = draftPayrolls.filter((p) => p.closed && p.id)
+
+      if (closedRecords.length > 0) {
+        await Promise.all(
+          closedRecords.map((p) => pb.collection('payroll').update(p.id, { closed: false })),
+        )
       }
-      setDraftPayrolls((prev) => prev.map((p) => ({ ...p, closed: false })))
-      toast({ title: 'Sucesso', description: 'Mês estornado com sucesso.' })
+
+      setDraftPayrolls((prev) =>
+        prev.map((p) => {
+          if (closedRecords.some((cr) => cr.id === p.id)) {
+            return { ...p, closed: false }
+          }
+          return p
+        }),
+      )
+
+      const [y, m] = filterMonth.split('-')
+      const startOfMo = new Date(Date.UTC(parseInt(y), parseInt(m) - 1, 1, 0, 0, 0)).toISOString()
+      const competenceStr = getHeaderCompetence(startOfMo)
+
+      await logAudit('estornar_mes', `Competência ${competenceStr} estornada.`)
+
+      toast({
+        title: 'Sucesso',
+        description: 'Mês estornado com sucesso! As edições estão liberadas.',
+      })
     } catch (err) {
+      console.error(err)
       toast({
         title: 'Erro',
         description: 'Ocorreu um erro ao estornar o mês.',
@@ -589,8 +628,8 @@ export default function FolhaPagamento() {
     return true
   })
 
-  const hasClosedRecords = filteredPayrolls.some((p) => p.closed)
-  const hasOpenRecords = filteredPayrolls.some((p) => !p.closed)
+  const hasClosedRecords = draftPayrolls.some((p) => p.closed)
+  const hasOpenRecords = draftPayrolls.some((p) => !p.closed)
 
   const getHeaderCompetence = (isoString: string) => {
     if (!isoString) return ''
