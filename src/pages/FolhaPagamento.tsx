@@ -587,7 +587,9 @@ export default function FolhaPagamento() {
 
       if (recordsToRevert.length > 0) {
         await Promise.all(
-          recordsToRevert.map((p) => pb.collection('payroll').update(p.id, { closed: false })),
+          recordsToRevert.map((p) =>
+            pb.collection('payroll').update(p.id, { closed: false, status: 'Pendente' }),
+          ),
         )
       }
 
