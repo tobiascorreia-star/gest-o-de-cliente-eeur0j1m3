@@ -73,7 +73,20 @@ export default function PagamentosAdmin() {
       }
     })
 
-    active.sort((a, b) => (b.ano === a.ano ? b.mes - a.mes : b.ano - a.ano))
+    active.sort((a, b) => {
+      const today = new Date().toISOString()
+      const aHasOverdue = a.items.some(
+        (i) => !i.status && !!i.data_notificacao && i.data_notificacao <= today,
+      )
+      const bHasOverdue = b.items.some(
+        (i) => !i.status && !!i.data_notificacao && i.data_notificacao <= today,
+      )
+
+      if (aHasOverdue && !bHasOverdue) return -1
+      if (!aHasOverdue && bHasOverdue) return 1
+
+      return b.ano === a.ano ? b.mes - a.mes : b.ano - a.ano
+    })
 
     Object.keys(history).forEach((ano) => {
       history[Number(ano)].sort((a, b) => b.mes - a.mes)
@@ -117,13 +130,13 @@ export default function PagamentosAdmin() {
 
   return (
     <div className="flex-1 flex flex-col p-4 md:p-8 overflow-hidden h-full max-w-[1200px] mx-auto w-full">
-      <div className="flex items-center justify-between mb-8 shrink-0">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 shrink-0 gap-4">
         <div className="flex items-center gap-3">
-          <div className="p-3 bg-primary/10 rounded-xl">
+          <div className="p-3 bg-primary/10 rounded-xl shrink-0">
             <Wallet className="w-6 h-6 text-primary" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-50">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-50">
               Pagamentos Administrativos
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
@@ -131,7 +144,7 @@ export default function PagamentosAdmin() {
             </p>
           </div>
         </div>
-        <Button onClick={() => setIsModalOpen(true)} className="gap-2">
+        <Button onClick={() => setIsModalOpen(true)} className="gap-2 shrink-0 w-full sm:w-auto">
           <Plus className="w-4 h-4" />
           Novo Pagamento
         </Button>

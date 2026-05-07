@@ -53,12 +53,40 @@ export function MonthGroup({ mes, ano, items, onEditItem, onAddForOwner }: Props
 
   const groupedByOwner = useMemo(() => {
     const map: Record<string, AdminPayment[]> = {}
+    const today = new Date().toISOString()
+
     items.forEach((item) => {
       const owner = item.dono_pagamento || 'Sem Dono'
       if (!map[owner]) map[owner] = []
       map[owner].push(item)
     })
-    return Object.entries(map).sort(([a], [b]) => a.localeCompare(b))
+
+    Object.values(map).forEach((ownerItems) => {
+      ownerItems.sort((a, b) => {
+        const aIsOverdue = !a.status && !!a.data_notificacao && a.data_notificacao <= today
+        const bIsOverdue = !b.status && !!b.data_notificacao && b.data_notificacao <= today
+
+        if (aIsOverdue && !bIsOverdue) return -1
+        if (!aIsOverdue && bIsOverdue) return 1
+        if (aIsOverdue && bIsOverdue) {
+          return new Date(a.data_notificacao!).getTime() - new Date(b.data_notificacao!).getTime()
+        }
+
+        return new Date(a.created || 0).getTime() - new Date(b.created || 0).getTime()
+      })
+    })
+
+    return Object.entries(map).sort(([ownerA, itemsA], [ownerB, itemsB]) => {
+      const aHasOverdue = itemsA.some(
+        (i) => !i.status && !!i.data_notificacao && i.data_notificacao <= today,
+      )
+      const bHasOverdue = itemsB.some(
+        (i) => !i.status && !!i.data_notificacao && i.data_notificacao <= today,
+      )
+      if (aHasOverdue && !bHasOverdue) return -1
+      if (!aHasOverdue && bHasOverdue) return 1
+      return ownerA.localeCompare(ownerB)
+    })
   }, [items])
 
   const total = items.length
