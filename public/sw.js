@@ -45,7 +45,11 @@ self.addEventListener('fetch', (event) => {
           }
           return response
         })
-        .catch(() => caches.match(event.request)),
+        .catch(async () => {
+          const cachedResponse = await caches.match(event.request)
+          if (cachedResponse) return cachedResponse
+          return new Response('Network error', { status: 503, statusText: 'Service Unavailable' })
+        }),
     )
     return
   }
@@ -62,6 +66,10 @@ self.addEventListener('fetch', (event) => {
         }
         return response
       })
-      .catch(() => caches.match(event.request)),
+      .catch(async () => {
+        const cachedResponse = await caches.match(event.request)
+        if (cachedResponse) return cachedResponse
+        return new Response('Network error', { status: 503, statusText: 'Service Unavailable' })
+      }),
   )
 })

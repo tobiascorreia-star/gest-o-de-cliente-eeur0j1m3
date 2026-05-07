@@ -1,7 +1,9 @@
 onRecordUpdateRequest((e) => {
   const original = e.record.original()
   if (original.getBool('closed')) {
-    return e.badRequestError('Cannot edit a closed payroll record.')
+    if (e.record.getBool('closed')) {
+      return e.badRequestError('Cannot edit a closed payroll record.')
+    }
   }
   e.next()
 }, 'payroll')

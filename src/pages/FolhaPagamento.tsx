@@ -608,7 +608,7 @@ export default function FolhaPagamento() {
 
       toast({
         title: 'Sucesso',
-        description: 'Mês estornado com sucesso! As edições estão liberadas.',
+        description: 'Mês estornado com sucesso.',
       })
     } catch (err) {
       console.error(err)
