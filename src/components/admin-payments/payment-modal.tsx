@@ -40,6 +40,7 @@ export function PaymentModal({
   const [loading, setLoading] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const donoRef = useRef<HTMLInputElement>(null)
+  const descricaoRef = useRef<HTMLInputElement>(null)
   const [formData, setFormData] = useState<Partial<AdminPayment>>({
     descricao: '',
     dono_pagamento: '',
@@ -113,7 +114,11 @@ export function PaymentModal({
         onOpenAutoFocus={(e) => {
           e.preventDefault()
           setTimeout(() => {
-            if (donoRef.current) {
+            if (defaultOwner && !initialData && descricaoRef.current) {
+              descricaoRef.current.focus()
+              const length = descricaoRef.current.value.length
+              descricaoRef.current.setSelectionRange(length, length)
+            } else if (donoRef.current) {
               donoRef.current.focus()
               const length = donoRef.current.value.length
               donoRef.current.setSelectionRange(length, length)
@@ -165,6 +170,7 @@ export function PaymentModal({
           <div className="space-y-2">
             <Label>Descrição</Label>
             <Input
+              ref={descricaoRef}
               required
               placeholder="Ex: Mensalidade Sistema"
               value={formData.descricao}
