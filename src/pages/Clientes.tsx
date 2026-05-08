@@ -22,20 +22,28 @@ export default function Clientes() {
   const [editingClient, setEditingClient] = useState<Client | null>(null)
   const [alertSettings, setAlertSettings] = useState<any>(null)
   const [activeTab, setActiveTab] = useState('ativos')
+  const [notifications, setNotifications] = useState<any[]>([])
   const { toast } = useToast()
   const { user } = useAuth()
 
   const loadData = async () => {
     try {
-      const [clientsData, alertData] = await Promise.all([
+      const [clientsData, alertData, notificationsData] = await Promise.all([
         getClients(),
         pb
           .collection('alert_settings')
           .getFirstListItem('')
           .catch(() => null),
+        user?.role?.toLowerCase() === 'admin'
+          ? pb
+              .collection('notifications')
+              .getFullList({ filter: "type='atraso_cliente' && resolved=false" })
+              .catch(() => [])
+          : Promise.resolve([]),
       ])
       setClients(clientsData)
       setAlertSettings(alertData)
+      setNotifications(notificationsData)
     } catch (error) {
       console.error(error)
     }
@@ -55,6 +63,27 @@ export default function Clientes() {
 
   useRealtime('clients', loadData)
   useRealtime('alert_settings', loadData)
+  useRealtime(
+    'notifications',
+    (e) => {
+      if (e.record.type === 'atraso_cliente' && user?.role?.toLowerCase() === 'admin') {
+        if (e.action === 'create' || e.action === 'update') {
+          if (e.record.resolved) {
+            setNotifications((prev) => prev.filter((n) => n.id !== e.record.id))
+          } else {
+            setNotifications((prev) => {
+              const exists = prev.find((n) => n.id === e.record.id)
+              if (exists) return prev.map((n) => (n.id === e.record.id ? e.record : n))
+              return [...prev, e.record]
+            })
+          }
+        } else if (e.action === 'delete') {
+          setNotifications((prev) => prev.filter((n) => n.id !== e.record.id))
+        }
+      }
+    },
+    user?.role?.toLowerCase() === 'admin',
+  )
 
   const filteredClients = useMemo(() => {
     let result = clients
@@ -254,6 +283,7 @@ export default function Clientes() {
             <ClienteList
               clients={activeClients}
               alertSettings={alertSettings}
+              notifications={notifications}
               onEdit={handleEdit}
               onDelete={handleDelete}
               onBaixa={handleBaixa}
@@ -264,6 +294,7 @@ export default function Clientes() {
             <ClienteList
               clients={completedClients}
               alertSettings={alertSettings}
+              notifications={notifications}
               onEdit={handleEdit}
               onDelete={handleDelete}
               onBaixa={handleBaixa}

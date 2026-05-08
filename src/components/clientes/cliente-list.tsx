@@ -141,6 +141,7 @@ const ObservationBlock = ({
 interface ClienteListProps {
   clients: Client[]
   alertSettings?: any
+  notifications?: any[]
   onEdit: (client: Client) => void
   onDelete: (id: string) => void
   onBaixa: (id: string) => void
@@ -168,6 +169,7 @@ const ConfigBadge = ({ name, color }: { name?: string; color?: string }) => {
 export function ClienteList({
   clients,
   alertSettings,
+  notifications = [],
   onEdit,
   onDelete,
   onBaixa,
@@ -313,18 +315,20 @@ export function ClienteList({
                 </TableRow>
               )}
               {clients.map((client) => {
-                const days = client.created
-                  ? differenceInCalendarDays(new Date(), new Date(client.created))
+                const days = client.updated
+                  ? differenceInCalendarDays(new Date(), new Date(client.updated))
                   : 0
                 const statusName = client.expand?.status?.name?.toUpperCase() || ''
                 const isPending =
                   statusName !== 'BAIXA' && statusName !== 'CONCLUÍDO' && statusName !== 'CONCLUIDO'
                 const isCritical = alertSettings && days >= alertSettings.critical_days
                 const isOld = alertSettings && !isCritical && days >= alertSettings.old_days
+                const hasNotification = notifications.some((n) => n.client === client.id)
                 const showCritical = isPending && isCritical
                 const showOld = isPending && isOld
+                const showAtrasado = isPending && hasNotification
                 const hasUnreadObs = Boolean(client.observacoes && !client.observacao_lida)
-                const hasActiveAlert = showCritical || hasUnreadObs
+                const hasActiveAlert = showCritical || hasUnreadObs || showAtrasado
 
                 return (
                   <TableRow
@@ -344,7 +348,15 @@ export function ClienteList({
                           />
                         )}
                         <span className="print:block">{client.razao_social}</span>
-                        {showCritical && (
+                        {showAtrasado && (
+                          <Badge
+                            variant="destructive"
+                            className="h-5 px-1.5 text-[10px] flex gap-1 items-center font-medium print:hidden animate-pulse shadow-sm bg-red-600 hover:bg-red-700"
+                          >
+                            <AlertTriangle className="w-3 h-3" /> Atrasado
+                          </Badge>
+                        )}
+                        {!showAtrasado && showCritical && (
                           <Badge
                             variant="destructive"
                             className="h-5 px-1.5 text-[10px] flex gap-1 items-center font-medium print:hidden animate-pulse shadow-sm"
@@ -352,7 +364,7 @@ export function ClienteList({
                             <AlertTriangle className="w-3 h-3" /> Crítica
                           </Badge>
                         )}
-                        {showOld && (
+                        {!showAtrasado && showOld && (
                           <Badge
                             variant="outline"
                             className="h-5 px-1.5 text-[10px] flex gap-1 items-center font-medium border-amber-500 text-amber-600 bg-amber-50 dark:bg-amber-950 dark:text-amber-500 print:hidden"
@@ -442,18 +454,20 @@ export function ClienteList({
           </div>
         )}
         {clients.map((client) => {
-          const days = client.created
-            ? differenceInCalendarDays(new Date(), new Date(client.created))
+          const days = client.updated
+            ? differenceInCalendarDays(new Date(), new Date(client.updated))
             : 0
           const statusName = client.expand?.status?.name?.toUpperCase() || ''
           const isPending =
             statusName !== 'BAIXA' && statusName !== 'CONCLUÍDO' && statusName !== 'CONCLUIDO'
           const isCritical = alertSettings && days >= alertSettings.critical_days
           const isOld = alertSettings && !isCritical && days >= alertSettings.old_days
+          const hasNotification = notifications.some((n) => n.client === client.id)
           const showCritical = isPending && isCritical
           const showOld = isPending && isOld
+          const showAtrasado = isPending && hasNotification
           const hasUnreadObs = Boolean(client.observacoes && !client.observacao_lida)
-          const hasActiveAlert = showCritical || hasUnreadObs
+          const hasActiveAlert = showCritical || hasUnreadObs || showAtrasado
 
           return (
             <Card
@@ -474,7 +488,15 @@ export function ClienteList({
                         />
                       )}
                       <h4 className="font-semibold text-foreground">{client.razao_social}</h4>
-                      {showCritical && (
+                      {showAtrasado && (
+                        <Badge
+                          variant="destructive"
+                          className="h-5 px-1.5 text-[10px] flex gap-1 items-center font-medium animate-pulse shadow-sm bg-red-600 hover:bg-red-700"
+                        >
+                          <AlertTriangle className="w-3 h-3" /> Atrasado
+                        </Badge>
+                      )}
+                      {!showAtrasado && showCritical && (
                         <Badge
                           variant="destructive"
                           className="h-5 px-1.5 text-[10px] flex gap-1 items-center font-medium animate-pulse shadow-sm"
@@ -482,7 +504,7 @@ export function ClienteList({
                           <AlertTriangle className="w-3 h-3" /> Crítica
                         </Badge>
                       )}
-                      {showOld && (
+                      {!showAtrasado && showOld && (
                         <Badge
                           variant="outline"
                           className="h-5 px-1.5 text-[10px] flex gap-1 items-center font-medium border-amber-500 text-amber-600 bg-amber-50 dark:bg-amber-950 dark:text-amber-500"

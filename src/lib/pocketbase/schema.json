@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-08T09:50:29.144Z",
+  "generatedAt": "2026-05-08T10:01:13.507Z",
   "collections": [
     {
       "name": "users",
@@ -296,7 +296,7 @@
           "system": false
         }
       ],
-      "indexes": []
+      "indexes": ["CREATE INDEX `idx_clients_status_updated` ON `clients` (status, updated)"]
     },
     {
       "name": "alert_settings",
@@ -393,6 +393,13 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "client",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "clients"
         }
       ],
       "indexes": []

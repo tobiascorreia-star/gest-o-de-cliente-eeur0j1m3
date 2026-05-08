@@ -1,0 +1,67 @@
+cronAdd('check_client_delays', '*/15 * * * *', () => {
+  try {
+    const alertSettings = $app.findFirstRecordByFilter('alert_settings', "id != ''")
+    const oldDays = alertSettings.getInt('old_days')
+    const criticalDays = alertSettings.getInt('critical_days')
+    const thresholdDays = oldDays > 0 ? oldDays : criticalDays > 0 ? criticalDays : 0
+
+    if (thresholdDays <= 0) return
+
+    const now = new Date()
+    now.setDate(now.getDate() - thresholdDays)
+    const targetDate = now.toISOString().replace('T', ' ').substring(0, 19) + 'Z'
+
+    const configs = $app.findRecordsByFilter('configurations', "type='STATUS'", '', 100, 0)
+    let excludeStatuses = []
+    for (let c of configs) {
+      let name = c.getString('name').toUpperCase()
+      if (name === 'BAIXA' || name === 'CONCLUÍDO' || name === 'CONCLUIDO') {
+        excludeStatuses.push(c.id)
+      }
+    }
+
+    let filter = `updated <= {:targetDate}`
+    let bindParams = { targetDate: targetDate }
+
+    if (excludeStatuses.length > 0) {
+      filter += ` && status != '` + excludeStatuses.join(`' && status != '`) + `'`
+    }
+
+    const delayedClients = $app.findRecordsByFilter(
+      'clients',
+      filter,
+      '-updated',
+      1000,
+      0,
+      bindParams,
+    )
+    if (delayedClients.length === 0) return
+
+    const admins = $app.findRecordsByFilter('users', "role='admin'", '', 100, 0)
+
+    for (let client of delayedClients) {
+      for (let admin of admins) {
+        try {
+          $app.findFirstRecordByFilter(
+            'notifications',
+            "type='atraso_cliente' && client={:client} && user={:user} && (resolved=false || created > {:updated})",
+            {
+              client: client.id,
+              user: admin.id,
+              updated: client.getString('updated'),
+            },
+          )
+        } catch (_) {
+          const notif = new Record($app.findCollectionByNameOrId('notifications'))
+          notif.set('user', admin.id)
+          notif.set('type', 'atraso_cliente')
+          notif.set('client', client.id)
+          notif.set('resolved', false)
+          $app.save(notif)
+        }
+      }
+    }
+  } catch (err) {
+    $app.logger().error('Cron check_client_delays error', 'error', err.message)
+  }
+})

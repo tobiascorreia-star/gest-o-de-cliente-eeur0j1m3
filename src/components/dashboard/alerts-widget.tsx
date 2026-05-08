@@ -8,23 +8,23 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { differenceInDays, format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { Clock, KeyRound, CheckCircle2 } from 'lucide-react'
+import { Clock, KeyRound, CheckCircle2, AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 export function AlertsWidget() {
   const { currentUser } = useApp?.() || {}
   const { clients, statuses, alertSettings } = useDashboard()
-  const [resetRequests, setResetRequests] = useState<any[]>([])
+  const [notificationsList, setNotificationsList] = useState<any[]>([])
 
   useEffect(() => {
     if (currentUser?.role?.toLowerCase() === 'admin') {
       pb.collection('notifications')
         .getFullList({
-          filter: "type = 'password_reset' && resolved = false",
+          filter: "(type = 'password_reset' || type = 'atraso_cliente') && resolved = false",
           sort: '-created',
-          expand: 'user',
+          expand: 'user,client',
         })
-        .then(setResetRequests)
+        .then(setNotificationsList)
         .catch(console.error)
     }
   }, [currentUser])
@@ -32,16 +32,20 @@ export function AlertsWidget() {
   useRealtime(
     'notifications',
     (e) => {
-      if (e.action === 'create' && e.record.type === 'password_reset' && !e.record.resolved) {
-        setResetRequests((prev) => [e.record, ...prev])
+      if (
+        e.action === 'create' &&
+        (e.record.type === 'password_reset' || e.record.type === 'atraso_cliente') &&
+        !e.record.resolved
+      ) {
+        setNotificationsList((prev) => [e.record, ...prev])
       } else if (e.action === 'delete') {
-        setResetRequests((prev) => prev.filter((r) => r.id !== e.record.id))
+        setNotificationsList((prev) => prev.filter((r) => r.id !== e.record.id))
       } else if (e.action === 'update') {
-        if (e.record.type === 'password_reset') {
+        if (e.record.type === 'password_reset' || e.record.type === 'atraso_cliente') {
           if (e.record.resolved) {
-            setResetRequests((prev) => prev.filter((r) => r.id !== e.record.id))
+            setNotificationsList((prev) => prev.filter((r) => r.id !== e.record.id))
           } else {
-            setResetRequests((prev) => {
+            setNotificationsList((prev) => {
               const exists = prev.find((r) => r.id === e.record.id)
               return exists
                 ? prev.map((r) => (r.id === e.record.id ? e.record : r))
@@ -54,7 +58,7 @@ export function AlertsWidget() {
     currentUser?.role?.toLowerCase() === 'admin',
   )
 
-  const handleResolveReset = async (id: string) => {
+  const handleResolveNotification = async (id: string) => {
     try {
       await pb.collection('notifications').update(id, { resolved: true })
     } catch (e) {
@@ -62,15 +66,16 @@ export function AlertsWidget() {
     }
   }
 
-  const baixaStatusId = statuses.find((s) => s.name.toLowerCase() === 'baixa')?.id
-
   const alerts = clients
-    .filter((c) => c.status !== baixaStatusId)
+    .filter((c) => {
+      const statusName = statuses.find((s) => s.id === c.status)?.name?.toUpperCase() || ''
+      return statusName !== 'BAIXA' && statusName !== 'CONCLUÍDO' && statusName !== 'CONCLUIDO'
+    })
     .map((c) => {
-      const days = differenceInDays(new Date(), new Date(c.created))
+      const days = differenceInDays(new Date(), new Date(c.updated))
       let severity: 'none' | 'old' | 'critical' = 'none'
-      if (days >= alertSettings.critical_days) severity = 'critical'
-      else if (days >= alertSettings.old_days) severity = 'old'
+      if (alertSettings && days >= alertSettings.critical_days) severity = 'critical'
+      else if (alertSettings && days >= alertSettings.old_days) severity = 'old'
 
       return { ...c, days, severity }
     })
@@ -78,10 +83,58 @@ export function AlertsWidget() {
     .sort((a, b) => b.days - a.days)
     .slice(0, 6)
 
-  const pendingResets = resetRequests
+  const pendingResets = notificationsList.filter((n) => n.type === 'password_reset')
+  const delayedClients = notificationsList.filter((n) => n.type === 'atraso_cliente')
 
   return (
     <div className="space-y-4 mt-4">
+      {currentUser?.role?.toLowerCase() === 'admin' && delayedClients.length > 0 && (
+        <Card className="border-border/50 shadow-sm border-l-4 border-l-red-500 bg-red-50/50 dark:bg-red-950/20">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-light flex items-center gap-2 text-red-600 dark:text-red-400">
+              <AlertTriangle className="w-4 h-4" strokeWidth={1.5} />
+              Atenção: Clientes Atrasados ({delayedClients.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {delayedClients.slice(0, 5).map((req) => {
+                const clientName = req.expand?.client?.razao_social || 'Cliente não encontrado'
+                return (
+                  <div
+                    key={req.id}
+                    className="flex items-center justify-between bg-background p-3 rounded-lg border shadow-sm"
+                  >
+                    <div>
+                      <p className="font-medium text-sm text-red-700 dark:text-red-400">
+                        {clientName}
+                      </p>
+                      <p className="text-[11px] font-light text-muted-foreground mt-0.5">
+                        Detectado em {format(new Date(req.created), "dd/MM/yyyy 'às' HH:mm")}
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleResolveNotification(req.id)}
+                      className="gap-2 font-light text-xs hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950"
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5" strokeWidth={1.25} />
+                      Resolver
+                    </Button>
+                  </div>
+                )
+              })}
+              {delayedClients.length > 5 && (
+                <p className="text-xs text-center text-muted-foreground pt-2">
+                  + {delayedClients.length - 5} outros atrasos não resolvidos.
+                </p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {currentUser?.role?.toLowerCase() === 'admin' && pendingResets.length > 0 && (
         <Card className="border-border/50 shadow-sm border-l-4 border-l-primary bg-primary/5">
           <CardHeader className="pb-2">
@@ -111,7 +164,7 @@ export function AlertsWidget() {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => handleResolveReset(req.id)}
+                      onClick={() => handleResolveNotification(req.id)}
                       className="gap-2 font-light text-xs"
                     >
                       <CheckCircle2 className="w-3.5 h-3.5" strokeWidth={1.25} />
