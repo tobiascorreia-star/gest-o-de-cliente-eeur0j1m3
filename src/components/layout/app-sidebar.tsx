@@ -2,6 +2,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import pb from '@/lib/pocketbase/client'
 import { useRealtime } from '@/hooks/use-realtime'
+import { differenceInCalendarDays } from 'date-fns'
 import {
   LayoutDashboard,
   Users,
@@ -54,6 +55,38 @@ export function AppSidebar() {
   const { user, signOut } = useAuth()
 
   const [pendingAdminPaymentsCount, setPendingAdminPaymentsCount] = useState(0)
+  const [clientAlertsCount, setClientAlertsCount] = useState(0)
+
+  const fetchClientAlerts = async () => {
+    if (!user) return
+    try {
+      const [clientsRes, settingsRes] = await Promise.all([
+        pb.collection('clients').getFullList({ expand: 'status' }),
+        pb.collection('alert_settings').getFullList(),
+      ])
+      const settings = settingsRes[0]
+
+      let count = 0
+      clientsRes.forEach((client: any) => {
+        const hasUnreadObs = Boolean(client.observacoes && !client.observacao_lida)
+        const statusName = client.expand?.status?.name?.toUpperCase() || ''
+        const isPending =
+          statusName !== 'BAIXA' && statusName !== 'CONCLUÍDO' && statusName !== 'CONCLUIDO'
+
+        const days = client.created
+          ? differenceInCalendarDays(new Date(), new Date(client.created))
+          : 0
+        const isCritical = settings && isPending && days >= settings.critical_days
+
+        if (hasUnreadObs || isCritical) {
+          count++
+        }
+      })
+      setClientAlertsCount(count)
+    } catch (err) {
+      console.error('Error fetching client alerts:', err)
+    }
+  }
 
   const fetchPendingAdminPayments = async () => {
     if (user?.role?.toLowerCase() !== 'admin') return
@@ -72,10 +105,19 @@ export function AppSidebar() {
 
   useEffect(() => {
     fetchPendingAdminPayments()
+    fetchClientAlerts()
   }, [user])
 
   useRealtime('admin_payments', () => {
     fetchPendingAdminPayments()
+  })
+
+  useRealtime('clients', () => {
+    fetchClientAlerts()
+  })
+
+  useRealtime('alert_settings', () => {
+    fetchClientAlerts()
   })
 
   const filteredNavigation = navigation.filter((item) => {
@@ -127,6 +169,11 @@ export function AppSidebar() {
                         {item.name === 'Pag. Admin' && pendingAdminPaymentsCount > 0 && (
                           <span className="ml-auto flex items-center justify-center bg-red-500 text-white text-[10px] font-bold w-5 h-5 rounded-full animate-pulse shadow-sm">
                             {pendingAdminPaymentsCount > 99 ? '99+' : pendingAdminPaymentsCount}
+                          </span>
+                        )}
+                        {item.name === 'Clientes' && clientAlertsCount > 0 && (
+                          <span className="ml-auto flex items-center justify-center bg-destructive text-destructive-foreground text-[10px] font-bold min-w-5 px-1 h-5 rounded-full shadow-sm">
+                            {clientAlertsCount > 99 ? '99+' : clientAlertsCount}
                           </span>
                         )}
                       </Link>

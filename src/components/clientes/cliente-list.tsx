@@ -31,7 +31,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { format, differenceInDays } from 'date-fns'
+import { format, differenceInCalendarDays } from 'date-fns'
 import {
   Dialog,
   DialogContent,
@@ -59,7 +59,7 @@ const ObservationBlock = ({
       {!client.observacao_lida ? (
         <>
           <div className="flex items-center justify-between gap-2 flex-wrap print:hidden">
-            <div className="bg-amber-50 text-amber-700 border border-amber-200 px-1.5 py-0.5 rounded-full text-[9px] font-semibold inline-flex items-center gap-1 w-fit tracking-wide">
+            <div className="bg-amber-50 text-amber-700 border border-amber-200 px-1.5 py-0.5 rounded-full text-[9px] font-semibold inline-flex items-center gap-1 w-fit tracking-wide animate-pulse">
               <AlertTriangle className="w-2.5 h-2.5" /> PENDENTE
             </div>
             {isAdmin && (
@@ -314,7 +314,7 @@ export function ClienteList({
               )}
               {clients.map((client) => {
                 const days = client.created
-                  ? differenceInDays(new Date(), new Date(client.created))
+                  ? differenceInCalendarDays(new Date(), new Date(client.created))
                   : 0
                 const statusName = client.expand?.status?.name?.toUpperCase() || ''
                 const isPending =
@@ -323,6 +323,8 @@ export function ClienteList({
                 const isOld = alertSettings && !isCritical && days >= alertSettings.old_days
                 const showCritical = isPending && isCritical
                 const showOld = isPending && isOld
+                const hasUnreadObs = Boolean(client.observacoes && !client.observacao_lida)
+                const hasActiveAlert = showCritical || hasUnreadObs
 
                 return (
                   <TableRow
@@ -335,11 +337,17 @@ export function ClienteList({
                   >
                     <TableCell className="align-top print:px-0.5 print:py-1 print:break-words">
                       <div className="font-medium text-slate-800 dark:text-slate-200 flex items-center gap-2 print:text-[8px] print:leading-tight">
+                        {hasActiveAlert && (
+                          <div
+                            className="w-2 h-2 rounded-full bg-destructive animate-pulse shrink-0 print:hidden"
+                            title="Alerta Ativo"
+                          />
+                        )}
                         <span className="print:block">{client.razao_social}</span>
                         {showCritical && (
                           <Badge
                             variant="destructive"
-                            className="h-5 px-1.5 text-[10px] flex gap-1 items-center font-medium print:hidden"
+                            className="h-5 px-1.5 text-[10px] flex gap-1 items-center font-medium print:hidden animate-pulse shadow-sm"
                           >
                             <AlertTriangle className="w-3 h-3" /> Crítica
                           </Badge>
@@ -434,7 +442,9 @@ export function ClienteList({
           </div>
         )}
         {clients.map((client) => {
-          const days = client.created ? differenceInDays(new Date(), new Date(client.created)) : 0
+          const days = client.created
+            ? differenceInCalendarDays(new Date(), new Date(client.created))
+            : 0
           const statusName = client.expand?.status?.name?.toUpperCase() || ''
           const isPending =
             statusName !== 'BAIXA' && statusName !== 'CONCLUÍDO' && statusName !== 'CONCLUIDO'
@@ -442,6 +452,8 @@ export function ClienteList({
           const isOld = alertSettings && !isCritical && days >= alertSettings.old_days
           const showCritical = isPending && isCritical
           const showOld = isPending && isOld
+          const hasUnreadObs = Boolean(client.observacoes && !client.observacao_lida)
+          const hasActiveAlert = showCritical || hasUnreadObs
 
           return (
             <Card
@@ -455,11 +467,17 @@ export function ClienteList({
                 <div className="flex justify-between items-start">
                   <div>
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
+                      {hasActiveAlert && (
+                        <div
+                          className="w-2 h-2 rounded-full bg-destructive animate-pulse shrink-0 print:hidden"
+                          title="Alerta Ativo"
+                        />
+                      )}
                       <h4 className="font-semibold text-foreground">{client.razao_social}</h4>
                       {showCritical && (
                         <Badge
                           variant="destructive"
-                          className="h-5 px-1.5 text-[10px] flex gap-1 items-center font-medium"
+                          className="h-5 px-1.5 text-[10px] flex gap-1 items-center font-medium animate-pulse shadow-sm"
                         >
                           <AlertTriangle className="w-3 h-3" /> Crítica
                         </Badge>
