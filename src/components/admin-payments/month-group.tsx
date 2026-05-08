@@ -95,6 +95,12 @@ export function MonthGroup({ mes, ano, items, onEditItem, onAddForOwner }: Props
     })
 
     return Object.entries(map).sort(([ownerA, itemsA], [ownerB, itemsB]) => {
+      const aAllPaid = itemsA.length > 0 && itemsA.every((i) => i.status)
+      const bAllPaid = itemsB.length > 0 && itemsB.every((i) => i.status)
+
+      if (aAllPaid && !bAllPaid) return 1
+      if (!aAllPaid && bAllPaid) return -1
+
       const todayTime = startOfDay(new Date()).getTime()
       const aHasOverdue = itemsA.some(
         (i) =>
