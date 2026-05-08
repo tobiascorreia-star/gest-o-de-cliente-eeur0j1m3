@@ -37,6 +37,13 @@ export default function PagamentosAdmin() {
 
   useEffect(() => {
     loadData()
+
+    const handleOptimistic = (e: any) => {
+      const { id, updates } = e.detail
+      setPayments((prev) => prev.map((p) => (p.id === id ? { ...p, ...updates } : p)))
+    }
+    window.addEventListener('admin-payment-optimistic', handleOptimistic)
+    return () => window.removeEventListener('admin-payment-optimistic', handleOptimistic)
   }, [])
 
   useRealtime('admin_payments', () => {

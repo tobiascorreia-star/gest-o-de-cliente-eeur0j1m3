@@ -112,7 +112,13 @@ export function PaymentModal({
         className="sm:max-w-[425px]"
         onOpenAutoFocus={(e) => {
           e.preventDefault()
-          donoRef.current?.focus()
+          setTimeout(() => {
+            if (donoRef.current) {
+              donoRef.current.focus()
+              const length = donoRef.current.value.length
+              donoRef.current.setSelectionRange(length, length)
+            }
+          }, 0)
         }}
       >
         <DialogHeader>

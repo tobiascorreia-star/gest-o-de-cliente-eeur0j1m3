@@ -35,12 +35,23 @@ export function PaymentItem({ item, onEdit }: Props) {
 
   const handleSaveDesc = async () => {
     if (desc.trim() !== item.descricao && desc.trim()) {
+      const oldDesc = item.descricao
+      window.dispatchEvent(
+        new CustomEvent('admin-payment-optimistic', {
+          detail: { id: item.id, updates: { descricao: desc.trim() } },
+        }),
+      )
       try {
         await updateAdminPayment(item.id, { descricao: desc.trim() })
         toast.success('Descrição atualizada')
       } catch {
         toast.error('Erro ao atualizar descrição')
-        setDesc(item.descricao)
+        window.dispatchEvent(
+          new CustomEvent('admin-payment-optimistic', {
+            detail: { id: item.id, updates: { descricao: oldDesc } },
+          }),
+        )
+        setDesc(oldDesc)
       }
     } else {
       setDesc(item.descricao)
@@ -48,14 +59,32 @@ export function PaymentItem({ item, onEdit }: Props) {
     setIsEditing(false)
   }
   const handleToggle = async () => {
+    const newStatus = !item.status
+    const data_pagamento_realizado = newStatus ? new Date().toISOString() : ''
+
+    window.dispatchEvent(
+      new CustomEvent('admin-payment-optimistic', {
+        detail: { id: item.id, updates: { status: newStatus, data_pagamento_realizado } },
+      }),
+    )
+
     try {
-      const newStatus = !item.status
-      const data_pagamento_realizado = newStatus ? new Date().toISOString() : ''
       await updateAdminPayment(item.id, {
         status: newStatus,
         data_pagamento_realizado,
       })
     } catch (err) {
+      window.dispatchEvent(
+        new CustomEvent('admin-payment-optimistic', {
+          detail: {
+            id: item.id,
+            updates: {
+              status: item.status,
+              data_pagamento_realizado: item.data_pagamento_realizado,
+            },
+          },
+        }),
+      )
       toast.error('Erro ao atualizar status')
     }
   }
