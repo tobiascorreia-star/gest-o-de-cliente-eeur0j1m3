@@ -129,6 +129,7 @@ export function PaymentModal({
             <Label>Dono do Pagamento</Label>
             <Input
               required
+              autoFocus
               placeholder="Ex: Tobias, Empresa X"
               value={formData.dono_pagamento}
               onChange={(e) => setFormData({ ...formData, dono_pagamento: e.target.value })}
@@ -138,7 +139,6 @@ export function PaymentModal({
             <Label>Descrição</Label>
             <Input
               required
-              autoFocus
               placeholder="Ex: Mensalidade Sistema"
               value={formData.descricao}
               onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}

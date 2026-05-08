@@ -69,10 +69,13 @@ export function MonthGroup({ mes, ano, items, onEditItem, onAddForOwner }: Props
         if (aIsOverdue && !bIsOverdue) return -1
         if (!aIsOverdue && bIsOverdue) return 1
         if (aIsOverdue && bIsOverdue) {
-          return new Date(a.data_notificacao!).getTime() - new Date(b.data_notificacao!).getTime()
+          const timeDiff =
+            new Date(a.data_notificacao!).getTime() - new Date(b.data_notificacao!).getTime()
+          if (timeDiff !== 0) return timeDiff
+          return (a.descricao || '').localeCompare(b.descricao || '')
         }
 
-        return new Date(a.created || 0).getTime() - new Date(b.created || 0).getTime()
+        return (a.descricao || '').localeCompare(b.descricao || '')
       })
     })
 
