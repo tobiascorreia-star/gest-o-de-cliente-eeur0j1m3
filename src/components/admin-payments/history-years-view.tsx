@@ -1,5 +1,7 @@
+import { useContext } from 'react'
 import { AdminPayment } from '@/types'
 import { MonthGroup } from './month-group'
+import { AdminPaymentsFilterContext } from '@/pages/PagamentosAdmin'
 import {
   Accordion,
   AccordionContent,
@@ -29,11 +31,23 @@ const MONTH_NAMES = [
 ]
 
 export function HistoryYearsView({ years, onEditItem, onAddForOwner }: Props) {
+  const { search, status } = useContext(AdminPaymentsFilterContext)
+
   const sortedYears = Object.keys(years)
     .map(Number)
     .sort((a, b) => b - a)
 
   if (sortedYears.length === 0) {
+    if (search || status !== 'all') {
+      return (
+        <div className="flex flex-col items-center justify-center h-64 text-center">
+          <p className="text-muted-foreground font-medium">Nenhum resultado encontrado.</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            Não foram encontrados pagamentos no histórico para os filtros aplicados.
+          </p>
+        </div>
+      )
+    }
     return (
       <div className="flex flex-col items-center justify-center h-64 text-center">
         <p className="text-muted-foreground">O histórico está vazio.</p>

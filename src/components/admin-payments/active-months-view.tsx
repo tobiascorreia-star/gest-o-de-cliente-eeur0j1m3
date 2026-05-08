@@ -1,5 +1,7 @@
+import { useContext } from 'react'
 import { AdminPayment } from '@/types'
 import { MonthGroup } from './month-group'
+import { AdminPaymentsFilterContext } from '@/pages/PagamentosAdmin'
 
 interface Props {
   months: { mes: number; ano: number; items: AdminPayment[] }[]
@@ -8,7 +10,19 @@ interface Props {
 }
 
 export function ActiveMonthsView({ months, onEditItem, onAddForOwner }: Props) {
+  const { search, status } = useContext(AdminPaymentsFilterContext)
+
   if (months.length === 0) {
+    if (search || status !== 'all') {
+      return (
+        <div className="flex flex-col items-center justify-center h-full text-center">
+          <p className="text-muted-foreground font-medium">Nenhum resultado encontrado.</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            Não foram encontrados pagamentos ativos para os filtros aplicados.
+          </p>
+        </div>
+      )
+    }
     return (
       <div className="flex flex-col items-center justify-center h-full text-center">
         <p className="text-muted-foreground">Nenhum mês ativo no momento.</p>

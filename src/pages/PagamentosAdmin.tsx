@@ -6,7 +6,7 @@ import { AdminPayment } from '@/types'
 import { getAdminPayments, createAdminPayment, updateAdminPayment } from '@/services/admin_payments'
 import { useRealtime } from '@/hooks/use-realtime'
 import { toast } from 'sonner'
-import { Wallet, Plus, Search } from 'lucide-react'
+import { Wallet, Plus, Search, X } from 'lucide-react'
 import { ActiveMonthsView } from '@/components/admin-payments/active-months-view'
 import { HistoryYearsView } from '@/components/admin-payments/history-years-view'
 import { Button } from '@/components/ui/button'
@@ -73,6 +73,9 @@ export default function PagamentosAdmin() {
     const active: { mes: number; ano: number; items: AdminPayment[] }[] = []
     const history: Record<number, { mes: number; ano: number; items: AdminPayment[] }[]> = {}
 
+    const searchLower = searchTerm.toLowerCase().trim()
+    const hasFilter = searchLower !== '' || statusFilter !== 'all'
+
     Object.entries(groupedByMonthYear).forEach(([key, items]) => {
       const [anoStr, mesStr] = key.split('-')
       const ano = parseInt(anoStr, 10)
@@ -81,11 +84,27 @@ export default function PagamentosAdmin() {
       const isAllPaid = items.length > 0 && items.every((i) => i.status)
       const isCurrent = key === currentKey
 
+      const filteredItems = items.filter((p) => {
+        const matchesSearch = searchLower
+          ? p.dono_pagamento.toLowerCase().includes(searchLower)
+          : true
+        const matchesStatus =
+          statusFilter === 'all' || (statusFilter === 'paid' ? p.status : !p.status)
+        return matchesSearch && matchesStatus
+      })
+
+      if (filteredItems.length === 0) {
+        if (items.length === 0 && !hasFilter && isCurrent) {
+          active.push({ mes, ano, items: [] })
+        }
+        return
+      }
+
       if (isAllPaid && !isCurrent) {
         if (!history[ano]) history[ano] = []
-        history[ano].push({ mes, ano, items })
+        history[ano].push({ mes, ano, items: filteredItems })
       } else {
-        active.push({ mes, ano, items })
+        active.push({ mes, ano, items: filteredItems })
       }
     })
 
@@ -179,10 +198,20 @@ export default function PagamentosAdmin() {
                 <Search className="absolute left-2.5 top-2 h-4 w-4 text-slate-400" />
                 <Input
                   placeholder="Buscar dono do pagamento..."
-                  className="pl-9 h-8 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-sm"
+                  className="pl-9 pr-8 h-8 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-sm"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
+                {searchTerm && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchTerm('')}
+                    className="absolute right-2 top-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 focus:outline-none"
+                    aria-label="Limpar busca"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
               </div>
 
               <ToggleGroup
