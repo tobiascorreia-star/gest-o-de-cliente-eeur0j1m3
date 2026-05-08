@@ -6,7 +6,7 @@ import { Pencil, Trash2, Clock, AlertCircle, ChevronDown, ChevronRight } from 'l
 import { cn } from '@/lib/utils'
 import { updateAdminPayment, deleteAdminPayment } from '@/services/admin_payments'
 import { toast } from 'sonner'
-import { format, startOfDay } from 'date-fns'
+import { format, startOfDay, addDays } from 'date-fns'
 
 interface Props {
   item: AdminPayment
@@ -70,16 +70,27 @@ export function PaymentItem({ item, onEdit }: Props) {
     }
   }
 
-  const isLate =
+  const today = startOfDay(new Date())
+  const tomorrow = addDays(today, 1)
+  const notifDate = item.data_notificacao
+    ? startOfDay(new Date(item.data_notificacao.replace(' ', 'T')))
+    : null
+
+  const isOverdue = !item.status && !!notifDate && notifDate.getTime() < today.getTime()
+  const isNearDeadline =
     !item.status &&
-    !!item.data_notificacao &&
-    startOfDay(new Date(item.data_notificacao.replace(' ', 'T'))) <= startOfDay(new Date())
+    !!notifDate &&
+    (notifDate.getTime() === today.getTime() || notifDate.getTime() === tomorrow.getTime())
 
   return (
     <div
       className={cn(
         'group flex items-start gap-3 p-3 rounded-lg bg-white dark:bg-slate-950 transition-colors border',
-        isLate ? 'border-red-200 dark:border-red-900/50' : 'border-slate-100 dark:border-slate-800',
+        isOverdue
+          ? 'border-red-200 dark:border-red-900/50'
+          : isNearDeadline
+            ? 'border-orange-300 dark:border-orange-900/50'
+            : 'border-slate-100 dark:border-slate-800',
         'hover:border-slate-300 dark:hover:border-slate-700 shadow-sm',
       )}
     >
@@ -142,9 +153,13 @@ export function PaymentItem({ item, onEdit }: Props) {
 
             <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground flex-wrap">
               <span
-                className={cn('flex items-center gap-1', isLate && 'text-red-500 font-semibold')}
+                className={cn(
+                  'flex items-center gap-1',
+                  isOverdue && 'text-red-500 font-semibold',
+                  isNearDeadline && 'text-orange-500 font-semibold',
+                )}
               >
-                {isLate && <AlertCircle className="w-3 h-3" />}
+                {(isOverdue || isNearDeadline) && <AlertCircle className="w-3 h-3" />}
                 {item.data_notificacao
                   ? `Vence: ${format(new Date(item.data_notificacao.replace(' ', 'T')), 'dd/MM/yyyy')}`
                   : 'Sem vencimento'}

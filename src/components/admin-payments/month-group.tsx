@@ -13,6 +13,7 @@ import { PaymentItem } from './payment-item'
 import { cloneMonthPayments } from '@/services/admin_payments'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import { startOfDay, addDays } from 'date-fns'
 
 interface Props {
   mes: number
@@ -61,7 +62,6 @@ export function MonthGroup({ mes, ano, items, onEditItem, onAddForOwner }: Props
 
   const groupedByOwner = useMemo(() => {
     const map: Record<string, AdminPayment[]> = {}
-    const today = new Date().toISOString()
 
     filteredItems.forEach((item) => {
       const owner = item.dono_pagamento || 'Sem Dono'
@@ -71,17 +71,42 @@ export function MonthGroup({ mes, ano, items, onEditItem, onAddForOwner }: Props
 
     Object.values(map).forEach((ownerItems) => {
       ownerItems.sort((a, b) => {
-        if (a.status !== b.status) return a.status ? 1 : -1
+        const todayTime = startOfDay(new Date()).getTime()
+        const tomorrowTime = addDays(startOfDay(new Date()), 1).getTime()
+
+        const getPriority = (item: AdminPayment) => {
+          if (item.status) return 4
+          if (item.data_notificacao) {
+            const notifDate = startOfDay(
+              new Date(item.data_notificacao.replace(' ', 'T')),
+            ).getTime()
+            if (notifDate < todayTime) return 1 // Overdue
+            if (notifDate === todayTime || notifDate === tomorrowTime) return 2 // Near deadline
+          }
+          return 3 // Future/Other
+        }
+
+        const prioA = getPriority(a)
+        const prioB = getPriority(b)
+
+        if (prioA !== prioB) return prioA - prioB
         return (a.descricao || '').localeCompare(b.descricao || '')
       })
     })
 
     return Object.entries(map).sort(([ownerA, itemsA], [ownerB, itemsB]) => {
+      const todayTime = startOfDay(new Date()).getTime()
       const aHasOverdue = itemsA.some(
-        (i) => !i.status && !!i.data_notificacao && i.data_notificacao <= today,
+        (i) =>
+          !i.status &&
+          !!i.data_notificacao &&
+          startOfDay(new Date(i.data_notificacao.replace(' ', 'T'))).getTime() < todayTime,
       )
       const bHasOverdue = itemsB.some(
-        (i) => !i.status && !!i.data_notificacao && i.data_notificacao <= today,
+        (i) =>
+          !i.status &&
+          !!i.data_notificacao &&
+          startOfDay(new Date(i.data_notificacao.replace(' ', 'T'))).getTime() < todayTime,
       )
       if (aHasOverdue && !bHasOverdue) return -1
       if (!aHasOverdue && bHasOverdue) return 1

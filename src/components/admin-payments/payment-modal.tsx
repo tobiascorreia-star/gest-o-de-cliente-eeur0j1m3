@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -32,6 +32,7 @@ export function PaymentModal({
   defaultOwner,
 }: Props) {
   const [loading, setLoading] = useState(false)
+  const descRef = useRef<HTMLInputElement>(null)
   const [formData, setFormData] = useState<Partial<AdminPayment>>({
     descricao: '',
     dono_pagamento: '',
@@ -67,6 +68,10 @@ export function PaymentModal({
           status: false,
         })
       }
+
+      setTimeout(() => {
+        descRef.current?.focus()
+      }, 50)
     }
   }, [open, initialData, defaultMonth, defaultYear, defaultOwner])
 
@@ -137,6 +142,7 @@ export function PaymentModal({
           <div className="space-y-2">
             <Label>Descrição</Label>
             <Input
+              ref={descRef}
               required
               autoFocus
               placeholder="Ex: Mensalidade Sistema"
