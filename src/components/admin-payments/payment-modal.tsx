@@ -76,13 +76,8 @@ export function PaymentModal({
           status: false,
         })
       }
-
-      setTimeout(() => {
-        donoRef.current?.focus()
-      }, 50)
     }
   }, [open, initialData, defaultMonth, defaultYear, defaultOwner])
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setSubmitted(true)
@@ -113,8 +108,15 @@ export function PaymentModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent
+        className="sm:max-w-[425px]"
+        onOpenAutoFocus={(e) => {
+          e.preventDefault()
+          donoRef.current?.focus()
+        }}
+      >
         <DialogHeader>
+          {' '}
           <DialogTitle>{initialData ? 'Editar Pagamento' : 'Novo Pagamento'}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 pt-4">

@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useContext } from 'react'
 import { AdminPayment } from '@/types'
+import { AdminPaymentsFilterContext } from '@/pages/PagamentosAdmin'
 import {
   Accordion,
   AccordionContent,
@@ -39,6 +40,7 @@ const MONTH_NAMES = [
 
 export function MonthGroup({ mes, ano, items, onEditItem, onAddForOwner }: Props) {
   const [cloning, setCloning] = useState(false)
+  const statusFilter = useContext(AdminPaymentsFilterContext)
 
   const handleClone = async () => {
     try {
@@ -157,6 +159,15 @@ export function MonthGroup({ mes, ano, items, onEditItem, onAddForOwner }: Props
           <div className="flex flex-col gap-4">
             {groupedByOwner.map(([owner, ownerItems]) => {
               const ownerPaid = ownerItems.filter((i) => i.status).length
+
+              const filteredOwnerItems = ownerItems.filter((i) => {
+                if (statusFilter === 'pending') return !i.status
+                if (statusFilter === 'paid') return i.status
+                return true
+              })
+
+              if (filteredOwnerItems.length === 0 && statusFilter !== 'all') return null
+
               return (
                 <div
                   key={owner}
@@ -189,7 +200,7 @@ export function MonthGroup({ mes, ano, items, onEditItem, onAddForOwner }: Props
                     </Button>
                   </div>
                   <div className="max-h-[300px] overflow-y-auto p-2 space-y-2 scrollbar-thin bg-slate-50/50 dark:bg-slate-950">
-                    {ownerItems.map((item) => (
+                    {filteredOwnerItems.map((item) => (
                       <PaymentItem key={item.id} item={item} onEdit={onEditItem} />
                     ))}
                   </div>
