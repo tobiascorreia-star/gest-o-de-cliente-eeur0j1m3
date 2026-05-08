@@ -74,8 +74,12 @@ export default function PagamentosAdmin() {
     const active: { mes: number; ano: number; items: AdminPayment[] }[] = []
     const history: Record<number, { mes: number; ano: number; items: AdminPayment[] }[]> = {}
 
-    const searchLower = searchTerm.toLowerCase().trim()
-    const hasFilter = searchLower !== '' || statusFilter !== 'all'
+    const searchNormalized = searchTerm
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+    const isSearchActive = searchTerm !== ''
+    const hasFilter = isSearchActive || statusFilter !== 'all'
 
     Object.entries(groupedByMonthYear).forEach(([key, items]) => {
       const [anoStr, mesStr] = key.split('-')
@@ -86,8 +90,12 @@ export default function PagamentosAdmin() {
       const isCurrent = key === currentKey
 
       const filteredItems = items.filter((p) => {
-        const matchesSearch = searchLower
-          ? p.dono_pagamento.toLowerCase().includes(searchLower)
+        const matchesSearch = isSearchActive
+          ? p.dono_pagamento
+              .toLowerCase()
+              .normalize('NFD')
+              .replace(/[\u0300-\u036f]/g, '')
+              .includes(searchNormalized)
           : true
         const matchesStatus =
           statusFilter === 'all' || (statusFilter === 'paid' ? p.status : !p.status)
