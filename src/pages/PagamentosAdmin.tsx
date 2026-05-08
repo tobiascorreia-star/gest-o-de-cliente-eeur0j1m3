@@ -6,7 +6,8 @@ import { AdminPayment } from '@/types'
 import { getAdminPayments, createAdminPayment, updateAdminPayment } from '@/services/admin_payments'
 import { useRealtime } from '@/hooks/use-realtime'
 import { toast } from 'sonner'
-import { Wallet, Plus, Search, X } from 'lucide-react'
+import { Wallet, Plus, Search, X, CalendarClock } from 'lucide-react'
+import { Toggle } from '@/components/ui/toggle'
 import { ActiveMonthsView } from '@/components/admin-payments/active-months-view'
 import { HistoryYearsView } from '@/components/admin-payments/history-years-view'
 import { Button } from '@/components/ui/button'
@@ -16,7 +17,8 @@ import { useAuth } from '@/hooks/use-auth'
 export const AdminPaymentsFilterContext = createContext<{
   status: 'all' | 'pending' | 'paid'
   search: string
-}>({ status: 'all', search: '' })
+  todayOnly: boolean
+}>({ status: 'all', search: '', todayOnly: false })
 
 export default function PagamentosAdmin() {
   const { user } = useAuth()
@@ -30,6 +32,7 @@ export default function PagamentosAdmin() {
   } | null>(null)
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'paid'>('all')
   const [searchTerm, setSearchTerm] = useState('')
+  const [todayOnly, setTodayOnly] = useState(false)
   const searchInputRef = useRef<HTMLInputElement>(null)
 
   const loadData = async () => {
@@ -79,7 +82,10 @@ export default function PagamentosAdmin() {
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '')
     const isSearchActive = searchTerm !== ''
-    const hasFilter = isSearchActive || statusFilter !== 'all'
+    const hasFilter = isSearchActive || statusFilter !== 'all' || todayOnly
+
+    const localDate = new Date()
+    const todayStr = `${localDate.getFullYear()}-${String(localDate.getMonth() + 1).padStart(2, '0')}-${String(localDate.getDate()).padStart(2, '0')}`
 
     Object.entries(groupedByMonthYear).forEach(([key, items]) => {
       const [anoStr, mesStr] = key.split('-')
@@ -99,7 +105,13 @@ export default function PagamentosAdmin() {
           : true
         const matchesStatus =
           statusFilter === 'all' || (statusFilter === 'paid' ? p.status : !p.status)
-        return matchesSearch && matchesStatus
+
+        let matchesToday = true
+        if (todayOnly) {
+          matchesToday = !!p.data_notificacao && p.data_notificacao.substring(0, 10) === todayStr
+        }
+
+        return matchesSearch && matchesStatus && matchesToday
       })
 
       if (filteredItems.length === 0) {
@@ -138,7 +150,7 @@ export default function PagamentosAdmin() {
     })
 
     return { activeMonths: active, historyYears: history }
-  }, [payments, searchTerm, statusFilter])
+  }, [payments, searchTerm, statusFilter, todayOnly])
 
   const handleSave = async (data: Partial<AdminPayment>) => {
     if (!user) return
@@ -195,7 +207,9 @@ export default function PagamentosAdmin() {
         </Button>
       </div>
 
-      <AdminPaymentsFilterContext.Provider value={{ status: statusFilter, search: searchTerm }}>
+      <AdminPaymentsFilterContext.Provider
+        value={{ status: statusFilter, search: searchTerm, todayOnly }}
+      >
         <Tabs defaultValue="active" className="flex-1 flex flex-col min-h-0">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 shrink-0 gap-4">
             <TabsList className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 shrink-0">
@@ -203,7 +217,7 @@ export default function PagamentosAdmin() {
               <TabsTrigger value="history">Histórico</TabsTrigger>
             </TabsList>
 
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full sm:w-auto">
+            <div className="flex flex-wrap items-center gap-4 w-full sm:w-auto">
               <div className="relative w-full sm:w-64">
                 <Search className="absolute left-2.5 top-2 h-4 w-4 text-slate-400" />
                 <Input
@@ -228,22 +242,34 @@ export default function PagamentosAdmin() {
                 )}
               </div>
 
-              <ToggleGroup
-                type="single"
-                value={statusFilter}
-                onValueChange={(v) => v && setStatusFilter(v as any)}
-                className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-0.5 self-start sm:self-auto"
-              >
-                <ToggleGroupItem value="all" className="h-8 text-xs px-3">
-                  Todos
-                </ToggleGroupItem>
-                <ToggleGroupItem value="pending" className="h-8 text-xs px-3">
-                  A pagar
-                </ToggleGroupItem>
-                <ToggleGroupItem value="paid" className="h-8 text-xs px-3">
-                  Pagos
-                </ToggleGroupItem>
-              </ToggleGroup>
+              <div className="flex items-center gap-2">
+                <Toggle
+                  pressed={todayOnly}
+                  onPressedChange={setTodayOnly}
+                  className="h-8 px-3 text-xs gap-2 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950"
+                  variant="outline"
+                >
+                  <CalendarClock className="w-4 h-4" />
+                  Hoje
+                </Toggle>
+
+                <ToggleGroup
+                  type="single"
+                  value={statusFilter}
+                  onValueChange={(v) => v && setStatusFilter(v as any)}
+                  className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-0.5 self-start sm:self-auto"
+                >
+                  <ToggleGroupItem value="all" className="h-8 text-xs px-3">
+                    Todos
+                  </ToggleGroupItem>
+                  <ToggleGroupItem value="pending" className="h-8 text-xs px-3">
+                    A pagar
+                  </ToggleGroupItem>
+                  <ToggleGroupItem value="paid" className="h-8 text-xs px-3">
+                    Pagos
+                  </ToggleGroupItem>
+                </ToggleGroup>
+              </div>
             </div>
           </div>
 

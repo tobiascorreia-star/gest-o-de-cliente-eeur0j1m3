@@ -10,9 +10,20 @@ interface Props {
 }
 
 export function ActiveMonthsView({ months, onEditItem, onAddForOwner }: Props) {
-  const { search, status } = useContext(AdminPaymentsFilterContext)
+  const { search, status, todayOnly } = useContext(AdminPaymentsFilterContext)
 
   if (months.length === 0) {
+    if (todayOnly) {
+      return (
+        <div className="flex flex-col items-center justify-center h-full text-center">
+          <p className="text-muted-foreground font-medium">Nenhum pagamento para hoje</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            Você não possui pagamentos com data de notificação para o dia de hoje.
+          </p>
+        </div>
+      )
+    }
+
     if (search || status !== 'all') {
       return (
         <div className="flex flex-col items-center justify-center h-full text-center">
