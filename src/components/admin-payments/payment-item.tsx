@@ -101,8 +101,10 @@ export function PaymentItem({ item, onEdit }: Props) {
 
   const today = startOfDay(new Date())
   const tomorrow = addDays(today, 1)
+
+  // Safely parse the date ensuring no timezone shifts (e.g. May 5th becoming May 4th)
   const notifDate = item.data_notificacao
-    ? startOfDay(new Date(item.data_notificacao.replace(' ', 'T')))
+    ? startOfDay(new Date(item.data_notificacao.split(' ')[0] + 'T00:00:00'))
     : null
 
   const isOverdue = !item.status && !!notifDate && notifDate.getTime() <= today.getTime()
@@ -113,13 +115,16 @@ export function PaymentItem({ item, onEdit }: Props) {
       className={cn(
         'group flex items-start gap-3 p-3 rounded-lg transition-colors border shadow-sm',
         isOverdue
-          ? 'bg-red-50/30 dark:bg-red-950/20 border-red-200 dark:border-red-900/50'
+          ? 'bg-red-50/30 dark:bg-red-950/20 border-red-200 dark:border-red-900/50 relative overflow-hidden'
           : isNearDeadline
             ? 'bg-orange-50/50 dark:bg-orange-950/20 border-orange-300 dark:border-orange-900/50'
             : 'bg-white dark:bg-slate-950 border-slate-100 dark:border-slate-800',
         'hover:border-slate-300 dark:hover:border-slate-700',
       )}
     >
+      {isOverdue && (
+        <div className="absolute inset-y-0 left-0 w-1 bg-red-500 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.6)]" />
+      )}
       <Checkbox
         checked={item.status}
         onCheckedChange={handleToggle}
@@ -143,6 +148,7 @@ export function PaymentItem({ item, onEdit }: Props) {
               className={cn(
                 'text-sm font-medium text-slate-900 dark:text-slate-100 cursor-text hover:bg-slate-100 dark:hover:bg-slate-800 px-1 -ml-1 rounded transition-colors',
                 item.status && 'line-through text-slate-500',
+                isOverdue && 'animate-pulse text-red-600 dark:text-red-400 font-bold',
               )}
             >
               {item.descricao}
@@ -185,9 +191,11 @@ export function PaymentItem({ item, onEdit }: Props) {
                   isNearDeadline && 'text-orange-500 font-semibold',
                 )}
               >
-                {(isOverdue || isNearDeadline) && <AlertCircle className="w-3 h-3" />}
+                {(isOverdue || isNearDeadline) && (
+                  <AlertCircle className={cn('w-3 h-3', isOverdue && 'animate-pulse')} />
+                )}
                 {item.data_notificacao
-                  ? `Vence: ${format(new Date(item.data_notificacao.replace(' ', 'T')), 'dd/MM/yyyy')}`
+                  ? `Vence: ${format(new Date(item.data_notificacao.split(' ')[0] + 'T00:00:00'), 'dd/MM/yyyy')}`
                   : 'Sem vencimento'}
               </span>
               {item.observacao && (

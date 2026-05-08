@@ -118,12 +118,13 @@ export default function PagamentosAdmin() {
     })
 
     active.sort((a, b) => {
-      const todayIso = new Date().toISOString()
+      const localDate = new Date()
+      const todayStr = `${localDate.getFullYear()}-${String(localDate.getMonth() + 1).padStart(2, '0')}-${String(localDate.getDate()).padStart(2, '0')} 23:59:59.999Z`
       const aHasOverdue = a.items.some(
-        (i) => !i.status && !!i.data_notificacao && i.data_notificacao < todayIso,
+        (i) => !i.status && !!i.data_notificacao && i.data_notificacao <= todayStr,
       )
       const bHasOverdue = b.items.some(
-        (i) => !i.status && !!i.data_notificacao && i.data_notificacao < todayIso,
+        (i) => !i.status && !!i.data_notificacao && i.data_notificacao <= todayStr,
       )
 
       if (aHasOverdue && !bHasOverdue) return -1

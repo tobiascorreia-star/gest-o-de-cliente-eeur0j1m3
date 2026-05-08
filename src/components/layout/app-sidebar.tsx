@@ -58,9 +58,10 @@ export function AppSidebar() {
   const fetchPendingAdminPayments = async () => {
     if (user?.role?.toLowerCase() !== 'admin') return
     try {
-      const today = new Date().toISOString()
+      const localDate = new Date()
+      const todayStr = `${localDate.getFullYear()}-${String(localDate.getMonth() + 1).padStart(2, '0')}-${String(localDate.getDate()).padStart(2, '0')} 23:59:59.999Z`
       const res = await pb.collection('admin_payments').getList(1, 1, {
-        filter: `status = false && data_notificacao != '' && data_notificacao <= "${today}"`,
+        filter: `status = false && data_notificacao != '' && data_notificacao <= "${todayStr}"`,
         $autoCancel: false,
       })
       setPendingAdminPaymentsCount(res.totalItems)
