@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, createContext } from 'react'
+import { useState, useEffect, useMemo, createContext, useRef } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { Input } from '@/components/ui/input'
@@ -30,6 +30,7 @@ export default function PagamentosAdmin() {
   } | null>(null)
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'paid'>('all')
   const [searchTerm, setSearchTerm] = useState('')
+  const searchInputRef = useRef<HTMLInputElement>(null)
 
   const loadData = async () => {
     try {
@@ -128,7 +129,7 @@ export default function PagamentosAdmin() {
     })
 
     return { activeMonths: active, historyYears: history }
-  }, [payments])
+  }, [payments, searchTerm, statusFilter])
 
   const handleSave = async (data: Partial<AdminPayment>) => {
     if (!user) return
@@ -197,6 +198,7 @@ export default function PagamentosAdmin() {
               <div className="relative w-full sm:w-64">
                 <Search className="absolute left-2.5 top-2 h-4 w-4 text-slate-400" />
                 <Input
+                  ref={searchInputRef}
                   placeholder="Buscar dono do pagamento..."
                   className="pl-9 pr-8 h-8 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-sm"
                   value={searchTerm}
@@ -205,7 +207,10 @@ export default function PagamentosAdmin() {
                 {searchTerm && (
                   <button
                     type="button"
-                    onClick={() => setSearchTerm('')}
+                    onClick={() => {
+                      setSearchTerm('')
+                      searchInputRef.current?.focus()
+                    }}
                     className="absolute right-2 top-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 focus:outline-none"
                     aria-label="Limpar busca"
                   >
