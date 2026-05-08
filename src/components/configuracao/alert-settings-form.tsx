@@ -46,11 +46,23 @@ export function AlertSettingsForm() {
   }
 
   if (loading) {
-    return <div className="p-8 text-center text-muted-foreground">Carregando...</div>
+    return (
+      <Card className="border-none shadow-none bg-slate-50 dark:bg-slate-900/50 rounded-md animate-pulse">
+        <CardContent className="p-6 space-y-4">
+          <div className="h-6 w-1/4 bg-slate-200 dark:bg-slate-800 rounded"></div>
+          <div className="h-4 w-2/4 bg-slate-200 dark:bg-slate-800 rounded"></div>
+          <div className="space-y-3 mt-6">
+            <div className="h-12 w-full bg-slate-200 dark:bg-slate-800 rounded"></div>
+            <div className="h-12 w-full bg-slate-200 dark:bg-slate-800 rounded"></div>
+            <div className="h-12 w-full bg-slate-200 dark:bg-slate-800 rounded"></div>
+          </div>
+        </CardContent>
+      </Card>
+    )
   }
 
   return (
-    <Card className="border-none shadow-none bg-[#f8fafc] rounded-md">
+    <Card className="border-none shadow-none bg-[#f8fafc] dark:bg-slate-900/50 rounded-md">
       <CardContent className="p-6">
         <div className="flex items-center gap-2 mb-2">
           <span className="text-xl">🔔</span>

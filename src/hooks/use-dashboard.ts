@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import pb from '@/lib/pocketbase/client'
 import { useRealtime } from '@/hooks/use-realtime'
+import { toast } from '@/hooks/use-toast'
 
 export function useDashboard() {
   const [clients, setClients] = useState<any[]>([])
@@ -64,6 +65,11 @@ export function useDashboard() {
       )
     } catch (e) {
       console.error('Error loading dashboard data', e)
+      toast({
+        title: 'Erro de Conexão',
+        description: 'Não foi possível carregar os dados do dashboard. Verifique sua conexão.',
+        variant: 'destructive',
+      })
     } finally {
       setLoading(false)
     }

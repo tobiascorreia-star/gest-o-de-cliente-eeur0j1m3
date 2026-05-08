@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-08T13:13:53.880Z",
+  "generatedAt": "2026-05-08T18:33:05.885Z",
   "collections": [
     {
       "name": "users",
@@ -190,11 +190,11 @@
       "name": "clients",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != ''",
-        "view": "@request.auth.id != ''",
-        "create": "@request.auth.id != ''",
-        "update": "@request.auth.id != ''",
-        "delete": "@request.auth.id != ''"
+        "list": "@request.auth.id != '' && @request.auth.active = true",
+        "view": "@request.auth.id != '' && @request.auth.active = true",
+        "create": "@request.auth.id != '' && @request.auth.active = true",
+        "update": "@request.auth.id != '' && @request.auth.active = true",
+        "delete": "@request.auth.id != '' && @request.auth.role = 'admin'"
       },
       "fields": [
         {
@@ -354,8 +354,8 @@
       "name": "notifications",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.role = 'admin'",
-        "view": "@request.auth.role = 'admin'",
+        "list": "@request.auth.id != '' && (@request.auth.role = 'admin' || user = @request.auth.id)",
+        "view": "@request.auth.id != '' && (@request.auth.role = 'admin' || user = @request.auth.id)",
         "create": "",
         "update": "@request.auth.role = 'admin'",
         "delete": "@request.auth.role = 'admin'"
@@ -402,7 +402,7 @@
           "collectionRef": "clients"
         }
       ],
-      "indexes": []
+      "indexes": ["CREATE INDEX `idx_notifications_user` ON `notifications` (user)"]
     },
     {
       "name": "payroll",
@@ -516,7 +516,7 @@
           "system": false
         }
       ],
-      "indexes": []
+      "indexes": ["CREATE INDEX `idx_payroll_emp_ref` ON `payroll` (employee, reference_date)"]
     },
     {
       "name": "payroll_settings",
@@ -641,7 +641,8 @@
       ],
       "indexes": [
         "CREATE INDEX `idx_admin_payments_ref` ON `admin_payments` (ano_referencia, mes_referencia)",
-        "CREATE INDEX `idx_admin_payments_ref_dono` ON `admin_payments` (ano_referencia, mes_referencia, dono_pagamento)"
+        "CREATE INDEX `idx_admin_payments_ref_dono` ON `admin_payments` (ano_referencia, mes_referencia, dono_pagamento)",
+        "CREATE INDEX `idx_admin_payments_admin` ON `admin_payments` (admin)"
       ]
     }
   ]

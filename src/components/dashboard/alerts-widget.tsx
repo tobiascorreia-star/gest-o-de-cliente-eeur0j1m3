@@ -1,4 +1,4 @@
-import { useApp } from '@/contexts/app-context'
+import { useAuth } from '@/hooks/use-auth'
 import { useDashboard } from '@/hooks/use-dashboard'
 import { useEffect, useState } from 'react'
 import pb from '@/lib/pocketbase/client'
@@ -12,7 +12,7 @@ import { Clock, KeyRound, CheckCircle2, AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 export function AlertsWidget() {
-  const { currentUser } = useApp?.() || {}
+  const { user: currentUser } = useAuth()
   const { clients, statuses, alertSettings } = useDashboard()
   const [notificationsList, setNotificationsList] = useState<any[]>([])
 

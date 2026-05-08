@@ -146,7 +146,11 @@ export default function FolhaPagamento() {
       setSettingsId(sId)
     } catch (err) {
       console.error(err)
-      toast({ title: 'Erro', description: 'Falha ao carregar dados.', variant: 'destructive' })
+      toast({
+        title: 'Erro de Conexão',
+        description: 'Falha ao carregar dados. Verifique a internet e tente novamente.',
+        variant: 'destructive',
+      })
     } finally {
       setLoading(false)
     }
@@ -623,62 +627,85 @@ export default function FolhaPagamento() {
         </div>
 
         <div className="flex flex-col sm:flex-row gap-4 bg-white/50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800 flex-wrap items-end">
-          <div className="flex-1 min-w-[150px] space-y-2">
-            <Label>Mês/Ano de Competência</Label>
-            <Input type="month" value={filterMonth} onChange={handleMonthChange} />
-          </div>
-          <div className="flex-1 min-w-[150px] space-y-2">
-            <Label className="flex items-center">
-              Qtde Install
-              <InfoTooltip text="Quantidade geral multiplicada pelo Valor do Install de cada colaborador para calcular o Incentivo." />
-            </Label>
-            <Input
-              type="number"
-              step="0.01"
-              placeholder="Ex: 10"
-              value={globalQty}
-              onChange={(e) => handleGlobalQtyChange(e.target.value)}
-            />
-          </div>
-          <div className="flex-1 min-w-[200px] space-y-2">
-            <Label>Colaborador</Label>
-            <Select
-              value={filterUser}
-              onValueChange={(val) => {
-                setFilterUser(val)
-                if (val !== 'all') {
-                  setSearchParams({ user: val })
-                } else {
-                  setSearchParams({})
-                }
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Todos" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos</SelectItem>
-                {users.map((u) => (
-                  <SelectItem key={u.id} value={u.id}>
-                    {u.name || u.email}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex-1 min-w-[150px] space-y-2">
-            <Label>Status</Label>
-            <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger>
-                <SelectValue placeholder="Todos" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos</SelectItem>
-                <SelectItem value="Pendente">Pendente</SelectItem>
-                <SelectItem value="Pago">Pago</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          {loading && draftPayrolls.length === 0 ? (
+            <>
+              <div className="flex-1 min-w-[150px] space-y-2">
+                <div className="h-4 w-24 bg-slate-200 dark:bg-slate-800 rounded animate-pulse"></div>
+                <div className="h-10 w-full bg-slate-200 dark:bg-slate-800 rounded animate-pulse"></div>
+              </div>
+              <div className="flex-1 min-w-[150px] space-y-2">
+                <div className="h-4 w-24 bg-slate-200 dark:bg-slate-800 rounded animate-pulse"></div>
+                <div className="h-10 w-full bg-slate-200 dark:bg-slate-800 rounded animate-pulse"></div>
+              </div>
+              <div className="flex-1 min-w-[200px] space-y-2">
+                <div className="h-4 w-24 bg-slate-200 dark:bg-slate-800 rounded animate-pulse"></div>
+                <div className="h-10 w-full bg-slate-200 dark:bg-slate-800 rounded animate-pulse"></div>
+              </div>
+              <div className="flex-1 min-w-[150px] space-y-2">
+                <div className="h-4 w-24 bg-slate-200 dark:bg-slate-800 rounded animate-pulse"></div>
+                <div className="h-10 w-full bg-slate-200 dark:bg-slate-800 rounded animate-pulse"></div>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="flex-1 min-w-[150px] space-y-2">
+                <Label>Mês/Ano de Competência</Label>
+                <Input type="month" value={filterMonth} onChange={handleMonthChange} />
+              </div>
+              <div className="flex-1 min-w-[150px] space-y-2">
+                <Label className="flex items-center">
+                  Qtde Install
+                  <InfoTooltip text="Quantidade geral multiplicada pelo Valor do Install de cada colaborador para calcular o Incentivo." />
+                </Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  placeholder="Ex: 10"
+                  value={globalQty}
+                  onChange={(e) => handleGlobalQtyChange(e.target.value)}
+                />
+              </div>
+              <div className="flex-1 min-w-[200px] space-y-2">
+                <Label>Colaborador</Label>
+                <Select
+                  value={filterUser}
+                  onValueChange={(val) => {
+                    setFilterUser(val)
+                    if (val !== 'all') {
+                      setSearchParams({ user: val })
+                    } else {
+                      setSearchParams({})
+                    }
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Todos" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    {users.map((u) => (
+                      <SelectItem key={u.id} value={u.id}>
+                        {u.name || u.email}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex-1 min-w-[150px] space-y-2">
+                <Label>Status</Label>
+                <Select value={filterStatus} onValueChange={setFilterStatus}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Todos" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    <SelectItem value="Pendente">Pendente</SelectItem>
+                    <SelectItem value="Pago">Pago</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </>
+          )}
         </div>
 
         <div className="border border-slate-100 rounded-2xl bg-white/50 backdrop-blur-sm shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] dark:bg-slate-900/50 dark:border-slate-800 overflow-hidden">

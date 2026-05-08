@@ -22,10 +22,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (!pb.authStore.isValid && pb.authStore.token) {
-      pb.authStore.clear()
-      setUser(null)
+    const initAuth = async () => {
+      if (pb.authStore.isValid && pb.authStore.token) {
+        try {
+          await pb.collection('users').authRefresh()
+          setUser(pb.authStore.record)
+        } catch (error) {
+          pb.authStore.clear()
+          setUser(null)
+        }
+      } else {
+        pb.authStore.clear()
+        setUser(null)
+      }
+      setLoading(false)
     }
+
+    initAuth()
 
     const unsubscribe = pb.authStore.onChange((_token, record) => {
       if (!pb.authStore.isValid) {
@@ -34,7 +47,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(record)
       }
     })
-    setLoading(false)
+
     return () => {
       unsubscribe()
     }

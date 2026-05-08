@@ -49,46 +49,27 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined)
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [clients, setClients] = useState<Client[]>(mockClients)
-  const [colaboradores, setColaboradores] = useState<LookupItem[]>(mockColaboradores)
-  const [solicitacoes, setSolicitacoes] = useState<LookupItem[]>(mockSolicitacoes)
-  const [statusList, setStatusList] = useState<LookupItem[]>(mockStatus)
-  const [categorias, setCategorias] = useState<LookupItem[]>(mockCategorias)
-  const [pgtoTipos, setPgtoTipos] = useState<LookupItem[]>(mockPgtoTipos)
+  const [clients, setClients] = useState<Client[]>([])
+  const [colaboradores, setColaboradores] = useState<LookupItem[]>([])
+  const [solicitacoes, setSolicitacoes] = useState<LookupItem[]>([])
+  const [statusList, setStatusList] = useState<LookupItem[]>([])
+  const [categorias, setCategorias] = useState<LookupItem[]>([])
+  const [pgtoTipos, setPgtoTipos] = useState<LookupItem[]>([])
   const [alertConfig, setAlertConfig] = useState<AlertConfig>(mockAlertConfig)
-  const [history, setHistory] = useState<HistoryLog[]>(mockHistory)
-  const [audit] = useState<AuditLog[]>(mockAudit)
-  const [users, setUsers] = useState<User[]>(mockUsers)
+  const [history, setHistory] = useState<HistoryLog[]>([])
+  const [audit] = useState<AuditLog[]>([])
+  const [users, setUsers] = useState<User[]>([])
   const [passwordResetRequests, setPasswordResetRequests] = useState<PasswordResetRequest[]>([])
 
-  const [currentUser, setCurrentUser] = useState<User | null>(() => {
-    const saved = localStorage.getItem('currentUser')
-    return saved ? JSON.parse(saved) : null
-  })
-
-  const [lastLoginTime, setLastLoginTime] = useState<string | null>(() => {
-    return localStorage.getItem('previousLoginTime') || null
-  })
+  const [currentUser, setCurrentUser] = useState<User | null>(null)
+  const [lastLoginTime, setLastLoginTime] = useState<string | null>(null)
 
   const login = (email: string, password?: string) => {
-    const foundUser = users.find((u) => u.email === email)
-    if (foundUser && (!foundUser.password || foundUser.password === password)) {
-      setCurrentUser(foundUser)
-      const now = new Date().toISOString()
-      const prev = localStorage.getItem('currentLoginTime') || now
-
-      setLastLoginTime(prev)
-      localStorage.setItem('previousLoginTime', prev)
-      localStorage.setItem('currentLoginTime', now)
-      localStorage.setItem('currentUser', JSON.stringify(foundUser))
-      return true
-    }
     return false
   }
 
   const logout = () => {
     setCurrentUser(null)
-    localStorage.removeItem('currentUser')
   }
 
   const addClient = (client: Client) => {

@@ -20,6 +20,8 @@ export default function Configuracao() {
   const [configs, setConfigs] = useState<any[]>([])
   const { toast } = useToast()
 
+  const [loading, setLoading] = useState(true)
+
   const loadConfigs = async () => {
     try {
       const data = await getConfigurations()
@@ -27,9 +29,11 @@ export default function Configuracao() {
     } catch (error) {
       toast({
         title: 'Erro',
-        description: 'Falha ao carregar configurações.',
+        description: 'Falha ao carregar configurações. Tentando novamente...',
         variant: 'destructive',
       })
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -57,21 +61,28 @@ export default function Configuracao() {
         </TabsList>
 
         <TabsContent value="listas">
-          <ConfigDataTable
-            title="Listas do Sistema"
-            description="Gerencie Status, Categorias, Solicitações, Colaboradores e Tipos de Pagamento."
-            types={CONFIG_TYPES}
-            data={configs}
-            onAdd={async (data) => {
-              await pb.collection('configurations').create(data)
-            }}
-            onUpdate={async (id, data) => {
-              await pb.collection('configurations').update(id, data)
-            }}
-            onDelete={async (id) => {
-              await pb.collection('configurations').delete(id)
-            }}
-          />
+          {loading ? (
+            <div className="space-y-4">
+              <div className="h-10 w-1/3 bg-slate-100 dark:bg-slate-800 rounded animate-pulse" />
+              <div className="h-[400px] w-full bg-slate-100 dark:bg-slate-800 rounded-lg animate-pulse" />
+            </div>
+          ) : (
+            <ConfigDataTable
+              title="Listas do Sistema"
+              description="Gerencie Status, Categorias, Solicitações, Colaboradores e Tipos de Pagamento."
+              types={CONFIG_TYPES}
+              data={configs}
+              onAdd={async (data) => {
+                await pb.collection('configurations').create(data)
+              }}
+              onUpdate={async (id, data) => {
+                await pb.collection('configurations').update(id, data)
+              }}
+              onDelete={async (id) => {
+                await pb.collection('configurations').delete(id)
+              }}
+            />
+          )}
         </TabsContent>
 
         <TabsContent value="alertas">
