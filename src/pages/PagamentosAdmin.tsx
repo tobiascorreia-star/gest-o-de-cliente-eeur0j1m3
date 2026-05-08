@@ -1,18 +1,22 @@
 import { useState, useEffect, useMemo, createContext } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
+import { Input } from '@/components/ui/input'
 import { AdminPayment } from '@/types'
 import { getAdminPayments, createAdminPayment, updateAdminPayment } from '@/services/admin_payments'
 import { useRealtime } from '@/hooks/use-realtime'
 import { toast } from 'sonner'
-import { Wallet, Plus } from 'lucide-react'
+import { Wallet, Plus, Search } from 'lucide-react'
 import { ActiveMonthsView } from '@/components/admin-payments/active-months-view'
 import { HistoryYearsView } from '@/components/admin-payments/history-years-view'
 import { Button } from '@/components/ui/button'
 import { PaymentModal } from '@/components/admin-payments/payment-modal'
 import { useAuth } from '@/hooks/use-auth'
 
-export const AdminPaymentsFilterContext = createContext<'all' | 'pending' | 'paid'>('all')
+export const AdminPaymentsFilterContext = createContext<{
+  status: 'all' | 'pending' | 'paid'
+  search: string
+}>({ status: 'all', search: '' })
 
 export default function PagamentosAdmin() {
   const { user } = useAuth()
@@ -25,6 +29,7 @@ export default function PagamentosAdmin() {
     owner: string
   } | null>(null)
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'paid'>('all')
+  const [searchTerm, setSearchTerm] = useState('')
 
   const loadData = async () => {
     try {
@@ -161,7 +166,7 @@ export default function PagamentosAdmin() {
         </Button>
       </div>
 
-      <AdminPaymentsFilterContext.Provider value={statusFilter}>
+      <AdminPaymentsFilterContext.Provider value={{ status: statusFilter, search: searchTerm }}>
         <Tabs defaultValue="active" className="flex-1 flex flex-col min-h-0">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 shrink-0 gap-4">
             <TabsList className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 shrink-0">
@@ -169,22 +174,34 @@ export default function PagamentosAdmin() {
               <TabsTrigger value="history">Histórico</TabsTrigger>
             </TabsList>
 
-            <ToggleGroup
-              type="single"
-              value={statusFilter}
-              onValueChange={(v) => v && setStatusFilter(v as any)}
-              className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-0.5 self-start sm:self-auto"
-            >
-              <ToggleGroupItem value="all" className="h-8 text-xs px-3">
-                Todos
-              </ToggleGroupItem>
-              <ToggleGroupItem value="pending" className="h-8 text-xs px-3">
-                A pagar
-              </ToggleGroupItem>
-              <ToggleGroupItem value="paid" className="h-8 text-xs px-3">
-                Pagos
-              </ToggleGroupItem>
-            </ToggleGroup>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full sm:w-auto">
+              <div className="relative w-full sm:w-64">
+                <Search className="absolute left-2.5 top-2 h-4 w-4 text-slate-400" />
+                <Input
+                  placeholder="Buscar dono do pagamento..."
+                  className="pl-9 h-8 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-sm"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+
+              <ToggleGroup
+                type="single"
+                value={statusFilter}
+                onValueChange={(v) => v && setStatusFilter(v as any)}
+                className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-0.5 self-start sm:self-auto"
+              >
+                <ToggleGroupItem value="all" className="h-8 text-xs px-3">
+                  Todos
+                </ToggleGroupItem>
+                <ToggleGroupItem value="pending" className="h-8 text-xs px-3">
+                  A pagar
+                </ToggleGroupItem>
+                <ToggleGroupItem value="paid" className="h-8 text-xs px-3">
+                  Pagos
+                </ToggleGroupItem>
+              </ToggleGroup>
+            </div>
           </div>
 
           <TabsContent

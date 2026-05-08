@@ -40,7 +40,7 @@ const MONTH_NAMES = [
 
 export function MonthGroup({ mes, ano, items, onEditItem, onAddForOwner }: Props) {
   const [cloning, setCloning] = useState(false)
-  const statusFilter = useContext(AdminPaymentsFilterContext)
+  const { status: statusFilter, search } = useContext(AdminPaymentsFilterContext)
 
   const handleClone = async () => {
     try {
@@ -116,6 +116,27 @@ export function MonthGroup({ mes, ano, items, onEditItem, onAddForOwner }: Props
     })
   }, [items])
 
+  const visibleGroups = useMemo(() => {
+    let result = groupedByOwner
+
+    if (search) {
+      const lowerSearch = search.toLowerCase()
+      result = result.filter(([owner]) => owner.toLowerCase().includes(lowerSearch))
+    }
+
+    if (statusFilter !== 'all') {
+      result = result.filter(([, ownerItems]) => {
+        return ownerItems.some((i) => {
+          if (statusFilter === 'pending') return !i.status
+          if (statusFilter === 'paid') return i.status
+          return true
+        })
+      })
+    }
+
+    return result
+  }, [groupedByOwner, search, statusFilter])
+
   const total = items.length
   const paid = items.filter((i) => i.status).length
   const isPaid = total > 0 && paid === total
@@ -155,9 +176,17 @@ export function MonthGroup({ mes, ano, items, onEditItem, onAddForOwner }: Props
               Adicionar Item
             </Button>
           </div>
+        ) : visibleGroups.length === 0 ? (
+          <div className="p-8 text-center text-sm text-muted-foreground flex flex-col items-center">
+            {search ? (
+              <span>Nenhum resultado para "{search}".</span>
+            ) : (
+              <span>Nenhum pagamento com o status selecionado.</span>
+            )}
+          </div>
         ) : (
           <div className="flex flex-col gap-4">
-            {groupedByOwner.map(([owner, ownerItems]) => {
+            {visibleGroups.map(([owner, ownerItems]) => {
               const ownerPaid = ownerItems.filter((i) => i.status).length
 
               const filteredOwnerItems = ownerItems.filter((i) => {
@@ -165,8 +194,6 @@ export function MonthGroup({ mes, ano, items, onEditItem, onAddForOwner }: Props
                 if (statusFilter === 'paid') return i.status
                 return true
               })
-
-              if (filteredOwnerItems.length === 0 && statusFilter !== 'all') return null
 
               return (
                 <div
