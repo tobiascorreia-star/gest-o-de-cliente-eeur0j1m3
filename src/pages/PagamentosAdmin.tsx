@@ -1,5 +1,6 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, createContext } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { AdminPayment } from '@/types'
 import { getAdminPayments, createAdminPayment, updateAdminPayment } from '@/services/admin_payments'
 import { useRealtime } from '@/hooks/use-realtime'
@@ -11,6 +12,8 @@ import { Button } from '@/components/ui/button'
 import { PaymentModal } from '@/components/admin-payments/payment-modal'
 import { useAuth } from '@/hooks/use-auth'
 
+export const AdminPaymentsFilterContext = createContext<'all' | 'pending' | 'paid'>('all')
+
 export default function PagamentosAdmin() {
   const { user } = useAuth()
   const [payments, setPayments] = useState<AdminPayment[]>([])
@@ -21,6 +24,7 @@ export default function PagamentosAdmin() {
     ano: number
     owner: string
   } | null>(null)
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'paid'>('all')
 
   const loadData = async () => {
     try {
@@ -150,31 +154,52 @@ export default function PagamentosAdmin() {
         </Button>
       </div>
 
-      <Tabs defaultValue="active" className="flex-1 flex flex-col min-h-0">
-        <TabsList className="mb-6 self-start bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 shrink-0">
-          <TabsTrigger value="active">Ativos</TabsTrigger>
-          <TabsTrigger value="history">Histórico</TabsTrigger>
-        </TabsList>
+      <AdminPaymentsFilterContext.Provider value={statusFilter}>
+        <Tabs defaultValue="active" className="flex-1 flex flex-col min-h-0">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 shrink-0 gap-4">
+            <TabsList className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 shrink-0">
+              <TabsTrigger value="active">Ativos</TabsTrigger>
+              <TabsTrigger value="history">Histórico</TabsTrigger>
+            </TabsList>
 
-        <TabsContent
-          value="active"
-          className="flex-1 min-h-0 mt-0 overflow-hidden data-[state=active]:flex flex-col"
-        >
-          <ActiveMonthsView
-            months={activeMonths}
-            onEditItem={setEditingItem}
-            onAddForOwner={(mes, ano, owner) => setAddingParams({ mes, ano, owner })}
-          />
-        </TabsContent>
+            <ToggleGroup
+              type="single"
+              value={statusFilter}
+              onValueChange={(v) => v && setStatusFilter(v as any)}
+              className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-0.5 self-start sm:self-auto"
+            >
+              <ToggleGroupItem value="all" className="h-8 text-xs px-3">
+                Todos
+              </ToggleGroupItem>
+              <ToggleGroupItem value="pending" className="h-8 text-xs px-3">
+                A pagar
+              </ToggleGroupItem>
+              <ToggleGroupItem value="paid" className="h-8 text-xs px-3">
+                Pagos
+              </ToggleGroupItem>
+            </ToggleGroup>
+          </div>
 
-        <TabsContent value="history" className="flex-1 min-h-0 mt-0 overflow-y-auto pr-2 pb-16">
-          <HistoryYearsView
-            years={historyYears}
-            onEditItem={setEditingItem}
-            onAddForOwner={(mes, ano, owner) => setAddingParams({ mes, ano, owner })}
-          />
-        </TabsContent>
-      </Tabs>
+          <TabsContent
+            value="active"
+            className="flex-1 min-h-0 mt-0 overflow-hidden data-[state=active]:flex flex-col"
+          >
+            <ActiveMonthsView
+              months={activeMonths}
+              onEditItem={setEditingItem}
+              onAddForOwner={(mes, ano, owner) => setAddingParams({ mes, ano, owner })}
+            />
+          </TabsContent>
+
+          <TabsContent value="history" className="flex-1 min-h-0 mt-0 overflow-y-auto pr-2 pb-16">
+            <HistoryYearsView
+              years={historyYears}
+              onEditItem={setEditingItem}
+              onAddForOwner={(mes, ano, owner) => setAddingParams({ mes, ano, owner })}
+            />
+          </TabsContent>
+        </Tabs>
+      </AdminPaymentsFilterContext.Provider>
 
       <PaymentModal open={isModalOpen} onOpenChange={setIsModalOpen} onSave={handleSave} />
 

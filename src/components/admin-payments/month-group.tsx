@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useContext } from 'react'
 import { AdminPayment } from '@/types'
+import { AdminPaymentsFilterContext } from '@/pages/PagamentosAdmin'
 import {
   Accordion,
   AccordionContent,
@@ -38,6 +39,7 @@ const MONTH_NAMES = [
 
 export function MonthGroup({ mes, ano, items, onEditItem, onAddForOwner }: Props) {
   const [cloning, setCloning] = useState(false)
+  const statusFilter = useContext(AdminPaymentsFilterContext)
 
   const handleClone = async () => {
     try {
@@ -51,11 +53,17 @@ export function MonthGroup({ mes, ano, items, onEditItem, onAddForOwner }: Props
     }
   }
 
+  const filteredItems = useMemo(() => {
+    if (statusFilter === 'pending') return items.filter((i) => !i.status)
+    if (statusFilter === 'paid') return items.filter((i) => i.status)
+    return items
+  }, [items, statusFilter])
+
   const groupedByOwner = useMemo(() => {
     const map: Record<string, AdminPayment[]> = {}
     const today = new Date().toISOString()
 
-    items.forEach((item) => {
+    filteredItems.forEach((item) => {
       const owner = item.dono_pagamento || 'Sem Dono'
       if (!map[owner]) map[owner] = []
       map[owner].push(item)
@@ -63,18 +71,7 @@ export function MonthGroup({ mes, ano, items, onEditItem, onAddForOwner }: Props
 
     Object.values(map).forEach((ownerItems) => {
       ownerItems.sort((a, b) => {
-        const aIsOverdue = !a.status && !!a.data_notificacao && a.data_notificacao <= today
-        const bIsOverdue = !b.status && !!b.data_notificacao && b.data_notificacao <= today
-
-        if (aIsOverdue && !bIsOverdue) return -1
-        if (!aIsOverdue && bIsOverdue) return 1
-        if (aIsOverdue && bIsOverdue) {
-          const timeDiff =
-            new Date(a.data_notificacao!).getTime() - new Date(b.data_notificacao!).getTime()
-          if (timeDiff !== 0) return timeDiff
-          return (a.descricao || '').localeCompare(b.descricao || '')
-        }
-
+        if (a.status !== b.status) return a.status ? 1 : -1
         return (a.descricao || '').localeCompare(b.descricao || '')
       })
     })
@@ -90,7 +87,7 @@ export function MonthGroup({ mes, ano, items, onEditItem, onAddForOwner }: Props
       if (!aHasOverdue && bHasOverdue) return 1
       return ownerA.localeCompare(ownerB)
     })
-  }, [items])
+  }, [filteredItems])
 
   const total = items.length
   const paid = items.filter((i) => i.status).length
