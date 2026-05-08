@@ -1,6 +1,5 @@
-import { useMemo, useState, useContext } from 'react'
+import { useMemo, useState } from 'react'
 import { AdminPayment } from '@/types'
-import { AdminPaymentsFilterContext } from '@/pages/PagamentosAdmin'
 import {
   Accordion,
   AccordionContent,
@@ -40,7 +39,6 @@ const MONTH_NAMES = [
 
 export function MonthGroup({ mes, ano, items, onEditItem, onAddForOwner }: Props) {
   const [cloning, setCloning] = useState(false)
-  const statusFilter = useContext(AdminPaymentsFilterContext)
 
   const handleClone = async () => {
     try {
@@ -54,16 +52,11 @@ export function MonthGroup({ mes, ano, items, onEditItem, onAddForOwner }: Props
     }
   }
 
-  const filteredItems = useMemo(() => {
-    if (statusFilter === 'pending') return items.filter((i) => !i.status)
-    if (statusFilter === 'paid') return items.filter((i) => i.status)
-    return items
-  }, [items, statusFilter])
-
   const groupedByOwner = useMemo(() => {
     const map: Record<string, AdminPayment[]> = {}
 
-    filteredItems.forEach((item) => {
+    // ALWAYS USE items here to guarantee persistence of view for all items
+    items.forEach((item) => {
       const owner = item.dono_pagamento || 'Sem Dono'
       if (!map[owner]) map[owner] = []
       map[owner].push(item)
@@ -75,13 +68,13 @@ export function MonthGroup({ mes, ano, items, onEditItem, onAddForOwner }: Props
         const tomorrowTime = addDays(startOfDay(new Date()), 1).getTime()
 
         const getPriority = (item: AdminPayment) => {
-          if (item.status) return 4
+          if (item.status) return 4 // Paid
           if (item.data_notificacao) {
             const notifDate = startOfDay(
               new Date(item.data_notificacao.replace(' ', 'T')),
             ).getTime()
-            if (notifDate < todayTime) return 1 // Overdue
-            if (notifDate === todayTime || notifDate === tomorrowTime) return 2 // Near deadline
+            if (notifDate <= todayTime) return 1 // Overdue
+            if (notifDate === tomorrowTime) return 2 // Upcoming alert (exactly 1 day)
           }
           return 3 // Future/Other
         }
@@ -106,19 +99,20 @@ export function MonthGroup({ mes, ano, items, onEditItem, onAddForOwner }: Props
         (i) =>
           !i.status &&
           !!i.data_notificacao &&
-          startOfDay(new Date(i.data_notificacao.replace(' ', 'T'))).getTime() < todayTime,
+          startOfDay(new Date(i.data_notificacao.replace(' ', 'T'))).getTime() <= todayTime,
       )
       const bHasOverdue = itemsB.some(
         (i) =>
           !i.status &&
           !!i.data_notificacao &&
-          startOfDay(new Date(i.data_notificacao.replace(' ', 'T'))).getTime() < todayTime,
+          startOfDay(new Date(i.data_notificacao.replace(' ', 'T'))).getTime() <= todayTime,
       )
+
       if (aHasOverdue && !bHasOverdue) return -1
       if (!aHasOverdue && bHasOverdue) return 1
       return ownerA.localeCompare(ownerB)
     })
-  }, [filteredItems])
+  }, [items])
 
   const total = items.length
   const paid = items.filter((i) => i.status).length

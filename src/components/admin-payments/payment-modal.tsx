@@ -10,7 +10,13 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Calendar } from '@/components/ui/calendar'
 import { AdminPayment } from '@/types'
+import { format } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
+import { CalendarIcon } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 interface Props {
   open: boolean
@@ -32,7 +38,8 @@ export function PaymentModal({
   defaultOwner,
 }: Props) {
   const [loading, setLoading] = useState(false)
-  const descRef = useRef<HTMLInputElement>(null)
+  const [submitted, setSubmitted] = useState(false)
+  const donoRef = useRef<HTMLInputElement>(null)
   const [formData, setFormData] = useState<Partial<AdminPayment>>({
     descricao: '',
     dono_pagamento: '',
@@ -45,6 +52,7 @@ export function PaymentModal({
 
   useEffect(() => {
     if (open) {
+      setSubmitted(false)
       if (initialData) {
         setFormData({
           descricao: initialData.descricao,
@@ -70,13 +78,19 @@ export function PaymentModal({
       }
 
       setTimeout(() => {
-        descRef.current?.focus()
+        donoRef.current?.focus()
       }, 50)
     }
   }, [open, initialData, defaultMonth, defaultYear, defaultOwner])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setSubmitted(true)
+
+    if (!formData.data_notificacao) {
+      return
+    }
+
     setLoading(true)
     try {
       let data_notificacao = ''
@@ -133,6 +147,7 @@ export function PaymentModal({
           <div className="space-y-2">
             <Label>Dono do Pagamento</Label>
             <Input
+              ref={donoRef}
               required
               placeholder="Ex: Tobias, Empresa X"
               value={formData.dono_pagamento}
@@ -142,21 +157,54 @@ export function PaymentModal({
           <div className="space-y-2">
             <Label>Descrição</Label>
             <Input
-              ref={descRef}
               required
-              autoFocus
               placeholder="Ex: Mensalidade Sistema"
               value={formData.descricao}
               onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
             />
           </div>
-          <div className="space-y-2">
-            <Label>Data de Notificação (Opcional)</Label>
-            <Input
-              type="date"
-              value={formData.data_notificacao || ''}
-              onChange={(e) => setFormData({ ...formData, data_notificacao: e.target.value })}
-            />
+          <div className="space-y-2 flex flex-col">
+            <Label>Data de Notificação</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant={'outline'}
+                  className={cn(
+                    'w-full justify-start text-left font-normal',
+                    !formData.data_notificacao && 'text-muted-foreground',
+                    submitted && !formData.data_notificacao && 'border-red-500',
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {formData.data_notificacao ? (
+                    format(new Date(`${formData.data_notificacao}T12:00:00Z`), 'PPP', {
+                      locale: ptBR,
+                    })
+                  ) : (
+                    <span>Selecione uma data</span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0">
+                <Calendar
+                  mode="single"
+                  selected={
+                    formData.data_notificacao
+                      ? new Date(`${formData.data_notificacao}T12:00:00Z`)
+                      : undefined
+                  }
+                  onSelect={(date) => {
+                    if (date) {
+                      setFormData({ ...formData, data_notificacao: format(date, 'yyyy-MM-dd') })
+                    }
+                  }}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+            {submitted && !formData.data_notificacao && (
+              <span className="text-[10px] text-red-500">Data de notificação é obrigatória</span>
+            )}
           </div>
           <div className="space-y-2">
             <Label>Observação (Opcional)</Label>

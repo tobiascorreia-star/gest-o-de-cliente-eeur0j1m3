@@ -76,22 +76,19 @@ export function PaymentItem({ item, onEdit }: Props) {
     ? startOfDay(new Date(item.data_notificacao.replace(' ', 'T')))
     : null
 
-  const isOverdue = !item.status && !!notifDate && notifDate.getTime() < today.getTime()
-  const isNearDeadline =
-    !item.status &&
-    !!notifDate &&
-    (notifDate.getTime() === today.getTime() || notifDate.getTime() === tomorrow.getTime())
+  const isOverdue = !item.status && !!notifDate && notifDate.getTime() <= today.getTime()
+  const isNearDeadline = !item.status && !!notifDate && notifDate.getTime() === tomorrow.getTime()
 
   return (
     <div
       className={cn(
-        'group flex items-start gap-3 p-3 rounded-lg bg-white dark:bg-slate-950 transition-colors border',
+        'group flex items-start gap-3 p-3 rounded-lg transition-colors border shadow-sm',
         isOverdue
-          ? 'border-red-200 dark:border-red-900/50'
+          ? 'bg-red-50/30 dark:bg-red-950/20 border-red-200 dark:border-red-900/50'
           : isNearDeadline
-            ? 'border-orange-300 dark:border-orange-900/50'
-            : 'border-slate-100 dark:border-slate-800',
-        'hover:border-slate-300 dark:hover:border-slate-700 shadow-sm',
+            ? 'bg-orange-50/50 dark:bg-orange-950/20 border-orange-300 dark:border-orange-900/50'
+            : 'bg-white dark:bg-slate-950 border-slate-100 dark:border-slate-800',
+        'hover:border-slate-300 dark:hover:border-slate-700',
       )}
     >
       <Checkbox
