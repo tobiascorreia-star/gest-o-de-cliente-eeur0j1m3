@@ -26,16 +26,18 @@ onRecordCreateRequest((e) => {
 
 onRecordUpdateRequest((e) => {
   const original = e.record.original()
-  if (original.getBool('closed')) {
-    if (e.record.getBool('closed')) {
-      return e.badRequestError('Cannot edit a closed payroll record.')
-    }
+  const wasClosed = original.get('closed') === true || original.get('status') === 'Pago'
+  const isClosed = e.record.get('closed') === true || e.record.get('status') === 'Pago'
+
+  if (wasClosed && isClosed) {
+    return e.badRequestError('Cannot edit a closed payroll record.')
   }
   e.next()
 }, 'payroll')
 
 onRecordDeleteRequest((e) => {
-  if (e.record.getBool('closed')) {
+  const isClosed = e.record.get('closed') === true || e.record.get('status') === 'Pago'
+  if (isClosed) {
     return e.badRequestError('Cannot delete a closed payroll record.')
   }
   e.next()
