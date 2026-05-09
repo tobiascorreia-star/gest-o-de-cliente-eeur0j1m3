@@ -25,6 +25,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { toast } from '@/hooks/use-toast'
@@ -82,6 +91,8 @@ export default function FolhaPagamento() {
   const [savingRowId, setSavingRowId] = useState<string | null>(null)
   const [isClosingMonth, setIsClosingMonth] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [isClearAllOpen, setIsClearAllOpen] = useState(false)
+  const [isClearing, setIsClearing] = useState(false)
 
   const [editingRecord, setEditingRecord] = useState<any>(null)
 
@@ -528,6 +539,35 @@ export default function FolhaPagamento() {
     window.print()
   }
 
+  const handleClearAll = async () => {
+    setIsClearing(true)
+    try {
+      const records = await pb.collection('payroll').getFullList({ fields: 'id' })
+      const batchSize = 50
+      for (let i = 0; i < records.length; i += batchSize) {
+        const batch = records.slice(i, i + batchSize)
+        await Promise.all(batch.map((r) => pb.collection('payroll').delete(r.id)))
+      }
+
+      await logAudit(
+        'bulk_delete_payroll',
+        'Todos os registros da folha de pagamento foram apagados.',
+      )
+
+      toast({
+        title: 'Sucesso',
+        description: 'Todos os registros da folha de pagamento foram removidos com sucesso.',
+      })
+      setDraftPayrolls([])
+      setIsClearAllOpen(false)
+      loadMonthData()
+    } catch (err) {
+      toast({ title: 'Erro', description: getErrorMessage(err), variant: 'destructive' })
+    } finally {
+      setIsClearing(false)
+    }
+  }
+
   const handleCloseMonth = async () => {
     const unclosedRecords = draftPayrolls.filter((p) => !(p.closed || p.status === 'Pago'))
     if (unclosedRecords.length === 0) {
@@ -659,6 +699,14 @@ export default function FolhaPagamento() {
             <Button onClick={() => openForm()} className="w-full sm:w-auto">
               <Plus className="w-4 h-4 mr-2" />
               Novo Lançamento
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => setIsClearAllOpen(true)}
+              className="w-full sm:w-auto"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Apagar Tudo
             </Button>
           </div>
         </div>
@@ -1227,6 +1275,25 @@ export default function FolhaPagamento() {
           </DialogContent>
         </Dialog>
       </div>
+
+      <AlertDialog open={isClearAllOpen} onOpenChange={setIsClearAllOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Apagar todos os registros</AlertDialogTitle>
+            <AlertDialogDescription>
+              Deseja realmente apagar todos os registros da folha de pagamento? Esta ação é
+              irreversível.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isClearing}>Cancelar</AlertDialogCancel>
+            <Button variant="destructive" onClick={handleClearAll} disabled={isClearing}>
+              {isClearing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+              Confirmar
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {receiptRecord && (
         <>
