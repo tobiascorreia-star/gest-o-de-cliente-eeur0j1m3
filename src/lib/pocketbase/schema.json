@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-09T16:18:52.776Z",
+  "generatedAt": "2026-05-09T18:45:52.332Z",
   "collections": [
     {
       "name": "users",
@@ -532,6 +532,18 @@
         {
           "name": "unit_value",
           "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "qtde_install",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "manual_install_qty",
+          "type": "bool",
           "required": false,
           "system": false
         }

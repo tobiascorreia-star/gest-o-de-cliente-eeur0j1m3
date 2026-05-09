@@ -6,9 +6,10 @@ import { AdminPayment } from '@/types'
 import { getAdminPayments, createAdminPayment, updateAdminPayment } from '@/services/admin_payments'
 import { useRealtime } from '@/hooks/use-realtime'
 import { toast } from 'sonner'
-import { Wallet, Plus, Search, X, CalendarClock } from 'lucide-react'
-import { Toggle } from '@/components/ui/toggle'
+import { Wallet, Plus, Search, X, CalendarClock, AlertTriangle } from 'lucide-react'
 import { ActiveMonthsView } from '@/components/admin-payments/active-months-view'
+import { Badge } from '@/components/ui/badge'
+import { cn } from '@/lib/utils'
 import { HistoryYearsView } from '@/components/admin-payments/history-years-view'
 import { Button } from '@/components/ui/button'
 import { PaymentModal } from '@/components/admin-payments/payment-modal'
@@ -17,8 +18,8 @@ import { useAuth } from '@/hooks/use-auth'
 export const AdminPaymentsFilterContext = createContext<{
   status: 'all' | 'pending' | 'paid'
   search: string
-  todayOnly: boolean
-}>({ status: 'all', search: '', todayOnly: false })
+  dueDateFilter: 'all' | 'today' | 'tomorrow'
+}>({ status: 'all', search: '', dueDateFilter: 'all' })
 
 export default function PagamentosAdmin() {
   const { user } = useAuth()
@@ -32,7 +33,7 @@ export default function PagamentosAdmin() {
   } | null>(null)
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'paid'>('all')
   const [searchTerm, setSearchTerm] = useState('')
-  const [todayOnly, setTodayOnly] = useState(false)
+  const [dueDateFilter, setDueDateFilter] = useState<'all' | 'today' | 'tomorrow'>('all')
   const searchInputRef = useRef<HTMLInputElement>(null)
 
   const loadData = async () => {
@@ -82,10 +83,14 @@ export default function PagamentosAdmin() {
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '')
     const isSearchActive = searchTerm !== ''
-    const hasFilter = isSearchActive || statusFilter !== 'all' || todayOnly
+    const hasFilter = isSearchActive || statusFilter !== 'all' || dueDateFilter !== 'all'
 
     const localDate = new Date()
     const todayStr = `${localDate.getFullYear()}-${String(localDate.getMonth() + 1).padStart(2, '0')}-${String(localDate.getDate()).padStart(2, '0')}`
+
+    const tomorrowDate = new Date()
+    tomorrowDate.setDate(tomorrowDate.getDate() + 1)
+    const tomorrowStr = `${tomorrowDate.getFullYear()}-${String(tomorrowDate.getMonth() + 1).padStart(2, '0')}-${String(tomorrowDate.getDate()).padStart(2, '0')}`
 
     Object.entries(groupedByMonthYear).forEach(([key, items]) => {
       const [anoStr, mesStr] = key.split('-')
@@ -106,12 +111,15 @@ export default function PagamentosAdmin() {
         const matchesStatus =
           statusFilter === 'all' || (statusFilter === 'paid' ? p.status : !p.status)
 
-        let matchesToday = true
-        if (todayOnly) {
-          matchesToday = !!p.data_notificacao && p.data_notificacao.substring(0, 10) === todayStr
+        let matchesDueDate = true
+        if (dueDateFilter === 'today') {
+          matchesDueDate = !!p.data_notificacao && p.data_notificacao.substring(0, 10) === todayStr
+        } else if (dueDateFilter === 'tomorrow') {
+          matchesDueDate =
+            !!p.data_notificacao && p.data_notificacao.substring(0, 10) === tomorrowStr
         }
 
-        return matchesSearch && matchesStatus && matchesToday
+        return matchesSearch && matchesStatus && matchesDueDate
       })
 
       if (filteredItems.length === 0) {
@@ -150,7 +158,29 @@ export default function PagamentosAdmin() {
     })
 
     return { activeMonths: active, historyYears: history }
-  }, [payments, searchTerm, statusFilter, todayOnly])
+  }, [payments, searchTerm, statusFilter, dueDateFilter])
+
+  const { todayCount, tomorrowCount } = useMemo(() => {
+    const localDate = new Date()
+    const todayStr = `${localDate.getFullYear()}-${String(localDate.getMonth() + 1).padStart(2, '0')}-${String(localDate.getDate()).padStart(2, '0')}`
+
+    const tomorrowDate = new Date()
+    tomorrowDate.setDate(tomorrowDate.getDate() + 1)
+    const tomorrowStr = `${tomorrowDate.getFullYear()}-${String(tomorrowDate.getMonth() + 1).padStart(2, '0')}-${String(tomorrowDate.getDate()).padStart(2, '0')}`
+
+    let today = 0
+    let tomorrow = 0
+
+    payments.forEach((p) => {
+      if (!p.status && p.data_notificacao) {
+        const notifDate = p.data_notificacao.substring(0, 10)
+        if (notifDate === todayStr) today++
+        else if (notifDate === tomorrowStr) tomorrow++
+      }
+    })
+
+    return { todayCount: today, tomorrowCount: tomorrow }
+  }, [payments])
 
   const handleSave = async (data: Partial<AdminPayment>) => {
     if (!user) return
@@ -208,8 +238,71 @@ export default function PagamentosAdmin() {
       </div>
 
       <AdminPaymentsFilterContext.Provider
-        value={{ status: statusFilter, search: searchTerm, todayOnly }}
+        value={{ status: statusFilter, search: searchTerm, dueDateFilter }}
       >
+        <div className="flex flex-wrap items-center gap-3 mb-6 shrink-0 bg-white dark:bg-slate-950 p-3 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+          <Button
+            variant={dueDateFilter === 'today' ? 'default' : 'outline'}
+            onClick={() => setDueDateFilter((f) => (f === 'today' ? 'all' : 'today'))}
+            className={cn(
+              'gap-2 h-9 text-sm',
+              dueDateFilter === 'today'
+                ? 'bg-red-500 hover:bg-red-600 text-white border-transparent'
+                : 'text-red-600 border-red-200 hover:bg-red-50 dark:border-red-900/50 dark:hover:bg-red-900/20',
+            )}
+          >
+            <CalendarClock className="w-4 h-4" />
+            Vencendo Hoje
+            <Badge
+              variant="secondary"
+              className={cn(
+                'ml-1',
+                dueDateFilter === 'today'
+                  ? 'bg-white/20 text-white hover:bg-white/20'
+                  : 'bg-red-100 text-red-600 hover:bg-red-100 dark:bg-red-900/40 dark:text-red-400',
+              )}
+            >
+              {todayCount}
+            </Badge>
+          </Button>
+
+          <Button
+            variant={dueDateFilter === 'tomorrow' ? 'default' : 'outline'}
+            onClick={() => setDueDateFilter((f) => (f === 'tomorrow' ? 'all' : 'tomorrow'))}
+            className={cn(
+              'gap-2 h-9 text-sm',
+              dueDateFilter === 'tomorrow'
+                ? 'bg-yellow-500 hover:bg-yellow-600 text-white border-transparent'
+                : 'text-yellow-600 border-yellow-200 hover:bg-yellow-50 dark:border-yellow-900/50 dark:hover:bg-yellow-900/20',
+            )}
+          >
+            <AlertTriangle className="w-4 h-4" />
+            Vencendo em 1 dia
+            <Badge
+              variant="secondary"
+              className={cn(
+                'ml-1',
+                dueDateFilter === 'tomorrow'
+                  ? 'bg-white/20 text-white hover:bg-white/20'
+                  : 'bg-yellow-100 text-yellow-700 hover:bg-yellow-100 dark:bg-yellow-900/40 dark:text-yellow-400',
+              )}
+            >
+              {tomorrowCount}
+            </Badge>
+          </Button>
+
+          {dueDateFilter !== 'all' && (
+            <Button
+              variant="ghost"
+              onClick={() => setDueDateFilter('all')}
+              className="h-9 px-3 text-sm text-slate-500 hover:text-slate-900 dark:hover:text-slate-100"
+            >
+              <X className="w-4 h-4 mr-2" />
+              Limpar Filtros
+            </Button>
+          )}
+        </div>
+
         <Tabs defaultValue="active" className="flex-1 flex flex-col min-h-0">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 shrink-0 gap-4">
             <TabsList className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 shrink-0">
@@ -219,11 +312,11 @@ export default function PagamentosAdmin() {
 
             <div className="flex flex-wrap items-center gap-4 w-full sm:w-auto">
               <div className="relative w-full sm:w-64">
-                <Search className="absolute left-2.5 top-2 h-4 w-4 text-slate-400" />
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
                 <Input
                   ref={searchInputRef}
                   placeholder="Buscar dono do pagamento..."
-                  className="pl-9 pr-8 h-8 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-sm"
+                  className="pl-9 pr-8 h-9 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-sm"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -234,7 +327,7 @@ export default function PagamentosAdmin() {
                       setSearchTerm('')
                       searchInputRef.current?.focus()
                     }}
-                    className="absolute right-2 top-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 focus:outline-none"
+                    className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 focus:outline-none"
                     aria-label="Limpar busca"
                   >
                     <X className="h-4 w-4" />
@@ -243,29 +336,19 @@ export default function PagamentosAdmin() {
               </div>
 
               <div className="flex items-center gap-2">
-                <Toggle
-                  pressed={todayOnly}
-                  onPressedChange={setTodayOnly}
-                  className="h-8 px-3 text-xs gap-2 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950"
-                  variant="outline"
-                >
-                  <CalendarClock className="w-4 h-4" />
-                  Hoje
-                </Toggle>
-
                 <ToggleGroup
                   type="single"
                   value={statusFilter}
                   onValueChange={(v) => v && setStatusFilter(v as any)}
                   className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-0.5 self-start sm:self-auto"
                 >
-                  <ToggleGroupItem value="all" className="h-8 text-xs px-3">
+                  <ToggleGroupItem value="all" className="h-9 text-sm px-3">
                     Todos
                   </ToggleGroupItem>
-                  <ToggleGroupItem value="pending" className="h-8 text-xs px-3">
+                  <ToggleGroupItem value="pending" className="h-9 text-sm px-3">
                     A pagar
                   </ToggleGroupItem>
-                  <ToggleGroupItem value="paid" className="h-8 text-xs px-3">
+                  <ToggleGroupItem value="paid" className="h-9 text-sm px-3">
                     Pagos
                   </ToggleGroupItem>
                 </ToggleGroup>
