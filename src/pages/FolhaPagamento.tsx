@@ -31,6 +31,7 @@ import { toast } from '@/hooks/use-toast'
 import pb from '@/lib/pocketbase/client'
 import { Plus, Printer, Edit, Trash2, Banknote, Loader2, Save, Info, RotateCcw } from 'lucide-react'
 import { format } from 'date-fns'
+import { extractFieldErrors, getErrorMessage } from '@/lib/pocketbase/errors'
 import { ptBR } from 'date-fns/locale'
 import { logAudit } from '@/services/audit'
 
@@ -195,6 +196,7 @@ export default function FolhaPagamento() {
           (p.extra_4 || 0)
         return {
           ...p,
+          qtde_install: q,
           install_commission: calculatedInstallComm,
           total,
           _isModified: true,
@@ -274,6 +276,7 @@ export default function FolhaPagamento() {
       reference_date: startOfMo,
       base_salary: baseSalary || 0,
       unit_value: unitValue || 0,
+      qtde_install: q,
       install_commission: calculatedInstallComm,
       bonus: bonus || 0,
       extra_1: extra1 || 0,
@@ -304,7 +307,7 @@ export default function FolhaPagamento() {
       const exists = draftPayrolls.some((p) => p.employee === employee)
       if (exists) {
         toast({
-          title: 'Erro',
+          title: 'Erro de Validação',
           description: 'Colaborador já possui lançamento neste mês.',
           variant: 'destructive',
         })
@@ -349,6 +352,7 @@ export default function FolhaPagamento() {
         reference_date: p.reference_date,
         base_salary: p.base_salary,
         unit_value: p.unit_value,
+        qtde_install: p.qtde_install,
         install_commission: p.install_commission,
         bonus: p.bonus,
         extra_1: p.extra_1,
@@ -375,7 +379,12 @@ export default function FolhaPagamento() {
       )
       toast({ title: 'Sucesso', description: 'Registro gravado.' })
     } catch (e) {
-      toast({ title: 'Erro', description: 'Falha ao gravar.', variant: 'destructive' })
+      const msg = getErrorMessage(e)
+      toast({
+        title: 'Erro ao gravar',
+        description: msg || 'Verifique os dados e tente novamente.',
+        variant: 'destructive',
+      })
     } finally {
       setSavingRowId(null)
     }
@@ -410,6 +419,7 @@ export default function FolhaPagamento() {
           reference_date: p.reference_date,
           base_salary: p.base_salary,
           unit_value: p.unit_value,
+          qtde_install: p.qtde_install,
           install_commission: p.install_commission,
           bonus: p.bonus,
           extra_1: p.extra_1,
@@ -433,7 +443,12 @@ export default function FolhaPagamento() {
       setDraftPayrolls(updatedDrafts)
       toast({ title: 'Sucesso', description: 'Todos os registros foram consolidados.' })
     } catch (e) {
-      toast({ title: 'Erro', description: 'Falha ao consolidar o mês.', variant: 'destructive' })
+      const msg = getErrorMessage(e)
+      toast({
+        title: 'Erro na consolidação',
+        description: msg || 'Falha ao salvar alguns registros.',
+        variant: 'destructive',
+      })
     } finally {
       setIsConsolidating(false)
     }
@@ -890,7 +905,7 @@ export default function FolhaPagamento() {
               <div className="space-y-2">
                 <Label>Colaborador *</Label>
                 <Select
-                  value={employee}
+                  value={employee || undefined}
                   onValueChange={setEmployee}
                   disabled={editingRecord?.closed || editingRecord}
                 >

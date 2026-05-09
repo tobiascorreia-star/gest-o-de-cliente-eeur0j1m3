@@ -113,10 +113,11 @@ export default function PagamentosAdmin() {
 
         let matchesDueDate = true
         if (dueDateFilter === 'today') {
-          matchesDueDate = !!p.data_notificacao && p.data_notificacao.substring(0, 10) === todayStr
+          matchesDueDate =
+            !p.status && !!p.data_notificacao && p.data_notificacao.substring(0, 10) === todayStr
         } else if (dueDateFilter === 'tomorrow') {
           matchesDueDate =
-            !!p.data_notificacao && p.data_notificacao.substring(0, 10) === tomorrowStr
+            !p.status && !!p.data_notificacao && p.data_notificacao.substring(0, 10) === tomorrowStr
         }
 
         return matchesSearch && matchesStatus && matchesDueDate
