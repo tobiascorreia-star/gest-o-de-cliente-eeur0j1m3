@@ -98,8 +98,24 @@ export default function FolhaPagamento() {
   const [status, setStatus] = useState('Pendente')
   const [observations, setObservations] = useState('')
   const [isClosed, setIsClosed] = useState(false)
+  const [installCommission, setInstallCommission] = useState<number>(0)
+  const [totalValue, setTotalValue] = useState<number>(0)
 
   const [receiptRecord, setReceiptRecord] = useState<any>(null)
+
+  useEffect(() => {
+    const comm = (unitValue || 0) * currentQtde
+    setInstallCommission(comm)
+    const t =
+      (baseSalary || 0) +
+      comm +
+      (bonus || 0) +
+      (extra1 || 0) +
+      (extra2 || 0) +
+      (extra3 || 0) +
+      (extra4 || 0)
+    setTotalValue(t)
+  }, [unitValue, currentQtde, baseSalary, bonus, extra1, extra2, extra3, extra4])
 
   const loadMonthData = async () => {
     setLoading(true)
@@ -249,6 +265,8 @@ export default function FolhaPagamento() {
       setStatus(p.status || 'Pendente')
       setObservations(p.observations || '')
       setIsClosed(isActuallyClosed)
+      setInstallCommission(p.install_commission || 0)
+      setTotalValue(p.total || 0)
     } else {
       const q = parseFloat(globalQty) || 0
       setEditingRecord(null)
@@ -265,6 +283,8 @@ export default function FolhaPagamento() {
       setStatus('Pendente')
       setObservations('')
       setIsClosed(false)
+      setInstallCommission(0)
+      setTotalValue(0)
     }
     setIsOpen(true)
   }
@@ -280,16 +300,18 @@ export default function FolhaPagamento() {
       return
     }
 
-    const globalQ = parseFloat(globalQty) || 0
-    const calculatedInstallComm = (unitValue || 0) * currentQtde
-    const total =
+    // Ensure we await for the most fresh calculation if there was any race condition
+    const finalInstallComm = (unitValue || 0) * currentQtde
+    const finalTotal =
       (baseSalary || 0) +
-      calculatedInstallComm +
+      finalInstallComm +
       (bonus || 0) +
       (extra1 || 0) +
       (extra2 || 0) +
       (extra3 || 0) +
       (extra4 || 0)
+
+    const globalQ = parseFloat(globalQty) || 0
 
     const [y, m] = filterMonth.split('-')
     const startOfMo = new Date(Date.UTC(parseInt(y), parseInt(m) - 1, 1, 0, 0, 0)).toISOString()
@@ -301,13 +323,13 @@ export default function FolhaPagamento() {
       unit_value: unitValue || 0,
       qtde_install: currentQtde,
       manual_install_qty: manualInstallQty,
-      install_commission: calculatedInstallComm,
+      install_commission: finalInstallComm,
       bonus: bonus || 0,
       extra_1: extra1 || 0,
       extra_2: extra2 || 0,
       extra_3: extra3 || 0,
       extra_4: extra4 || 0,
-      total,
+      total: finalTotal,
       status,
       observations,
       closed: isClosed,
@@ -955,9 +977,10 @@ export default function FolhaPagamento() {
                   </Label>
                   <Input
                     type="text"
-                    value={formatCurrencyInput((unitValue || 0) * currentQtde)}
+                    value={formatCurrencyInput(installCommission)}
                     disabled
-                    className="bg-slate-50 dark:bg-slate-900 font-semibold"
+                    readOnly
+                    className="bg-slate-50 dark:bg-slate-900 font-semibold cursor-not-allowed"
                   />
                 </div>
                 <div className="space-y-2">
@@ -1041,17 +1064,7 @@ export default function FolhaPagamento() {
                   Total a Pagar
                   <InfoTooltip text="Soma de todos os proventos (Valor calculado automaticamente)." />
                 </span>
-                <span className="text-2xl font-semibold text-primary">
-                  {fmtC(
-                    (baseSalary || 0) +
-                      (unitValue || 0) * currentQtde +
-                      (bonus || 0) +
-                      (extra1 || 0) +
-                      (extra2 || 0) +
-                      (extra3 || 0) +
-                      (extra4 || 0),
-                  )}
-                </span>
+                <span className="text-2xl font-semibold text-primary">{fmtC(totalValue)}</span>
               </div>
             </div>
 
