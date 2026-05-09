@@ -104,18 +104,22 @@ export default function FolhaPagamento() {
   const [receiptRecord, setReceiptRecord] = useState<any>(null)
 
   useEffect(() => {
-    const comm = (unitValue || 0) * currentQtde
-    setIncentivo(comm)
+    if (!manualInstallQty) {
+      setIncentivo((unitValue || 0) * currentQtde)
+    }
+  }, [unitValue, currentQtde, manualInstallQty])
+
+  useEffect(() => {
     const t =
       (baseSalary || 0) +
-      comm +
+      (incentivo || 0) +
       (bonus || 0) +
       (extra1 || 0) +
       (extra2 || 0) +
       (extra3 || 0) +
       (extra4 || 0)
     setTotalValue(t)
-  }, [unitValue, currentQtde, baseSalary, bonus, extra1, extra2, extra3, extra4])
+  }, [baseSalary, incentivo, bonus, extra1, extra2, extra3, extra4])
 
   const loadMonthData = async () => {
     setLoading(true)
@@ -302,7 +306,7 @@ export default function FolhaPagamento() {
     }
 
     // Ensure we await for the most fresh calculation if there was any race condition
-    const finalIncentivo = (unitValue || 0) * currentQtde
+    const finalIncentivo = manualInstallQty ? incentivo || 0 : (unitValue || 0) * currentQtde
     const finalTotal =
       (baseSalary || 0) +
       finalIncentivo +
@@ -977,14 +981,24 @@ export default function FolhaPagamento() {
                 <div className="space-y-2">
                   <Label className="flex items-center">
                     Incentivo
-                    <InfoTooltip text="Valor calculado automaticamente (Valor Install x Qtde Install)." />
+                    <InfoTooltip
+                      text={
+                        manualInstallQty
+                          ? 'Valor manual'
+                          : 'Valor calculado automaticamente (Valor Install x Qtde Install).'
+                      }
+                    />
                   </Label>
                   <Input
                     type="text"
                     value={formatCurrencyInput(incentivo)}
-                    disabled
-                    readOnly
-                    className="bg-slate-50 dark:bg-slate-900 font-semibold cursor-not-allowed"
+                    onChange={(e) => setIncentivo(parseCurrencyInput(e.target.value) || 0)}
+                    disabled={!manualInstallQty || editingRecord?.closed}
+                    className={
+                      !manualInstallQty
+                        ? 'bg-slate-50 dark:bg-slate-900 font-semibold cursor-not-allowed'
+                        : ''
+                    }
                   />
                 </div>
                 <div className="space-y-2">
