@@ -87,7 +87,7 @@ export default function FolhaPagamento() {
   const [employee, setEmployee] = useState('')
   const [baseSalary, setBaseSalary] = useState<number | null>(null)
   const [unitValue, setUnitValue] = useState<number | null>(null)
-  const [installComm, setInstallComm] = useState<number | null>(null)
+  const [currentQtde, setCurrentQtde] = useState<number>(0)
   const [bonus, setBonus] = useState<number | null>(null)
   const [extra1, setExtra1] = useState<number | null>(null)
   const [extra2, setExtra2] = useState<number | null>(null)
@@ -228,11 +228,12 @@ export default function FolhaPagamento() {
   const openForm = (p?: any) => {
     if (p) {
       const isActuallyClosed = p.closed || p.status === 'Pago'
+      const recordQtde = p.qtde_install ?? (parseFloat(globalQty) || 0)
       setEditingRecord({ ...p, closed: isActuallyClosed })
       setEmployee(p.employee)
       setBaseSalary(p.base_salary ?? null)
       setUnitValue(p.unit_value ?? null)
-      setInstallComm(p.install_commission ?? null)
+      setCurrentQtde(recordQtde)
       setBonus(p.bonus ?? null)
       setExtra1(p.extra_1 ?? null)
       setExtra2(p.extra_2 ?? null)
@@ -242,11 +243,12 @@ export default function FolhaPagamento() {
       setObservations(p.observations || '')
       setIsClosed(isActuallyClosed)
     } else {
+      const q = parseFloat(globalQty) || 0
       setEditingRecord(null)
       setEmployee(filterUser !== 'all' ? filterUser : '')
       setBaseSalary(null)
       setUnitValue(null)
-      setInstallComm(0)
+      setCurrentQtde(q)
       setBonus(null)
       setExtra1(null)
       setExtra2(null)
@@ -262,10 +264,6 @@ export default function FolhaPagamento() {
   const handleUnitValueChange = (val: string) => {
     const uv = parseCurrencyInput(val)
     setUnitValue(uv)
-    if (!editingRecord?.closed) {
-      const q = parseFloat(globalQty) || 0
-      setInstallComm((uv || 0) * q)
-    }
   }
 
   const handleSaveForm = async () => {
@@ -274,10 +272,11 @@ export default function FolhaPagamento() {
       return
     }
 
-    const q = parseFloat(globalQty) || 0
+    const globalQ = parseFloat(globalQty) || 0
+    const calculatedInstallComm = (unitValue || 0) * currentQtde
     const total =
       (baseSalary || 0) +
-      (installComm || 0) +
+      calculatedInstallComm +
       (bonus || 0) +
       (extra1 || 0) +
       (extra2 || 0) +
@@ -292,8 +291,8 @@ export default function FolhaPagamento() {
       reference_date: startOfMo,
       base_salary: baseSalary || 0,
       unit_value: unitValue || 0,
-      qtde_install: q,
-      install_commission: installComm || 0,
+      qtde_install: currentQtde,
+      install_commission: calculatedInstallComm,
       bonus: bonus || 0,
       extra_1: extra1 || 0,
       extra_2: extra2 || 0,
@@ -311,13 +310,13 @@ export default function FolhaPagamento() {
       if (!currentSettingsId && globalQty !== '') {
         const s = await pb.collection('payroll_settings').create({
           reference_date: startOfMo,
-          quantity: q,
+          quantity: globalQ,
         })
         setSettingsId(s.id)
         currentSettingsId = s.id
       } else if (currentSettingsId && globalQty !== '') {
         await pb.collection('payroll_settings').update(currentSettingsId, {
-          quantity: q,
+          quantity: globalQ,
         })
       }
 
@@ -912,13 +911,12 @@ export default function FolhaPagamento() {
                 <div className="space-y-2">
                   <Label className="flex items-center">
                     Incentivo
-                    <InfoTooltip text="Valor calculado automaticamente (Valor Install x Qtde Install) ou preenchido manualmente." />
+                    <InfoTooltip text="Valor calculado automaticamente (Valor Install x Qtde Install)." />
                   </Label>
                   <Input
                     type="text"
-                    value={formatCurrencyInput(installComm)}
-                    onChange={(e) => setInstallComm(parseCurrencyInput(e.target.value))}
-                    disabled={editingRecord?.closed}
+                    value={formatCurrencyInput((unitValue || 0) * currentQtde)}
+                    disabled
                   />
                 </div>
                 <div className="space-y-2">
@@ -1005,7 +1003,7 @@ export default function FolhaPagamento() {
                 <span className="text-2xl font-semibold text-primary">
                   {fmtC(
                     (baseSalary || 0) +
-                      (installComm || 0) +
+                      (unitValue || 0) * currentQtde +
                       (bonus || 0) +
                       (extra1 || 0) +
                       (extra2 || 0) +
