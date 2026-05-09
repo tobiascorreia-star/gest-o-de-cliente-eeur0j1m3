@@ -35,6 +35,7 @@ import { extractFieldErrors, getErrorMessage } from '@/lib/pocketbase/errors'
 import { useRealtime } from '@/hooks/use-realtime'
 import { ptBR } from 'date-fns/locale'
 import { logAudit } from '@/services/audit'
+import { Switch } from '@/components/ui/switch'
 
 const InfoTooltip = ({ text }: { text: string }) => (
   <Tooltip>
@@ -88,6 +89,7 @@ export default function FolhaPagamento() {
   const [baseSalary, setBaseSalary] = useState<number | null>(null)
   const [unitValue, setUnitValue] = useState<number | null>(null)
   const [currentQtde, setCurrentQtde] = useState<number>(0)
+  const [manualInstallQty, setManualInstallQty] = useState(false)
   const [bonus, setBonus] = useState<number | null>(null)
   const [extra1, setExtra1] = useState<number | null>(null)
   const [extra2, setExtra2] = useState<number | null>(null)
@@ -204,6 +206,7 @@ export default function FolhaPagamento() {
     setDraftPayrolls((prev) =>
       prev.map((p) => {
         if (p.closed || p.status === 'Pago') return p
+        if (p.manual_install_qty) return p
         const unit = p.unit_value || 0
         const calculatedInstallComm = unit * q
         const total =
@@ -228,12 +231,16 @@ export default function FolhaPagamento() {
   const openForm = (p?: any) => {
     if (p) {
       const isActuallyClosed = p.closed || p.status === 'Pago'
-      const recordQtde = p.qtde_install ?? (parseFloat(globalQty) || 0)
+      const isManual = p.manual_install_qty || false
+      const dbQtde = p.qtde_install || 0
+      const recordQtde = isManual ? dbQtde : parseFloat(globalQty) || dbQtde || 0
+
       setEditingRecord({ ...p, closed: isActuallyClosed })
       setEmployee(p.employee)
       setBaseSalary(p.base_salary ?? null)
       setUnitValue(p.unit_value ?? null)
       setCurrentQtde(recordQtde)
+      setManualInstallQty(isManual)
       setBonus(p.bonus ?? null)
       setExtra1(p.extra_1 ?? null)
       setExtra2(p.extra_2 ?? null)
@@ -249,6 +256,7 @@ export default function FolhaPagamento() {
       setBaseSalary(null)
       setUnitValue(null)
       setCurrentQtde(q)
+      setManualInstallQty(false)
       setBonus(null)
       setExtra1(null)
       setExtra2(null)
@@ -292,6 +300,7 @@ export default function FolhaPagamento() {
       base_salary: baseSalary || 0,
       unit_value: unitValue || 0,
       qtde_install: currentQtde,
+      manual_install_qty: manualInstallQty,
       install_commission: calculatedInstallComm,
       bonus: bonus || 0,
       extra_1: extra1 || 0,
@@ -379,6 +388,7 @@ export default function FolhaPagamento() {
         base_salary: p.base_salary,
         unit_value: p.unit_value,
         qtde_install: p.qtde_install,
+        manual_install_qty: p.manual_install_qty,
         install_commission: p.install_commission,
         bonus: p.bonus,
         extra_1: p.extra_1,
@@ -508,6 +518,7 @@ export default function FolhaPagamento() {
           base_salary: p.base_salary,
           unit_value: p.unit_value,
           qtde_install: p.qtde_install,
+          manual_install_qty: p.manual_install_qty,
           install_commission: p.install_commission,
           bonus: p.bonus,
           extra_1: p.extra_1,
@@ -909,6 +920,35 @@ export default function FolhaPagamento() {
                   />
                 </div>
                 <div className="space-y-2">
+                  <Label className="flex items-center justify-between">
+                    <span className="flex items-center">
+                      Qtde Install
+                      <InfoTooltip text="Quantidade aplicada. Marque 'Manual' para informar valor diferente da meta global." />
+                    </span>
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        checked={manualInstallQty}
+                        onCheckedChange={(checked) => {
+                          setManualInstallQty(checked)
+                          if (!checked) {
+                            setCurrentQtde(parseFloat(globalQty) || 0)
+                          }
+                        }}
+                        disabled={editingRecord?.closed}
+                        className="scale-75"
+                      />
+                      <span className="text-xs text-slate-500">Manual</span>
+                    </div>
+                  </Label>
+                  <Input
+                    type="number"
+                    value={currentQtde}
+                    onChange={(e) => setCurrentQtde(parseFloat(e.target.value) || 0)}
+                    disabled={!manualInstallQty || editingRecord?.closed}
+                    placeholder="Qtde..."
+                  />
+                </div>
+                <div className="space-y-2">
                   <Label className="flex items-center">
                     Incentivo
                     <InfoTooltip text="Valor calculado automaticamente (Valor Install x Qtde Install)." />
@@ -917,6 +957,7 @@ export default function FolhaPagamento() {
                     type="text"
                     value={formatCurrencyInput((unitValue || 0) * currentQtde)}
                     disabled
+                    className="bg-slate-50 dark:bg-slate-900 font-semibold"
                   />
                 </div>
                 <div className="space-y-2">
