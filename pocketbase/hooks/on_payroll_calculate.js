@@ -5,7 +5,9 @@ onRecordCreate((e) => {
   if (comm === null || comm === undefined || comm === '') {
     comm = e.record.get('install_commission')
   }
-  comm = Number(comm) || 0
+
+  comm = Number(comm)
+  if (isNaN(comm)) comm = 0
 
   if (!isManual) {
     const unit = Number(e.record.get('unit_value')) || 0
@@ -35,7 +37,9 @@ onRecordUpdate((e) => {
   if (comm === null || comm === undefined || comm === '') {
     comm = e.record.get('install_commission')
   }
-  comm = Number(comm) || 0
+
+  comm = Number(comm)
+  if (isNaN(comm)) comm = 0
 
   if (!isManual) {
     const unit = Number(e.record.get('unit_value')) || 0

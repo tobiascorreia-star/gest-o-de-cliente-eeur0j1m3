@@ -237,10 +237,13 @@ export default function FolhaPagamento() {
     setDraftPayrolls((prev) =>
       prev.map((p) => {
         if (p.closed || p.status === 'Pago') return p
+
+        if (p.manual_install_qty) {
+          return p
+        }
+
         const unit = p.unit_value || 0
-        const calculatedIncentivo = p.manual_install_qty
-          ? (p.incentivo ?? p.install_commission ?? 0)
-          : unit * q
+        const calculatedIncentivo = unit * q
         const total =
           (p.base_salary || 0) +
           calculatedIncentivo +
@@ -249,9 +252,10 @@ export default function FolhaPagamento() {
           (p.extra_2 || 0) +
           (p.extra_3 || 0) +
           (p.extra_4 || 0)
+
         return {
           ...p,
-          qtde_install: p.manual_install_qty ? p.qtde_install : q,
+          qtde_install: q,
           install_commission: calculatedIncentivo,
           incentivo: calculatedIncentivo,
           total,
@@ -1067,11 +1071,14 @@ export default function FolhaPagamento() {
                   <Input
                     type="text"
                     value={formatCurrencyInput(incentivo)}
-                    onChange={(e) => setIncentivo(parseCurrencyInput(e.target.value) ?? 0)}
-                    disabled={!manualInstallQty || editingRecord?.closed}
+                    onChange={(e) => {
+                      setIncentivo(parseCurrencyInput(e.target.value) ?? 0)
+                      if (!manualInstallQty) setManualInstallQty(true)
+                    }}
+                    disabled={editingRecord?.closed}
                     className={
                       !manualInstallQty
-                        ? 'bg-slate-50 dark:bg-slate-900 font-semibold cursor-not-allowed'
+                        ? 'bg-slate-50 dark:bg-slate-900 font-semibold'
                         : 'bg-amber-50 dark:bg-amber-900/20 font-semibold border-amber-200 dark:border-amber-800'
                     }
                   />
