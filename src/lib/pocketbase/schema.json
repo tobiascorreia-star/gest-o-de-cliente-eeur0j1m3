@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-09T21:33:38.017Z",
+  "generatedAt": "2026-05-09T21:38:48.459Z",
   "collections": [
     {
       "name": "users",
@@ -544,6 +544,12 @@
         {
           "name": "manual_install_qty",
           "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "incentivo",
+          "type": "number",
           "required": false,
           "system": false
         }

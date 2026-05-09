@@ -68,6 +68,7 @@ export interface Payroll {
   base_salary: number
   unit_value?: number
   install_commission: number
+  incentivo?: number
   bonus: number
   extra_1: number
   extra_2: number

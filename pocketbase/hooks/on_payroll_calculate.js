@@ -3,6 +3,7 @@ onRecordCreate((e) => {
   const qtde = Number(e.record.get('qtde_install')) || 0
   const comm = unit * qtde
   e.record.set('install_commission', comm)
+  e.record.set('incentivo', comm)
 
   const base = Number(e.record.get('base_salary')) || 0
   const bonus = Number(e.record.get('bonus')) || 0
@@ -21,6 +22,7 @@ onRecordUpdate((e) => {
   const qtde = Number(e.record.get('qtde_install')) || 0
   const comm = unit * qtde
   e.record.set('install_commission', comm)
+  e.record.set('incentivo', comm)
 
   const base = Number(e.record.get('base_salary')) || 0
   const bonus = Number(e.record.get('bonus')) || 0
