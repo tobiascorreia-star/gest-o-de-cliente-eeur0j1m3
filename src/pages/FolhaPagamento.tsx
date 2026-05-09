@@ -145,7 +145,42 @@ export default function FolhaPagamento() {
         /* intentionally ignored */
       }
 
-      const combined = pData.map((p) => ({ ...p, _isDraft: false, _isModified: false }))
+      const qVal = parseFloat(qty) || 0
+
+      const combined = pData.map((p) => {
+        let isMod = false
+        let pInstallComm = p.install_commission || 0
+        let pTotal = p.total || 0
+        let pQtdeInstall = p.qtde_install || 0
+
+        if (!p.closed) {
+          const unit = p.unit_value || 0
+          const calculatedInstallComm = unit * qVal
+
+          if (calculatedInstallComm !== pInstallComm || pQtdeInstall !== qVal) {
+            pInstallComm = calculatedInstallComm
+            pQtdeInstall = qVal
+            pTotal =
+              (p.base_salary || 0) +
+              pInstallComm +
+              (p.bonus || 0) +
+              (p.extra_1 || 0) +
+              (p.extra_2 || 0) +
+              (p.extra_3 || 0) +
+              (p.extra_4 || 0)
+            isMod = true
+          }
+        }
+
+        return {
+          ...p,
+          qtde_install: pQtdeInstall,
+          install_commission: pInstallComm,
+          total: pTotal,
+          _isDraft: false,
+          _isModified: isMod,
+        }
+      })
 
       setDraftPayrolls(combined)
       setGlobalQty(qty)
@@ -223,11 +258,7 @@ export default function FolhaPagamento() {
       setEmployee(p.employee)
       setBaseSalary(p.base_salary ?? null)
       setUnitValue(p.unit_value ?? null)
-      if (!p.closed) {
-        setInstallComm((p.unit_value || 0) * (parseFloat(globalQty) || 0))
-      } else {
-        setInstallComm(p.install_commission ?? null)
-      }
+      setInstallComm(p.install_commission ?? null)
       setBonus(p.bonus ?? null)
       setExtra1(p.extra_1 ?? null)
       setExtra2(p.extra_2 ?? null)
