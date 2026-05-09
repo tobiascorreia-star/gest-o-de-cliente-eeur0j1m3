@@ -266,7 +266,7 @@ export default function FolhaPagamento() {
       setStatus(p.status || 'Pendente')
       setObservations(p.observations || '')
       setIsClosed(isActuallyClosed)
-      setIncentivo(p.incentivo ?? p.install_commission || 0)
+      setIncentivo((p.incentivo ?? p.install_commission) || 0)
       setTotalValue(p.total || 0)
     } else {
       const q = parseFloat(globalQty) || 0
@@ -763,7 +763,7 @@ export default function FolhaPagamento() {
                         {fmtC(p.unit_value || 0)}
                       </TableCell>
                       <TableCell className="text-right font-medium text-slate-700 dark:text-slate-300 hidden sm:table-cell">
-                        {fmtC(p.incentivo ?? p.install_commission || 0)}
+                        {fmtC((p.incentivo ?? p.install_commission) || 0)}
                       </TableCell>
                       <TableCell className="text-right font-medium text-slate-700 dark:text-slate-300">
                         {fmtC(p.total)}
@@ -1127,7 +1127,9 @@ export default function FolhaPagamento() {
                   {!!(receiptRecord?.incentivo ?? receiptRecord?.install_commission) && (
                     <div className="flex justify-between">
                       <span>Incentivo</span>
-                      <span>{fmtC(receiptRecord.incentivo ?? receiptRecord.install_commission)}</span>
+                      <span>
+                        {fmtC(receiptRecord.incentivo ?? receiptRecord.install_commission)}
+                      </span>
                     </div>
                   )}
                   {!!receiptRecord?.bonus && (
