@@ -19,6 +19,10 @@ onRecordUpdateRequest((e) => {
     }
   }
 
+  if (e.auth) {
+    e.record.set('last_modified_by', e.auth.id)
+  }
+
   e.next()
 
   if (changes.length > 0) {

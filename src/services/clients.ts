@@ -3,14 +3,14 @@ import { Client } from '@/types'
 
 export const getClients = (options?: Record<string, any>) =>
   pb.collection('clients').getFullList<Client>({
-    expand: 'colaborador,solicitacao,status,categoria,pgto',
+    expand: 'colaborador,solicitacao,status,categoria,pgto,last_modified_by',
     sort: '-created',
     ...options,
   })
 
 export const getClient = (id: string) =>
   pb.collection('clients').getOne<Client>(id, {
-    expand: 'colaborador,solicitacao,status,categoria,pgto',
+    expand: 'colaborador,solicitacao,status,categoria,pgto,last_modified_by',
   })
 
 export const createClient = (data: Partial<Client>) => pb.collection('clients').create<Client>(data)

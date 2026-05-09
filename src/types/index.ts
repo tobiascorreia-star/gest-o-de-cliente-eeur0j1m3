@@ -19,6 +19,7 @@ export interface Client {
   observacao_lida?: boolean
   data_leitura_observacao?: string
   data_baixa?: string
+  last_modified_by?: string
   created: string
   updated: string
   expand?: {
@@ -28,6 +29,7 @@ export interface Client {
     previous_status?: { id: string; name: string; color?: string }
     categoria?: { id: string; name: string; color?: string }
     pgto?: { id: string; name: string; color?: string }
+    last_modified_by?: User
   }
 }
 

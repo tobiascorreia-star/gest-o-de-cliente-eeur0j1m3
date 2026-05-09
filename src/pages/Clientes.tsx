@@ -12,12 +12,13 @@ import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/hooks/use-auth'
 import pb from '@/lib/pocketbase/client'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { startOfMonth } from 'date-fns'
+import { startOfMonth, differenceInCalendarDays } from 'date-fns'
 
 export default function Clientes() {
   const [clients, setClients] = useState<Client[]>([])
   const [search, setSearch] = useState('')
   const [dateFilter, setDateFilter] = useState('')
+  const [showOnlyPendingOld, setShowOnlyPendingOld] = useState(false)
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [editingClient, setEditingClient] = useState<Client | null>(null)
   const [alertSettings, setAlertSettings] = useState<any>(null)
@@ -102,8 +103,20 @@ export default function Clientes() {
         return c.created.startsWith(dateFilter)
       })
     }
+    if (showOnlyPendingOld) {
+      const now = new Date()
+      result = result.filter((c) => {
+        const statusName = c.expand?.status?.name?.toUpperCase() || ''
+        const isPending =
+          statusName !== 'BAIXA' && statusName !== 'CONCLUÍDO' && statusName !== 'CONCLUIDO'
+        if (!isPending) return false
+
+        if (!c.created) return false
+        return differenceInCalendarDays(now, new Date(c.created)) > 3
+      })
+    }
     return result
-  }, [clients, search, dateFilter])
+  }, [clients, search, dateFilter, showOnlyPendingOld])
 
   const thisMonthStart = startOfMonth(new Date())
 
@@ -247,7 +260,7 @@ export default function Clientes() {
               className="pl-8 bg-muted/30"
             />
           </div>
-          <div className="w-full sm:w-auto">
+          <div className="flex w-full sm:w-auto gap-2">
             <Input
               type="date"
               value={dateFilter}
@@ -255,6 +268,13 @@ export default function Clientes() {
               className="bg-muted/30"
               title="Filtrar por data de criação"
             />
+            <Button
+              variant={showOnlyPendingOld ? 'default' : 'outline'}
+              onClick={() => setShowOnlyPendingOld(!showOnlyPendingOld)}
+              className="whitespace-nowrap"
+            >
+              Apenas Pendentes (&gt;3 dias)
+            </Button>
           </div>
         </div>
       )}

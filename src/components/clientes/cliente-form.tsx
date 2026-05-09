@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/select'
 import { toast } from '@/hooks/use-toast'
 import { Loader2, Search } from 'lucide-react'
+import { format } from 'date-fns'
 
 const formSchema = z.object({
   cnpj: z.string().min(18, 'CNPJ incompleto').max(18, 'CNPJ incompleto'),
@@ -107,13 +108,13 @@ export function ClienteForm({ initialData, onSuccess, onCancel }: ClienteFormPro
     defaultValues: initialData
       ? {
           ...initialData,
-          colaborador: userFirstName,
+          colaborador: isAdmin ? initialData.colaborador : userFirstName,
         }
       : {
           cnpj: '',
           razao_social: '',
           nome_cliente: '',
-          colaborador: userFirstName,
+          colaborador: isAdmin ? '' : userFirstName,
           solicitacao: '',
           status: '',
           categoria: '',
@@ -131,10 +132,10 @@ export function ClienteForm({ initialData, onSuccess, onCancel }: ClienteFormPro
   }, [register])
 
   useEffect(() => {
-    if (userFirstName) {
+    if (!isAdmin && userFirstName) {
       setValue('colaborador', userFirstName, { shouldValidate: true })
     }
-  }, [userFirstName, setValue])
+  }, [isAdmin, userFirstName, setValue])
 
   const cnpjValue = watch('cnpj')
 
@@ -176,27 +177,31 @@ export function ClienteForm({ initialData, onSuccess, onCancel }: ClienteFormPro
     const baixaStatus = statusList.find((s) => s.name.toUpperCase() === 'BAIXA')
     const isBaixa = baixaStatus && data.status === baixaStatus.id
 
-    let colaboradorId = ''
-    if (userFirstName) {
-      const match = colaboradores.find((c) => c.name.toLowerCase() === userFirstName.toLowerCase())
-      if (match) {
-        colaboradorId = match.id
-      } else {
-        try {
-          const { default: pb } = await import('@/lib/pocketbase/client')
-          const newConf = await pb.collection('configurations').create({
-            type: 'Colaborador',
-            name: userFirstName,
-            active: true,
-          })
-          colaboradorId = newConf.id
-        } catch (error: any) {
-          toast({
-            title: 'Erro',
-            description: 'Falha ao processar colaborador',
-            variant: 'destructive',
-          })
-          return
+    let colaboradorId = data.colaborador || ''
+    if (!isAdmin) {
+      if (userFirstName) {
+        const match = colaboradores.find(
+          (c) => c.name.toLowerCase() === userFirstName.toLowerCase(),
+        )
+        if (match) {
+          colaboradorId = match.id
+        } else {
+          try {
+            const { default: pb } = await import('@/lib/pocketbase/client')
+            const newConf = await pb.collection('configurations').create({
+              type: 'Colaborador',
+              name: userFirstName,
+              active: true,
+            })
+            colaboradorId = newConf.id
+          } catch (error: any) {
+            toast({
+              title: 'Erro',
+              description: 'Falha ao processar colaborador',
+              variant: 'destructive',
+            })
+            return
+          }
         }
       }
     }
@@ -204,6 +209,7 @@ export function ClienteForm({ initialData, onSuccess, onCancel }: ClienteFormPro
     const clientData = {
       ...data,
       colaborador: colaboradorId,
+      last_modified_by: user?.id,
       pgto: data.pgto || '',
       ...(initialData ? {} : { observacao_lida: false, data_leitura_observacao: '' }),
       ...(isBaixa && (!initialData || initialData.status !== baixaStatus.id)
@@ -289,12 +295,30 @@ export function ClienteForm({ initialData, onSuccess, onCancel }: ClienteFormPro
 
         <div className="space-y-2">
           <Label htmlFor="colaborador_responsavel">Colaborador Responsável *</Label>
-          <Input
-            id="colaborador_responsavel"
-            value={userFirstName}
-            readOnly
-            className="bg-[#f5f5f5] focus-visible:ring-0 cursor-not-allowed"
-          />
+          {isAdmin ? (
+            <Select
+              onValueChange={(v) => setValue('colaborador', v, { shouldValidate: true })}
+              defaultValue={initialData?.colaborador}
+            >
+              <SelectTrigger className={errors.colaborador ? 'border-destructive' : ''}>
+                <SelectValue placeholder="Selecione um colaborador" />
+              </SelectTrigger>
+              <SelectContent>
+                {colaboradores.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            <Input
+              id="colaborador_responsavel"
+              value={userFirstName}
+              readOnly
+              className="bg-[#f5f5f5] focus-visible:ring-0 cursor-not-allowed"
+            />
+          )}
           {errors.colaborador && (
             <p className="text-xs text-destructive">{errors.colaborador.message}</p>
           )}
@@ -399,11 +423,27 @@ export function ClienteForm({ initialData, onSuccess, onCancel }: ClienteFormPro
         />
       </div>
 
-      <div className="flex justify-end gap-2 pt-4">
-        <Button type="button" variant="outline" onClick={() => onCancel?.()}>
-          Cancelar
-        </Button>
-        <Button type="submit">{initialData ? 'Salvar Alterações' : 'Cadastrar Cliente'}</Button>
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 pt-4">
+        {initialData?.expand?.last_modified_by ? (
+          <div className="text-xs text-muted-foreground">
+            Última modificação por:{' '}
+            <span className="font-medium text-foreground">
+              {initialData.expand.last_modified_by.name}
+            </span>{' '}
+            em{' '}
+            <span className="font-medium text-foreground">
+              {format(new Date(initialData.updated), 'dd/MM/yyyy HH:mm')}
+            </span>
+          </div>
+        ) : (
+          <div />
+        )}
+        <div className="flex gap-2">
+          <Button type="button" variant="outline" onClick={() => onCancel?.()}>
+            Cancelar
+          </Button>
+          <Button type="submit">{initialData ? 'Salvar Alterações' : 'Cadastrar Cliente'}</Button>
+        </div>
       </div>
     </form>
   )
