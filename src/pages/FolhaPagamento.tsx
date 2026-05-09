@@ -232,8 +232,9 @@ export default function FolhaPagamento() {
   }
 
   const handleGlobalQtyChange = (val: string) => {
-    setGlobalQty(val)
-    const q = parseFloat(val) || 0
+    const intVal = val.replace(/\D/g, '')
+    setGlobalQty(intVal)
+    const q = parseInt(intVal, 10) || 0
     setDraftPayrolls((prev) =>
       prev.map((p) => {
         if (p.closed || p.status === 'Pago') return p
@@ -288,7 +289,7 @@ export default function FolhaPagamento() {
       setIncentivo(p.incentivo ?? p.install_commission ?? 0)
       setTotalValue(p.total || 0)
     } else {
-      const q = parseFloat(globalQty) || 0
+      const q = parseInt(globalQty, 10) || 0
       setEditingRecord(null)
       setEmployee(filterUser !== 'all' ? filterUser : '')
       setBaseSalary(null)
@@ -428,13 +429,13 @@ export default function FolhaPagamento() {
       if (!currentSettingsId && globalQty !== '') {
         const s = await pb.collection('payroll_settings').create({
           reference_date: startOfMo,
-          quantity: parseFloat(globalQty) || 0,
+          quantity: parseInt(globalQty, 10) || 0,
         })
         setSettingsId(s.id)
         currentSettingsId = s.id
       } else if (currentSettingsId) {
         await pb.collection('payroll_settings').update(currentSettingsId, {
-          quantity: parseFloat(globalQty) || 0,
+          quantity: parseInt(globalQty, 10) || 0,
         })
       }
 
@@ -565,17 +566,12 @@ export default function FolhaPagamento() {
   }
 
   const handleCloseMonth = async () => {
-    const unclosedRecords = draftPayrolls.filter((p) => !(p.closed || p.status === 'Pago'))
-    if (unclosedRecords.length === 0) {
-      toast({ title: 'Aviso', description: 'Não há registros abertos nesta competência.' })
+    if (draftPayrolls.length === 0) {
+      toast({ title: 'Aviso', description: 'Não há registros nesta competência para fechar.' })
       return
     }
 
-    if (
-      !confirm(
-        `Tem certeza que deseja fechar o mês para ${unclosedRecords.length} registro(s)? Eles serão consolidados e bloqueados contra alterações.`,
-      )
-    ) {
+    if (!confirm('Deseja fechar o mês atual e transportar as informações para o próximo mês?')) {
       return
     }
 
@@ -583,17 +579,23 @@ export default function FolhaPagamento() {
     try {
       let currentSettingsId = settingsId
       const [y, m] = filterMonth.split('-')
-      const startOfMo = new Date(Date.UTC(parseInt(y), parseInt(m) - 1, 1, 0, 0, 0)).toISOString()
+      const currentYear = parseInt(y, 10)
+      const currentMonth = parseInt(m, 10) - 1
+      const startOfMo = new Date(Date.UTC(currentYear, currentMonth, 1, 0, 0, 0)).toISOString()
+
+      const nextMonthDate = new Date(Date.UTC(currentYear, currentMonth + 1, 1, 0, 0, 0))
+      const nextMonthStr = nextMonthDate.toISOString()
+      const nextFilterMonth = `${nextMonthDate.getFullYear()}-${String(nextMonthDate.getMonth() + 1).padStart(2, '0')}`
 
       if (!currentSettingsId && globalQty !== '') {
         const s = await pb.collection('payroll_settings').create({
           reference_date: startOfMo,
-          quantity: parseFloat(globalQty) || 0,
+          quantity: parseInt(globalQty, 10) || 0,
         })
         setSettingsId(s.id)
       } else if (currentSettingsId && globalQty !== '') {
         await pb.collection('payroll_settings').update(currentSettingsId, {
-          quantity: parseFloat(globalQty) || 0,
+          quantity: parseInt(globalQty, 10) || 0,
         })
       }
 
@@ -637,10 +639,73 @@ export default function FolhaPagamento() {
 
       setDraftPayrolls(updatedDrafts)
 
-      const competenceStr = getHeaderCompetence(startOfMo)
-      await logAudit('fechar_mes', `Competência ${competenceStr} fechada.`)
+      const filterStart = nextMonthStr.replace('T', ' ')
+      const nextMonthEndStr = new Date(Date.UTC(currentYear, currentMonth + 2, 1, 0, 0, 0))
+        .toISOString()
+        .replace('T', ' ')
 
-      toast({ title: 'Sucesso', description: 'Mês fechado com sucesso.' })
+      const existingNextMonth = await pb.collection('payroll').getFullList({
+        filter: `reference_date >= '${filterStart}' && reference_date < '${nextMonthEndStr}'`,
+        fields: 'employee',
+      })
+      const existingEmployeeIds = new Set(existingNextMonth.map((r) => r.employee))
+
+      for (let i = 0; i < updatedDrafts.length; i++) {
+        const p = updatedDrafts[i]
+        const employeeObj = users.find((u) => u.id === p.employee)
+        if (employeeObj && employeeObj.active === false) {
+          continue
+        }
+
+        if (existingEmployeeIds.has(p.employee)) {
+          continue
+        }
+
+        const newQtdeInstall = 0
+        const newInstallCommission = 0
+        const newBonus = 0
+        const newIncentivo = p.manual_install_qty ? p.incentivo || 0 : 0
+        const newTotal =
+          (p.base_salary || 0) +
+          newIncentivo +
+          newBonus +
+          (p.extra_1 || 0) +
+          (p.extra_2 || 0) +
+          (p.extra_3 || 0) +
+          (p.extra_4 || 0)
+
+        const nextMonthData = {
+          employee: p.employee,
+          reference_date: nextMonthStr,
+          base_salary: p.base_salary || 0,
+          unit_value: p.unit_value || 0,
+          qtde_install: newQtdeInstall,
+          manual_install_qty: p.manual_install_qty,
+          install_commission: newInstallCommission,
+          incentivo: newIncentivo,
+          bonus: newBonus,
+          extra_1: p.extra_1 || 0,
+          extra_2: p.extra_2 || 0,
+          extra_3: p.extra_3 || 0,
+          extra_4: p.extra_4 || 0,
+          total: newTotal,
+          status: 'Pendente',
+          observations: '',
+          closed: false,
+        }
+
+        await pb.collection('payroll').create(nextMonthData)
+      }
+
+      const competenceStr = getHeaderCompetence(startOfMo)
+      const nextCompetenceStr = getHeaderCompetence(nextMonthStr)
+      await logAudit(
+        'fechar_mes',
+        `Competência ${competenceStr} fechada. Transporte realizado para ${nextCompetenceStr}.`,
+      )
+
+      toast({ title: 'Sucesso', description: 'Mês fechado e transportado com sucesso.' })
+      setFilterMonth(nextFilterMonth)
     } catch (err) {
       console.error(err)
       const msg = getErrorMessage(err)
@@ -736,10 +801,10 @@ export default function FolhaPagamento() {
                 </Label>
                 <Input
                   type="number"
-                  step="0.01"
                   placeholder="Ex: 10"
                   value={globalQty}
                   onChange={(e) => handleGlobalQtyChange(e.target.value)}
+                  className="appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none [-moz-appearance:textfield]"
                 />
               </div>
               <div className="flex-1 min-w-[200px] space-y-2">
@@ -932,7 +997,7 @@ export default function FolhaPagamento() {
             <Button
               variant="default"
               onClick={handleCloseMonth}
-              disabled={isClosingMonth || !hasOpenRecords}
+              disabled={isClosingMonth || draftPayrolls.length === 0}
             >
               {isClosingMonth ? (
                 <>
@@ -1029,10 +1094,14 @@ export default function FolhaPagamento() {
                   </Label>
                   <Input
                     type="number"
-                    value={currentQtde}
-                    onChange={(e) => setCurrentQtde(parseFloat(e.target.value) || 0)}
+                    value={currentQtde === 0 && !editingRecord ? '' : currentQtde}
+                    onChange={(e) => {
+                      const intVal = e.target.value.replace(/\D/g, '')
+                      setCurrentQtde(parseInt(intVal, 10) || 0)
+                    }}
                     disabled={editingRecord?.closed}
                     placeholder="Qtde..."
+                    className="appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none [-moz-appearance:textfield]"
                   />
                 </div>
                 <div className="space-y-2">

@@ -246,10 +246,10 @@ export default function PagamentosAdmin() {
             variant={dueDateFilter === 'today' ? 'default' : 'outline'}
             onClick={() => setDueDateFilter((f) => (f === 'today' ? 'all' : 'today'))}
             className={cn(
-              'gap-2 h-9 text-sm',
+              'gap-2 h-9 text-sm rounded-full transition-colors',
               dueDateFilter === 'today'
-                ? 'bg-red-500 hover:bg-red-600 text-white border-transparent'
-                : 'text-red-600 border-red-200 hover:bg-red-50 dark:border-red-900/50 dark:hover:bg-red-900/20',
+                ? 'bg-red-50 hover:bg-red-100 text-red-700 border-red-200 dark:bg-red-900/40 dark:text-red-300 dark:border-red-800'
+                : 'bg-white hover:bg-red-50 text-red-700 border-red-200 dark:bg-transparent dark:hover:bg-red-900/20 dark:text-red-400 dark:border-red-900/50',
             )}
           >
             <CalendarClock className="w-4 h-4" />
@@ -257,10 +257,10 @@ export default function PagamentosAdmin() {
             <Badge
               variant="secondary"
               className={cn(
-                'ml-1',
+                'ml-1 rounded-full px-2 py-0.5 text-xs',
                 dueDateFilter === 'today'
-                  ? 'bg-white/20 text-white hover:bg-white/20'
-                  : 'bg-red-100 text-red-600 hover:bg-red-100 dark:bg-red-900/40 dark:text-red-400',
+                  ? 'bg-red-100 text-red-800 hover:bg-red-200 dark:bg-red-900/60 dark:text-red-200'
+                  : 'bg-red-50 text-red-700 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-300',
               )}
             >
               {todayCount}
@@ -271,10 +271,10 @@ export default function PagamentosAdmin() {
             variant={dueDateFilter === 'tomorrow' ? 'default' : 'outline'}
             onClick={() => setDueDateFilter((f) => (f === 'tomorrow' ? 'all' : 'tomorrow'))}
             className={cn(
-              'gap-2 h-9 text-sm',
+              'gap-2 h-9 text-sm rounded-full transition-colors',
               dueDateFilter === 'tomorrow'
-                ? 'bg-yellow-500 hover:bg-yellow-600 text-white border-transparent'
-                : 'text-yellow-600 border-yellow-200 hover:bg-yellow-50 dark:border-yellow-900/50 dark:hover:bg-yellow-900/20',
+                ? 'bg-yellow-50 hover:bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-900/40 dark:text-yellow-300 dark:border-yellow-800'
+                : 'bg-white hover:bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-transparent dark:hover:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-900/50',
             )}
           >
             <AlertTriangle className="w-4 h-4" />
@@ -282,10 +282,10 @@ export default function PagamentosAdmin() {
             <Badge
               variant="secondary"
               className={cn(
-                'ml-1',
+                'ml-1 rounded-full px-2 py-0.5 text-xs',
                 dueDateFilter === 'tomorrow'
-                  ? 'bg-white/20 text-white hover:bg-white/20'
-                  : 'bg-yellow-100 text-yellow-700 hover:bg-yellow-100 dark:bg-yellow-900/40 dark:text-yellow-400',
+                  ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200 dark:bg-yellow-900/60 dark:text-yellow-200'
+                  : 'bg-yellow-50 text-yellow-700 hover:bg-yellow-100 dark:bg-yellow-900/30 dark:text-yellow-300',
               )}
             >
               {tomorrowCount}
