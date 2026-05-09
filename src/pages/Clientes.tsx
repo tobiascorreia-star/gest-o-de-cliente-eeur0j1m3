@@ -151,7 +151,7 @@ export default function Clientes() {
     if (confirm('Tem certeza que deseja excluir?')) {
       try {
         await deleteClient(id)
-        toast({ title: 'Excluído', description: 'Cliente excluído com sucesso.' })
+        toast({ title: 'Excluído', description: 'Atendimento excluído com sucesso.' })
       } catch (e) {
         toast({ title: 'Erro', description: 'Falha ao excluir.', variant: 'destructive' })
       }
@@ -179,7 +179,7 @@ export default function Clientes() {
         await pb.collection('audit_logs').create({
           action: 'Baixa',
           user: user?.id,
-          details: `Cliente ${client.nome_cliente} marcado como BAIXA.`,
+          details: `Atendimento do cliente ${client.nome_cliente} marcado como BAIXA.`,
         })
       } catch (err) {
         console.error('Falha ao criar log de auditoria para baixa', err)
@@ -232,9 +232,9 @@ export default function Clientes() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between gap-4 sm:items-center">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Gestão de Clientes</h2>
+          <h2 className="text-2xl font-bold tracking-tight">Gestão de Atendimentos</h2>
           <p className="text-muted-foreground text-sm">
-            Gerencie todos os clientes e suas solicitações.
+            Gerencie todos os atendimentos e suas solicitações.
           </p>
         </div>
         {!isFormOpen && (
@@ -244,7 +244,7 @@ export default function Clientes() {
               setIsFormOpen(true)
             }}
           >
-            <Plus className="w-4 h-4 mr-2" /> Novo Cliente
+            <Plus className="w-4 h-4 mr-2" /> Novo Atendimento
           </Button>
         )}
       </div>
@@ -282,7 +282,7 @@ export default function Clientes() {
       {isFormOpen ? (
         <div className="bg-card border rounded-xl p-6 shadow-sm">
           <h3 className="text-lg font-semibold mb-4">
-            {editingClient ? 'Editar Cliente' : 'Novo Cliente'}
+            {editingClient ? 'Editar Atendimento' : 'Novo Atendimento'}
           </h3>
           <ClienteForm
             initialData={editingClient}
@@ -293,7 +293,7 @@ export default function Clientes() {
       ) : (
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-4">
           <TabsList>
-            <TabsTrigger value="ativos">Clientes Ativos ({activeClients.length})</TabsTrigger>
+            <TabsTrigger value="ativos">Atendimentos Ativos ({activeClients.length})</TabsTrigger>
             <TabsTrigger value="concluidos">
               Concluídos do Mês ({completedClients.length})
             </TabsTrigger>

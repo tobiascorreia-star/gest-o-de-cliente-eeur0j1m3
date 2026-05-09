@@ -163,7 +163,7 @@ const Index = () => {
       systemAlert = {
         type: 'critical',
         title: 'Alerta Crítico de Pendências',
-        description: `O sistema registra atualmente ${totalPending} clientes com pendências, excedendo o limite crítico configurado de ${alertSettings.critical_threshold}. É necessária ação imediata.`,
+        description: `O sistema registra atualmente ${totalPending} atendimentos com pendências, excedendo o limite crítico configurado de ${alertSettings.critical_threshold}. É necessária ação imediata.`,
         icon: AlertTriangle,
         className:
           'bg-red-50 text-red-900 border-red-200 dark:bg-red-950/50 dark:text-red-200 dark:border-red-900',
@@ -172,7 +172,7 @@ const Index = () => {
       systemAlert = {
         type: 'moderate',
         title: 'Aviso de Volume de Pendências',
-        description: `O número de clientes com pendências (${totalPending}) ultrapassou o limite moderado de ${alertSettings.moderate_threshold}. Acompanhe de perto para evitar acúmulos.`,
+        description: `O número de atendimentos com pendências (${totalPending}) ultrapassou o limite moderado de ${alertSettings.moderate_threshold}. Acompanhe de perto para evitar acúmulos.`,
         icon: Info,
         className:
           'bg-emerald-50 text-emerald-900 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-200 dark:border-emerald-900',
@@ -187,11 +187,11 @@ const Index = () => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-white text-xl">
               <BellRing className="w-5 h-5 text-blue-500" />
-              Novos Clientes Cadastrados
+              Novos Atendimentos Cadastrados
             </DialogTitle>
             <DialogDescription className="text-slate-300 text-base mt-2">
-              Você possui novos clientes cadastrados no sistema desde o seu último acesso. Verifique
-              o módulo de clientes para mais detalhes.
+              Você possui novos atendimentos cadastrados no sistema desde o seu último acesso.
+              Verifique o módulo de clientes para mais detalhes.
             </DialogDescription>
           </DialogHeader>
         </DialogContent>
@@ -256,8 +256,8 @@ const Index = () => {
         <Alert className="mb-6 border-l-4 border-l-amber-500 bg-amber-50 text-amber-900 border-amber-200 dark:bg-amber-950/30 dark:text-amber-200 dark:border-amber-900 shadow-sm animate-fade-in-down">
           <AlertDescription className="font-medium text-sm flex items-center">
             <span className="mr-2">🟡</span> Atenção: Você possui {pendingOver3DaysCount}{' '}
-            {pendingOver3DaysCount === 1 ? 'cliente pendente' : 'clientes pendentes'} há mais de 3
-            dias.
+            {pendingOver3DaysCount === 1 ? 'atendimento pendente' : 'atendimentos pendentes'} há
+            mais de 3 dias.
           </AlertDescription>
         </Alert>
       )}

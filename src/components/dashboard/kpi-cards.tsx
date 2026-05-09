@@ -29,13 +29,13 @@ export function KpiCards() {
     (c) => c.status === baixaStatusId && new Date(c.updated) >= thisMonthStart,
   ).length
 
-  const newClients30Days = clients.filter(
-    (c) => differenceInDays(new Date(), new Date(c.created)) <= 30,
+  const novosCount = clients.filter(
+    (c) => c.expand?.categoria?.name?.toLowerCase() === 'novo',
   ).length
 
   const cards = [
     {
-      title: 'Total de Clientes',
+      title: 'Total de Atendimentos',
       value: total,
       icon: Users,
       color: 'text-primary dark:text-blue-400',
@@ -60,8 +60,8 @@ export function KpiCards() {
       bg: 'bg-emerald-500/10 dark:bg-emerald-500/20',
     },
     {
-      title: 'Novos (30 dias)',
-      value: newClients30Days,
+      title: 'Novos',
+      value: novosCount,
       icon: UserPlus,
       color: 'text-indigo-500 dark:text-indigo-400',
       bg: 'bg-indigo-500/10 dark:bg-indigo-500/20',

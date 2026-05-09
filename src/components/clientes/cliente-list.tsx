@@ -227,7 +227,7 @@ export function ClienteList({
         <DropdownMenuContent align="end" className="w-48 print:hidden">
           {showEdit && (
             <DropdownMenuItem onClick={() => onEdit(client)}>
-              <Edit className="mr-2 h-4 w-4" /> Editar Cliente
+              <Edit className="mr-2 h-4 w-4" /> Editar Atendimento
             </DropdownMenuItem>
           )}
 
@@ -309,7 +309,7 @@ export function ClienteList({
                   <TableCell colSpan={9} className="text-center py-12 text-muted-foreground">
                     <div className="flex flex-col items-center justify-center">
                       <FileText className="h-8 w-8 mb-2 opacity-20" />
-                      Nenhum cliente encontrado.
+                      Nenhum atendimento encontrado.
                     </div>
                   </TableCell>
                 </TableRow>
@@ -469,7 +469,7 @@ export function ClienteList({
       <div className="grid grid-cols-1 gap-4 md:hidden print:hidden">
         {clients.length === 0 && (
           <div className="text-center py-12 text-muted-foreground bg-card border rounded-xl shadow-sm">
-            Nenhum cliente encontrado.
+            Nenhum atendimento encontrado.
           </div>
         )}
         {clients.map((client) => {
@@ -586,7 +586,7 @@ export function ClienteList({
       <Dialog open={!!reportClient} onOpenChange={(open) => !open && setReportClient(null)}>
         <DialogContent className="printable-modal sm:max-w-md print:w-full print:max-w-none print:shadow-none print:border-none print:p-0 bg-background">
           <DialogHeader className="print:hidden">
-            <DialogTitle>Relatório do Cliente</DialogTitle>
+            <DialogTitle>Relatório do Atendimento</DialogTitle>
           </DialogHeader>
           {reportClient && (
             <div className="space-y-4 py-4 print:py-0 print:block">
