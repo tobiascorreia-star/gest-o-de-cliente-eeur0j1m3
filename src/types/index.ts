@@ -10,6 +10,8 @@ export interface Client {
   razao_social: string
   nome_cliente: string
   colaborador?: string
+  colaborador_responsavel?: string
+  colaborador_id?: string
   solicitacao?: string
   status?: string
   categoria?: string

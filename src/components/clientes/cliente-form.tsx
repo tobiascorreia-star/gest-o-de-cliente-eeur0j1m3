@@ -26,6 +26,8 @@ const formSchema = z.object({
   razao_social: z.string().min(3, 'Razão social é obrigatória'),
   nome_cliente: z.string().min(3, 'Cliente é obrigatório'),
   colaborador: z.string().optional(),
+  colaborador_responsavel: z.string().optional(),
+  colaborador_id: z.string().optional(),
   solicitacao: z.string().min(1, 'Selecione uma solicitação'),
   status: z.string().min(1, 'Selecione um status'),
   categoria: z.string().min(1, 'Selecione uma categoria'),
@@ -108,13 +110,17 @@ export function ClienteForm({ initialData, onSuccess, onCancel }: ClienteFormPro
     defaultValues: initialData
       ? {
           ...initialData,
-          colaborador: isAdmin ? initialData.colaborador : userFirstName,
+          colaborador: initialData.colaborador || '',
+          colaborador_responsavel: initialData.colaborador_responsavel || '',
+          colaborador_id: initialData.colaborador_id || '',
         }
       : {
           cnpj: '',
           razao_social: '',
           nome_cliente: '',
           colaborador: isAdmin ? '' : userFirstName,
+          colaborador_responsavel: isAdmin ? '' : userFirstName,
+          colaborador_id: isAdmin ? '' : user?.id || '',
           solicitacao: '',
           status: '',
           categoria: '',
@@ -125,6 +131,8 @@ export function ClienteForm({ initialData, onSuccess, onCancel }: ClienteFormPro
 
   useEffect(() => {
     register('colaborador')
+    register('colaborador_responsavel')
+    register('colaborador_id')
     register('solicitacao')
     register('status')
     register('categoria')
@@ -132,10 +140,12 @@ export function ClienteForm({ initialData, onSuccess, onCancel }: ClienteFormPro
   }, [register])
 
   useEffect(() => {
-    if (!isAdmin && userFirstName) {
+    if (!isAdmin && userFirstName && !initialData) {
       setValue('colaborador', userFirstName, { shouldValidate: true })
+      setValue('colaborador_responsavel', userFirstName, { shouldValidate: true })
+      setValue('colaborador_id', user?.id || '', { shouldValidate: true })
     }
-  }, [isAdmin, userFirstName, setValue])
+  }, [isAdmin, userFirstName, setValue, initialData, user?.id])
 
   const cnpjValue = watch('cnpj')
 
@@ -179,7 +189,7 @@ export function ClienteForm({ initialData, onSuccess, onCancel }: ClienteFormPro
 
     let colaboradorId = data.colaborador || ''
     if (!isAdmin) {
-      if (userFirstName) {
+      if (!initialData && userFirstName) {
         const match = colaboradores.find(
           (c) => c.name.toLowerCase() === userFirstName.toLowerCase(),
         )
@@ -203,12 +213,24 @@ export function ClienteForm({ initialData, onSuccess, onCancel }: ClienteFormPro
             return
           }
         }
+      } else if (initialData) {
+        colaboradorId = initialData.colaborador || ''
       }
     }
 
     const clientData = {
       ...data,
       colaborador: colaboradorId,
+      colaborador_responsavel: isAdmin
+        ? data.colaborador_responsavel
+        : initialData
+          ? initialData.colaborador_responsavel
+          : userFirstName,
+      colaborador_id: isAdmin
+        ? data.colaborador_id
+        : initialData
+          ? initialData.colaborador_id
+          : user?.id,
       last_modified_by: user?.id,
       pgto: data.pgto || '',
       ...(initialData ? {} : { observacao_lida: false, data_leitura_observacao: '' }),
@@ -297,7 +319,11 @@ export function ClienteForm({ initialData, onSuccess, onCancel }: ClienteFormPro
           <Label htmlFor="colaborador_responsavel">Colaborador Responsável *</Label>
           {isAdmin ? (
             <Select
-              onValueChange={(v) => setValue('colaborador', v, { shouldValidate: true })}
+              onValueChange={(v) => {
+                setValue('colaborador', v, { shouldValidate: true })
+                const cName = colaboradores.find((c) => c.id === v)?.name || ''
+                setValue('colaborador_responsavel', cName, { shouldValidate: true })
+              }}
               defaultValue={initialData?.colaborador}
             >
               <SelectTrigger className={errors.colaborador ? 'border-destructive' : ''}>
@@ -314,9 +340,16 @@ export function ClienteForm({ initialData, onSuccess, onCancel }: ClienteFormPro
           ) : (
             <Input
               id="colaborador_responsavel"
-              value={userFirstName}
+              value={
+                initialData
+                  ? initialData.expand?.colaborador?.name ||
+                    initialData.colaborador_responsavel ||
+                    initialData.colaborador ||
+                    ''
+                  : userFirstName
+              }
               readOnly
-              className="bg-[#f5f5f5] focus-visible:ring-0 cursor-not-allowed"
+              className="bg-[#f5f5f5] focus-visible:ring-0 cursor-not-allowed text-muted-foreground font-medium"
             />
           )}
           {errors.colaborador && (

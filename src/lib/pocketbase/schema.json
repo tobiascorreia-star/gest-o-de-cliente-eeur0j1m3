@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-09T15:00:56.579Z",
+  "generatedAt": "2026-05-09T15:13:16.522Z",
   "collections": [
     {
       "name": "users",
@@ -297,6 +297,19 @@
         },
         {
           "name": "last_modified_by",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "colaborador_responsavel",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "colaborador_id",
           "type": "relation",
           "required": false,
           "system": false,
