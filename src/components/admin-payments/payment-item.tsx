@@ -117,7 +117,7 @@ export function PaymentItem({ item, onEdit }: Props) {
         isOverdue
           ? 'bg-red-50/30 dark:bg-red-950/20 border-red-200 dark:border-red-900/50 relative overflow-hidden'
           : isNearDeadline
-            ? 'bg-orange-50/50 dark:bg-orange-950/20 border-orange-300 dark:border-orange-900/50'
+            ? 'bg-yellow-50/50 dark:bg-yellow-950/20 border-yellow-300 dark:border-yellow-900/50'
             : 'bg-white dark:bg-slate-950 border-slate-100 dark:border-slate-800',
         'hover:border-slate-300 dark:hover:border-slate-700',
       )}
@@ -188,7 +188,7 @@ export function PaymentItem({ item, onEdit }: Props) {
                 className={cn(
                   'flex items-center gap-1',
                   isOverdue && 'text-red-500 font-semibold',
-                  isNearDeadline && 'text-orange-500 font-semibold',
+                  isNearDeadline && 'text-yellow-500 font-semibold',
                 )}
               >
                 {(isOverdue || isNearDeadline) && (
