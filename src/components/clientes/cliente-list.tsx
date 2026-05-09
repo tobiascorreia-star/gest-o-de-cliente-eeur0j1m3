@@ -318,9 +318,13 @@ export function ClienteList({
                 const days = client.updated
                   ? differenceInCalendarDays(new Date(), new Date(client.updated))
                   : 0
+                const createdDays = client.created
+                  ? differenceInCalendarDays(new Date(), new Date(client.created))
+                  : 0
                 const statusName = client.expand?.status?.name?.toUpperCase() || ''
                 const isPending =
                   statusName !== 'BAIXA' && statusName !== 'CONCLUÍDO' && statusName !== 'CONCLUIDO'
+                const isOver3Days = isPending && createdDays > 3
                 const isCritical = alertSettings && days >= alertSettings.critical_days
                 const isOld = alertSettings && !isCritical && days >= alertSettings.old_days
                 const hasNotification = notifications.some((n) => n.client === client.id)
@@ -335,6 +339,9 @@ export function ClienteList({
                     key={client.id}
                     className={cn(
                       'group transition-colors hover:bg-muted/30 print:break-inside-avoid',
+                      isOver3Days &&
+                        !showCritical &&
+                        'bg-amber-50/40 hover:bg-amber-50/60 dark:bg-amber-900/10 dark:hover:bg-amber-900/20',
                       showCritical &&
                         'bg-destructive/5 hover:bg-destructive/10 dark:bg-destructive/10 dark:hover:bg-destructive/20',
                     )}
@@ -410,10 +417,22 @@ export function ClienteList({
                       />
                     </TableCell>
                     <TableCell className="align-top print:px-0.5 print:py-1 print:break-words">
-                      <ConfigBadge
-                        name={client.expand?.status?.name}
-                        color={client.expand?.status?.color}
-                      />
+                      <div className="flex items-center gap-2">
+                        <ConfigBadge
+                          name={client.expand?.status?.name}
+                          color={client.expand?.status?.color}
+                        />
+                        {isOver3Days && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <AlertTriangle className="w-4 h-4 text-amber-500 cursor-help shrink-0" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Este registro excedeu o prazo de 3 dias para baixa</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell className="align-top print:px-0.5 print:py-1 print:break-words">
                       <ConfigBadge
@@ -457,9 +476,13 @@ export function ClienteList({
           const days = client.updated
             ? differenceInCalendarDays(new Date(), new Date(client.updated))
             : 0
+          const createdDays = client.created
+            ? differenceInCalendarDays(new Date(), new Date(client.created))
+            : 0
           const statusName = client.expand?.status?.name?.toUpperCase() || ''
           const isPending =
             statusName !== 'BAIXA' && statusName !== 'CONCLUÍDO' && statusName !== 'CONCLUIDO'
+          const isOver3Days = isPending && createdDays > 3
           const isCritical = alertSettings && days >= alertSettings.critical_days
           const isOld = alertSettings && !isCritical && days >= alertSettings.old_days
           const hasNotification = notifications.some((n) => n.client === client.id)
@@ -474,6 +497,9 @@ export function ClienteList({
               key={client.id}
               className={cn(
                 'overflow-hidden rounded-xl shadow-sm transition-colors',
+                isOver3Days &&
+                  !showCritical &&
+                  'border-amber-200/50 bg-amber-50/40 dark:bg-amber-900/10 dark:border-amber-900/50',
                 showCritical && 'border-destructive bg-destructive/5 dark:bg-destructive/10',
               )}
             >
@@ -521,10 +547,22 @@ export function ClienteList({
                   {renderActions(client)}
                 </div>
                 <div className="flex flex-wrap gap-x-4 gap-y-2 mt-2">
-                  <ConfigBadge
-                    name={client.expand?.status?.name}
-                    color={client.expand?.status?.color}
-                  />
+                  <div className="flex items-center gap-2">
+                    <ConfigBadge
+                      name={client.expand?.status?.name}
+                      color={client.expand?.status?.color}
+                    />
+                    {isOver3Days && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <AlertTriangle className="w-4 h-4 text-amber-500 cursor-help shrink-0" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Este registro excedeu o prazo de 3 dias para baixa</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+                  </div>
                   <ConfigBadge
                     name={client.expand?.categoria?.name}
                     color={client.expand?.categoria?.color}
