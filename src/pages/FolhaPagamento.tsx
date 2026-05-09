@@ -559,6 +559,36 @@ export default function FolhaPagamento() {
     }
   }
 
+  const handleRevertRow = async (p: any) => {
+    if (!confirm('Tem certeza que deseja estornar este lançamento? Ele será reaberto para edição.'))
+      return
+
+    try {
+      const updated = await pb
+        .collection('payroll')
+        .update(p.id, { closed: false, status: 'Pendente' }, { expand: 'employee' })
+
+      setDraftPayrolls((prev) =>
+        prev.map((item) =>
+          item.id === p.id ? { ...item, ...updated, _isDraft: false, _isModified: false } : item,
+        ),
+      )
+
+      if (editingRecord && editingRecord.id === p.id) {
+        setEditingRecord({ ...editingRecord, ...updated })
+        setIsClosed(false)
+        setStatus('Pendente')
+      }
+
+      await logAudit('estornar_lancamento', `Lançamento estornado.`)
+
+      toast({ title: 'Sucesso', description: 'Lançamento estornado com sucesso.' })
+    } catch (err) {
+      console.error(err)
+      toast({ title: 'Erro', description: 'Falha ao estornar lançamento.', variant: 'destructive' })
+    }
+  }
+
   const handleRevertMonth = async () => {
     if (!confirm('Tem certeza que deseja estornar o mês? Isso reabrirá os registros para edição.'))
       return
@@ -841,6 +871,17 @@ export default function FolhaPagamento() {
                           >
                             <Edit className="w-4 h-4 text-slate-500" />
                           </Button>
+                          {p.closed && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleRevertRow(p)}
+                              title="Estornar Lançamento"
+                              className="hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 text-slate-500"
+                            >
+                              <RotateCcw className="w-4 h-4" />
+                            </Button>
+                          )}
                           {!p.closed && (
                             <Button
                               variant="ghost"
@@ -1097,6 +1138,16 @@ export default function FolhaPagamento() {
               <Button variant="outline" onClick={() => setIsOpen(false)}>
                 {editingRecord?.closed ? 'Fechar' : 'Cancelar'}
               </Button>
+              {editingRecord?.closed && (
+                <Button
+                  variant="outline"
+                  className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 dark:border-red-900/50 dark:text-red-400 dark:hover:bg-red-900/20"
+                  onClick={() => handleRevertRow(editingRecord)}
+                >
+                  <RotateCcw className="w-4 h-4 mr-2" />
+                  Estornar
+                </Button>
+              )}
               {!editingRecord?.closed && (
                 <Button onClick={handleSaveForm} disabled={isSaving}>
                   {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
