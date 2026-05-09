@@ -183,7 +183,9 @@ export default function FolhaPagamento() {
   })
 
   const handleMonthChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const hasUnsaved = draftPayrolls.some((p) => (p._isDraft || p._isModified) && !p.closed)
+    const hasUnsaved = draftPayrolls.some(
+      (p) => (p._isDraft || p._isModified) && !(p.closed || p.status === 'Pago'),
+    )
     if (hasUnsaved) {
       if (
         !confirm(
@@ -201,7 +203,7 @@ export default function FolhaPagamento() {
     const q = parseFloat(val) || 0
     setDraftPayrolls((prev) =>
       prev.map((p) => {
-        if (p.closed) return p
+        if (p.closed || p.status === 'Pago') return p
         const unit = p.unit_value || 0
         const calculatedInstallComm = unit * q
         const total =
@@ -225,7 +227,8 @@ export default function FolhaPagamento() {
 
   const openForm = (p?: any) => {
     if (p) {
-      setEditingRecord(p)
+      const isActuallyClosed = p.closed || p.status === 'Pago'
+      setEditingRecord({ ...p, closed: isActuallyClosed })
       setEmployee(p.employee)
       setBaseSalary(p.base_salary ?? null)
       setUnitValue(p.unit_value ?? null)
@@ -237,7 +240,7 @@ export default function FolhaPagamento() {
       setExtra4(p.extra_4 ?? null)
       setStatus(p.status || 'Pendente')
       setObservations(p.observations || '')
-      setIsClosed(p.closed || false)
+      setIsClosed(isActuallyClosed)
     } else {
       setEditingRecord(null)
       setEmployee(filterUser !== 'all' ? filterUser : '')
@@ -430,12 +433,40 @@ export default function FolhaPagamento() {
     )
   }
 
+  const handleReopen = async (p: any) => {
+    if (
+      !confirm(
+        'Deseja realmente reabrir este lançamento? Ele voltará para o status Pendente e poderá ser editado.',
+      )
+    )
+      return
+    try {
+      const data = {
+        closed: false,
+        status: 'Pendente',
+      }
+      const saved = await pb.collection('payroll').update(p.id, data, { expand: 'employee' })
+      setDraftPayrolls((prev) =>
+        prev.map((item) =>
+          item.id === p.id ? { ...item, ...saved, _isDraft: false, _isModified: false } : item,
+        ),
+      )
+      await logAudit(
+        'reabrir_folha',
+        `Lançamento de ${p.expand?.employee?.name || p.expand?.employee?.email} reaberto na competência ${getHeaderCompetence(p.reference_date)}.`,
+      )
+      toast({ title: 'Sucesso', description: 'Lançamento reaberto com sucesso.' })
+    } catch (err) {
+      toast({ title: 'Erro', description: getErrorMessage(err), variant: 'destructive' })
+    }
+  }
+
   const handlePrintReceipt = () => {
     window.print()
   }
 
   const handleCloseMonth = async () => {
-    const unclosedRecords = draftPayrolls.filter((p) => !p.closed)
+    const unclosedRecords = draftPayrolls.filter((p) => !(p.closed || p.status === 'Pago'))
     if (unclosedRecords.length === 0) {
       toast({ title: 'Aviso', description: 'Não há registros abertos nesta competência.' })
       return
@@ -470,7 +501,7 @@ export default function FolhaPagamento() {
       const updatedDrafts = [...draftPayrolls]
       for (let i = 0; i < updatedDrafts.length; i++) {
         const p = updatedDrafts[i]
-        if (p.closed) continue
+        if (p.closed || p.status === 'Pago') continue
 
         const data = {
           employee: p.employee,
@@ -524,8 +555,8 @@ export default function FolhaPagamento() {
     return true
   })
 
-  const hasClosedRecords = draftPayrolls.some((p) => p.closed)
-  const hasOpenRecords = draftPayrolls.some((p) => !p.closed)
+  const hasClosedRecords = draftPayrolls.some((p) => p.closed || p.status === 'Pago')
+  const hasOpenRecords = draftPayrolls.some((p) => !(p.closed || p.status === 'Pago'))
 
   const getHeaderCompetence = (isoString: string) => {
     if (!isoString) return ''
@@ -703,7 +734,7 @@ export default function FolhaPagamento() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2 items-center">
-                          {isUnsaved && !p.closed && (
+                          {isUnsaved && !(p.closed || p.status === 'Pago') && (
                             <Button
                               variant="ghost"
                               size="icon"
@@ -731,11 +762,24 @@ export default function FolhaPagamento() {
                             variant="ghost"
                             size="icon"
                             onClick={() => openForm(p)}
-                            title={p.closed ? 'Visualizar (Fechado)' : 'Editar'}
+                            title={
+                              p.closed || p.status === 'Pago' ? 'Visualizar (Fechado)' : 'Editar'
+                            }
                           >
                             <Edit className="w-4 h-4 text-slate-500" />
                           </Button>
-                          {!p.closed && (
+                          {(p.closed || p.status === 'Pago') && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleReopen(p)}
+                              title="Reabrir Folha"
+                              className="hover:text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/20"
+                            >
+                              <RotateCcw className="w-4 h-4 text-orange-500" />
+                            </Button>
+                          )}
+                          {!(p.closed || p.status === 'Pago') && (
                             <Button
                               variant="ghost"
                               size="icon"
@@ -747,7 +791,7 @@ export default function FolhaPagamento() {
                             </Button>
                           )}
                         </div>
-                      </TableCell>
+                      </TableCell>{' '}
                     </TableRow>
                   )
                 })
