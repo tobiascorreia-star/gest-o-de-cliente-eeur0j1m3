@@ -1,18 +1,20 @@
 onRecordCreate((e) => {
   const isManual = e.record.get('manual_install_qty') === true
 
-  let comm = Number(e.record.get('incentivo')) || Number(e.record.get('install_commission')) || 0
+  let comm = e.record.get('incentivo')
+  if (comm === null || comm === undefined || comm === '') {
+    comm = e.record.get('install_commission')
+  }
+  comm = Number(comm) || 0
 
   if (!isManual) {
     const unit = Number(e.record.get('unit_value')) || 0
     const qtde = Number(e.record.get('qtde_install')) || 0
     comm = unit * qtde
-    e.record.set('install_commission', comm)
-    e.record.set('incentivo', comm)
-  } else {
-    e.record.set('install_commission', comm)
-    e.record.set('incentivo', comm)
   }
+
+  e.record.set('install_commission', comm)
+  e.record.set('incentivo', comm)
 
   const base = Number(e.record.get('base_salary')) || 0
   const bonus = Number(e.record.get('bonus')) || 0
@@ -29,18 +31,20 @@ onRecordCreate((e) => {
 onRecordUpdate((e) => {
   const isManual = e.record.get('manual_install_qty') === true
 
-  let comm = Number(e.record.get('incentivo')) || Number(e.record.get('install_commission')) || 0
+  let comm = e.record.get('incentivo')
+  if (comm === null || comm === undefined || comm === '') {
+    comm = e.record.get('install_commission')
+  }
+  comm = Number(comm) || 0
 
   if (!isManual) {
     const unit = Number(e.record.get('unit_value')) || 0
     const qtde = Number(e.record.get('qtde_install')) || 0
     comm = unit * qtde
-    e.record.set('install_commission', comm)
-    e.record.set('incentivo', comm)
-  } else {
-    e.record.set('install_commission', comm)
-    e.record.set('incentivo', comm)
   }
+
+  e.record.set('install_commission', comm)
+  e.record.set('incentivo', comm)
 
   const base = Number(e.record.get('base_salary')) || 0
   const bonus = Number(e.record.get('bonus')) || 0

@@ -305,8 +305,25 @@ export default function FolhaPagamento() {
       return
     }
 
+    if (
+      Number.isNaN(currentQtde) ||
+      (unitValue !== null && Number.isNaN(unitValue)) ||
+      (incentivo !== null && Number.isNaN(incentivo))
+    ) {
+      toast({
+        title: 'Erro de Validação',
+        description: 'Valores numéricos inválidos.',
+        variant: 'destructive',
+      })
+      return
+    }
+
     // Ensure we await for the most fresh calculation if there was any race condition
-    const finalIncentivo = manualInstallQty ? incentivo || 0 : (unitValue || 0) * currentQtde
+    const finalIncentivo = manualInstallQty
+      ? typeof incentivo === 'number'
+        ? incentivo
+        : 0
+      : (unitValue || 0) * currentQtde
     const finalTotal =
       (baseSalary || 0) +
       finalIncentivo +
@@ -417,8 +434,16 @@ export default function FolhaPagamento() {
         unit_value: p.unit_value,
         qtde_install: p.qtde_install,
         manual_install_qty: p.manual_install_qty,
-        install_commission: p.install_commission,
-        incentivo: p.incentivo ?? p.install_commission,
+        install_commission: p.manual_install_qty
+          ? typeof p.incentivo === 'number'
+            ? p.incentivo
+            : p.install_commission || 0
+          : (p.unit_value || 0) * (p.qtde_install || 0),
+        incentivo: p.manual_install_qty
+          ? typeof p.incentivo === 'number'
+            ? p.incentivo
+            : p.install_commission || 0
+          : (p.unit_value || 0) * (p.qtde_install || 0),
         bonus: p.bonus,
         extra_1: p.extra_1,
         extra_2: p.extra_2,
@@ -548,8 +573,16 @@ export default function FolhaPagamento() {
           unit_value: p.unit_value,
           qtde_install: p.qtde_install,
           manual_install_qty: p.manual_install_qty,
-          install_commission: p.install_commission,
-          incentivo: p.incentivo ?? p.install_commission,
+          install_commission: p.manual_install_qty
+            ? typeof p.incentivo === 'number'
+              ? p.incentivo
+              : p.install_commission || 0
+            : (p.unit_value || 0) * (p.qtde_install || 0),
+          incentivo: p.manual_install_qty
+            ? typeof p.incentivo === 'number'
+              ? p.incentivo
+              : p.install_commission || 0
+            : (p.unit_value || 0) * (p.qtde_install || 0),
           bonus: p.bonus,
           extra_1: p.extra_1,
           extra_2: p.extra_2,
@@ -992,7 +1025,7 @@ export default function FolhaPagamento() {
                   <Input
                     type="text"
                     value={formatCurrencyInput(incentivo)}
-                    onChange={(e) => setIncentivo(parseCurrencyInput(e.target.value) || 0)}
+                    onChange={(e) => setIncentivo(parseCurrencyInput(e.target.value) ?? 0)}
                     disabled={!manualInstallQty || editingRecord?.closed}
                     className={
                       !manualInstallQty
