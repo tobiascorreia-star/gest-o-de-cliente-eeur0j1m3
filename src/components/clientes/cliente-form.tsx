@@ -24,7 +24,7 @@ const formSchema = z.object({
   cnpj: z.string().min(18, 'CNPJ incompleto').max(18, 'CNPJ incompleto'),
   razao_social: z.string().min(3, 'Razão social é obrigatória'),
   nome_cliente: z.string().min(3, 'Cliente é obrigatório'),
-  colaborador: z.string().min(1, 'Selecione um colaborador'),
+  colaborador: z.string().optional(),
   solicitacao: z.string().min(1, 'Selecione uma solicitação'),
   status: z.string().min(1, 'Selecione um status'),
   categoria: z.string().min(1, 'Selecione uma categoria'),
@@ -93,6 +93,8 @@ export function ClienteForm({ initialData, onSuccess, onCancel }: ClienteFormPro
   const categorias = configs.filter((c) => c.type === 'Categoria' && c.active !== false)
   const pgtoTipos = configs.filter((c) => c.type === 'Pgto' && c.active !== false)
 
+  const userFirstName = user?.name?.split(' ')[0] || ''
+
   const {
     register,
     handleSubmit,
@@ -105,12 +107,13 @@ export function ClienteForm({ initialData, onSuccess, onCancel }: ClienteFormPro
     defaultValues: initialData
       ? {
           ...initialData,
+          colaborador: userFirstName,
         }
       : {
           cnpj: '',
           razao_social: '',
           nome_cliente: '',
-          colaborador: '',
+          colaborador: userFirstName,
           solicitacao: '',
           status: '',
           categoria: '',
@@ -126,6 +129,12 @@ export function ClienteForm({ initialData, onSuccess, onCancel }: ClienteFormPro
     register('categoria')
     register('pgto')
   }, [register])
+
+  useEffect(() => {
+    if (userFirstName) {
+      setValue('colaborador', userFirstName, { shouldValidate: true })
+    }
+  }, [userFirstName, setValue])
 
   const cnpjValue = watch('cnpj')
 
@@ -167,8 +176,34 @@ export function ClienteForm({ initialData, onSuccess, onCancel }: ClienteFormPro
     const baixaStatus = statusList.find((s) => s.name.toUpperCase() === 'BAIXA')
     const isBaixa = baixaStatus && data.status === baixaStatus.id
 
+    let colaboradorId = ''
+    if (userFirstName) {
+      const match = colaboradores.find((c) => c.name.toLowerCase() === userFirstName.toLowerCase())
+      if (match) {
+        colaboradorId = match.id
+      } else {
+        try {
+          const { default: pb } = await import('@/lib/pocketbase/client')
+          const newConf = await pb.collection('configurations').create({
+            type: 'Colaborador',
+            name: userFirstName,
+            active: true,
+          })
+          colaboradorId = newConf.id
+        } catch (error: any) {
+          toast({
+            title: 'Erro',
+            description: 'Falha ao processar colaborador',
+            variant: 'destructive',
+          })
+          return
+        }
+      }
+    }
+
     const clientData = {
       ...data,
+      colaborador: colaboradorId,
       pgto: data.pgto || '',
       ...(initialData ? {} : { observacao_lida: false, data_leitura_observacao: '' }),
       ...(isBaixa && (!initialData || initialData.status !== baixaStatus.id)
@@ -253,22 +288,13 @@ export function ClienteForm({ initialData, onSuccess, onCancel }: ClienteFormPro
         </div>
 
         <div className="space-y-2">
-          <Label>Colaborador Responsável *</Label>
-          <Select
-            onValueChange={(v) => setValue('colaborador', v, { shouldValidate: true })}
-            defaultValue={initialData?.colaborador}
-          >
-            <SelectTrigger className={errors.colaborador ? 'border-destructive' : ''}>
-              <SelectValue placeholder="Selecione" />
-            </SelectTrigger>
-            <SelectContent>
-              {colaboradores.map((c) => (
-                <SelectItem key={c.id} value={c.id}>
-                  {c.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Label htmlFor="colaborador_responsavel">Colaborador Responsável *</Label>
+          <Input
+            id="colaborador_responsavel"
+            value={userFirstName}
+            readOnly
+            className="bg-[#f5f5f5] focus-visible:ring-0 cursor-not-allowed"
+          />
           {errors.colaborador && (
             <p className="text-xs text-destructive">{errors.colaborador.message}</p>
           )}
