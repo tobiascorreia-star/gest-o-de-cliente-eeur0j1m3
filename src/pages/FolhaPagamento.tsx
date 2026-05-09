@@ -116,7 +116,7 @@ export default function FolhaPagamento() {
 
   useEffect(() => {
     if (!manualInstallQty) {
-      setIncentivo((unitValue || 0) * currentQtde)
+      setIncentivo((unitValue || 0) * (currentQtde || 0))
     }
   }, [unitValue, currentQtde, manualInstallQty])
 
@@ -237,9 +237,10 @@ export default function FolhaPagamento() {
     setDraftPayrolls((prev) =>
       prev.map((p) => {
         if (p.closed || p.status === 'Pago') return p
-        if (p.manual_install_qty) return p
         const unit = p.unit_value || 0
-        const calculatedIncentivo = unit * q
+        const calculatedIncentivo = p.manual_install_qty
+          ? (p.incentivo ?? p.install_commission ?? 0)
+          : unit * q
         const total =
           (p.base_salary || 0) +
           calculatedIncentivo +
@@ -250,7 +251,7 @@ export default function FolhaPagamento() {
           (p.extra_4 || 0)
         return {
           ...p,
-          qtde_install: q,
+          qtde_install: p.manual_install_qty ? p.qtde_install : q,
           install_commission: calculatedIncentivo,
           incentivo: calculatedIncentivo,
           total,
@@ -265,13 +266,12 @@ export default function FolhaPagamento() {
       const isActuallyClosed = p.closed || p.status === 'Pago'
       const isManual = p.manual_install_qty || false
       const dbQtde = p.qtde_install || 0
-      const recordQtde = isManual ? dbQtde : parseFloat(globalQty) || dbQtde || 0
 
       setEditingRecord({ ...p, closed: isActuallyClosed })
       setEmployee(p.employee)
       setBaseSalary(p.base_salary ?? null)
       setUnitValue(p.unit_value ?? null)
-      setCurrentQtde(recordQtde)
+      setCurrentQtde(dbQtde)
       setManualInstallQty(isManual)
       setBonus(p.bonus ?? null)
       setExtra1(p.extra_1 ?? null)
@@ -281,7 +281,7 @@ export default function FolhaPagamento() {
       setStatus(p.status || 'Pendente')
       setObservations(p.observations || '')
       setIsClosed(isActuallyClosed)
-      setIncentivo((p.incentivo ?? p.install_commission) || 0)
+      setIncentivo(p.incentivo ?? p.install_commission ?? 0)
       setTotalValue(p.total || 0)
     } else {
       const q = parseFloat(globalQty) || 0
@@ -330,11 +330,7 @@ export default function FolhaPagamento() {
     }
 
     // Ensure we await for the most fresh calculation if there was any race condition
-    const finalIncentivo = manualInstallQty
-      ? typeof incentivo === 'number'
-        ? incentivo
-        : 0
-      : (unitValue || 0) * currentQtde
+    const finalIncentivo = manualInstallQty ? (incentivo ?? 0) : (unitValue || 0) * currentQtde
     const finalTotal =
       (baseSalary || 0) +
       finalIncentivo +
@@ -446,14 +442,10 @@ export default function FolhaPagamento() {
         qtde_install: p.qtde_install,
         manual_install_qty: p.manual_install_qty,
         install_commission: p.manual_install_qty
-          ? typeof p.incentivo === 'number'
-            ? p.incentivo
-            : p.install_commission || 0
+          ? (p.incentivo ?? p.install_commission ?? 0)
           : (p.unit_value || 0) * (p.qtde_install || 0),
         incentivo: p.manual_install_qty
-          ? typeof p.incentivo === 'number'
-            ? p.incentivo
-            : p.install_commission || 0
+          ? (p.incentivo ?? p.install_commission ?? 0)
           : (p.unit_value || 0) * (p.qtde_install || 0),
         bonus: p.bonus,
         extra_1: p.extra_1,
@@ -614,14 +606,10 @@ export default function FolhaPagamento() {
           qtde_install: p.qtde_install,
           manual_install_qty: p.manual_install_qty,
           install_commission: p.manual_install_qty
-            ? typeof p.incentivo === 'number'
-              ? p.incentivo
-              : p.install_commission || 0
+            ? (p.incentivo ?? p.install_commission ?? 0)
             : (p.unit_value || 0) * (p.qtde_install || 0),
           incentivo: p.manual_install_qty
-            ? typeof p.incentivo === 'number'
-              ? p.incentivo
-              : p.install_commission || 0
+            ? (p.incentivo ?? p.install_commission ?? 0)
             : (p.unit_value || 0) * (p.qtde_install || 0),
           bonus: p.bonus,
           extra_1: p.extra_1,
@@ -1031,10 +1019,29 @@ export default function FolhaPagamento() {
                   />
                 </div>
                 <div className="space-y-2">
+                  <Label className="flex items-center">
+                    Qtde Install
+                    <InfoTooltip text="Quantidade aplicada na base de cálculo. Ao alterar a Quantidade Geral, este valor será atualizado, a menos que o campo Incentivo esteja como Manual." />
+                  </Label>
+                  <Input
+                    type="number"
+                    value={currentQtde}
+                    onChange={(e) => setCurrentQtde(parseFloat(e.target.value) || 0)}
+                    disabled={editingRecord?.closed}
+                    placeholder="Qtde..."
+                  />
+                </div>
+                <div className="space-y-2">
                   <Label className="flex items-center justify-between">
                     <span className="flex items-center">
-                      Qtde Install
-                      <InfoTooltip text="Quantidade aplicada. Marque 'Manual' para informar valor diferente da meta global." />
+                      Incentivo
+                      <InfoTooltip
+                        text={
+                          manualInstallQty
+                            ? 'Valor manual. Não será calculado automaticamente.'
+                            : 'Valor calculado automaticamente (Valor Install x Qtde Install).'
+                        }
+                      />
                     </span>
                     <div className="flex items-center space-x-2">
                       <Switch
@@ -1042,33 +1049,20 @@ export default function FolhaPagamento() {
                         onCheckedChange={(checked) => {
                           setManualInstallQty(checked)
                           if (!checked) {
-                            setCurrentQtde(parseFloat(globalQty) || 0)
+                            setIncentivo((unitValue || 0) * (currentQtde || 0))
                           }
                         }}
                         disabled={editingRecord?.closed}
                         className="scale-75"
+                        id="incentivo-manual-switch"
                       />
-                      <span className="text-xs text-slate-500">Manual</span>
+                      <Label
+                        htmlFor="incentivo-manual-switch"
+                        className="text-xs text-slate-500 cursor-pointer"
+                      >
+                        Manual
+                      </Label>
                     </div>
-                  </Label>
-                  <Input
-                    type="number"
-                    value={currentQtde}
-                    onChange={(e) => setCurrentQtde(parseFloat(e.target.value) || 0)}
-                    disabled={!manualInstallQty || editingRecord?.closed}
-                    placeholder="Qtde..."
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="flex items-center">
-                    Incentivo
-                    <InfoTooltip
-                      text={
-                        manualInstallQty
-                          ? 'Valor manual'
-                          : 'Valor calculado automaticamente (Valor Install x Qtde Install).'
-                      }
-                    />
                   </Label>
                   <Input
                     type="text"
@@ -1078,7 +1072,7 @@ export default function FolhaPagamento() {
                     className={
                       !manualInstallQty
                         ? 'bg-slate-50 dark:bg-slate-900 font-semibold cursor-not-allowed'
-                        : ''
+                        : 'bg-amber-50 dark:bg-amber-900/20 font-semibold border-amber-200 dark:border-amber-800'
                     }
                   />
                 </div>
