@@ -32,6 +32,7 @@ import pb from '@/lib/pocketbase/client'
 import { Plus, Printer, Edit, Trash2, Banknote, Loader2, Save, Info, RotateCcw } from 'lucide-react'
 import { format } from 'date-fns'
 import { extractFieldErrors, getErrorMessage } from '@/lib/pocketbase/errors'
+import { useRealtime } from '@/hooks/use-realtime'
 import { ptBR } from 'date-fns/locale'
 import { logAudit } from '@/services/audit'
 
@@ -81,6 +82,7 @@ export default function FolhaPagamento() {
   const [savingRowId, setSavingRowId] = useState<string | null>(null)
   const [isClosingMonth, setIsClosingMonth] = useState(false)
   const [isRevertingMonth, setIsRevertingMonth] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
 
   const [editingRecord, setEditingRecord] = useState<any>(null)
 
@@ -122,8 +124,11 @@ export default function FolhaPagamento() {
       const startOfMo = new Date(Date.UTC(y, m, 1, 0, 0, 0)).toISOString()
       const endOfMo = new Date(Date.UTC(y, m + 1, 1, 0, 0, 0)).toISOString()
 
+      const filterStart = startOfMo.replace('T', ' ')
+      const filterEnd = endOfMo.replace('T', ' ')
+
       const pData = await pb.collection('payroll').getFullList({
-        filter: `reference_date >= '${startOfMo}' && reference_date < '${endOfMo}'`,
+        filter: `reference_date >= '${filterStart}' && reference_date < '${filterEnd}'`,
         expand: 'employee',
         sort: '-created',
       })
@@ -133,7 +138,7 @@ export default function FolhaPagamento() {
       try {
         const sData = await pb
           .collection('payroll_settings')
-          .getFirstListItem(`reference_date >= '${startOfMo}' && reference_date < '${endOfMo}'`)
+          .getFirstListItem(`reference_date >= '${filterStart}' && reference_date < '${filterEnd}'`)
         qty = sData.quantity?.toString() || ''
         sId = sData.id
       } catch {
@@ -163,6 +168,13 @@ export default function FolhaPagamento() {
       setDraftPayrolls([])
     }
   }, [filterMonth])
+
+  useRealtime('payroll', () => {
+    const hasUnsaved = draftPayrolls.some((p) => p._isDraft || p._isModified)
+    if (!hasUnsaved) {
+      loadMonthData()
+    }
+  })
 
   const handleMonthChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const hasUnsaved = draftPayrolls.some((p) => p._isDraft || p._isModified)
@@ -251,7 +263,7 @@ export default function FolhaPagamento() {
     }
   }
 
-  const handleSaveToMemory = () => {
+  const handleSaveForm = async () => {
     if (!employee) {
       toast({ title: 'Erro', description: 'Selecione o colaborador.', variant: 'destructive' })
       return
@@ -289,42 +301,53 @@ export default function FolhaPagamento() {
       closed: isClosed,
     }
 
-    if (editingRecord) {
-      setDraftPayrolls((prev) =>
-        prev.map((item) => {
-          if (item === editingRecord) {
-            return {
-              ...item,
-              ...data,
-              expand: { ...item.expand, employee: users.find((u) => u.id === employee) },
-              _isModified: true,
-            }
-          }
-          return item
-        }),
-      )
-    } else {
-      const exists = draftPayrolls.some((p) => p.employee === employee)
-      if (exists) {
-        toast({
-          title: 'Erro de Validação',
-          description: 'Colaborador já possui lançamento neste mês.',
-          variant: 'destructive',
+    setIsSaving(true)
+    try {
+      let currentSettingsId = settingsId
+      if (!currentSettingsId && globalQty !== '') {
+        const s = await pb.collection('payroll_settings').create({
+          reference_date: startOfMo,
+          quantity: q,
         })
-        return
+        setSettingsId(s.id)
+        currentSettingsId = s.id
+      } else if (currentSettingsId && globalQty !== '') {
+        await pb.collection('payroll_settings').update(currentSettingsId, {
+          quantity: q,
+        })
       }
 
-      setDraftPayrolls([
-        ...draftPayrolls,
-        {
-          ...data,
-          expand: { employee: users.find((u) => u.id === employee) },
-          _isDraft: true,
-          _isModified: true,
-        },
-      ])
+      if (editingRecord && editingRecord.id) {
+        await pb.collection('payroll').update(editingRecord.id, data)
+      } else {
+        const exists = draftPayrolls.some(
+          (p) => p.employee === employee && p.id !== editingRecord?.id,
+        )
+        if (exists) {
+          toast({
+            title: 'Erro de Validação',
+            description: 'Colaborador já possui lançamento neste mês.',
+            variant: 'destructive',
+          })
+          setIsSaving(false)
+          return
+        }
+        await pb.collection('payroll').create(data)
+      }
+
+      toast({ title: 'Sucesso', description: 'Registro salvo com sucesso.' })
+      setIsOpen(false)
+      loadMonthData()
+    } catch (e) {
+      const msg = getErrorMessage(e)
+      toast({
+        title: 'Erro ao gravar',
+        description: msg || 'Verifique os dados e tente novamente.',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsSaving(false)
     }
-    setIsOpen(false)
   }
 
   const handleSaveRow = async (p: any) => {
@@ -442,6 +465,7 @@ export default function FolhaPagamento() {
       }
       setDraftPayrolls(updatedDrafts)
       toast({ title: 'Sucesso', description: 'Todos os registros foram consolidados.' })
+      loadMonthData()
     } catch (e) {
       const msg = getErrorMessage(e)
       toast({
@@ -792,7 +816,7 @@ export default function FolhaPagamento() {
                               className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-900/20"
                               onClick={() => handleSaveRow(p)}
                               disabled={savingRowId === p.employee}
-                              title="Gravar Individual"
+                              title="Gravar Alterações"
                             >
                               {savingRowId === p.employee ? (
                                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -1074,7 +1098,10 @@ export default function FolhaPagamento() {
                 {editingRecord?.closed ? 'Fechar' : 'Cancelar'}
               </Button>
               {!editingRecord?.closed && (
-                <Button onClick={handleSaveToMemory}>Salvar na Lista</Button>
+                <Button onClick={handleSaveForm} disabled={isSaving}>
+                  {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                  Salvar
+                </Button>
               )}
             </div>
           </DialogContent>
