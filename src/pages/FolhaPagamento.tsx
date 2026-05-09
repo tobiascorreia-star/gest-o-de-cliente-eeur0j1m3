@@ -80,7 +80,6 @@ export default function FolhaPagamento() {
   const [isOpen, setIsOpen] = useState(false)
   const [savingRowId, setSavingRowId] = useState<string | null>(null)
   const [isClosingMonth, setIsClosingMonth] = useState(false)
-  const [isRevertingMonth, setIsRevertingMonth] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
 
   const [editingRecord, setEditingRecord] = useState<any>(null)
@@ -147,37 +146,10 @@ export default function FolhaPagamento() {
       const qVal = parseFloat(qty) || 0
 
       const combined = pData.map((p) => {
-        let isMod = false
-        let pInstallComm = p.install_commission || 0
-        let pTotal = p.total || 0
-        let pQtdeInstall = p.qtde_install || 0
-
-        if (!p.closed) {
-          const unit = p.unit_value || 0
-          const calculatedInstallComm = unit * qVal
-
-          if (calculatedInstallComm !== pInstallComm || pQtdeInstall !== qVal) {
-            pInstallComm = calculatedInstallComm
-            pQtdeInstall = qVal
-            pTotal =
-              (p.base_salary || 0) +
-              pInstallComm +
-              (p.bonus || 0) +
-              (p.extra_1 || 0) +
-              (p.extra_2 || 0) +
-              (p.extra_3 || 0) +
-              (p.extra_4 || 0)
-            isMod = true
-          }
-        }
-
         return {
           ...p,
-          qtde_install: pQtdeInstall,
-          install_commission: pInstallComm,
-          total: pTotal,
           _isDraft: false,
-          _isModified: isMod,
+          _isModified: false,
         }
       })
 
@@ -300,10 +272,9 @@ export default function FolhaPagamento() {
     }
 
     const q = parseFloat(globalQty) || 0
-    const calculatedInstallComm = (unitValue || 0) * q
     const total =
       (baseSalary || 0) +
-      calculatedInstallComm +
+      (installComm || 0) +
       (bonus || 0) +
       (extra1 || 0) +
       (extra2 || 0) +
@@ -319,7 +290,7 @@ export default function FolhaPagamento() {
       base_salary: baseSalary || 0,
       unit_value: unitValue || 0,
       qtde_install: q,
-      install_commission: calculatedInstallComm,
+      install_commission: installComm || 0,
       bonus: bonus || 0,
       extra_1: extra1 || 0,
       extra_2: extra2 || 0,
@@ -547,88 +518,6 @@ export default function FolhaPagamento() {
     }
   }
 
-  const handleRevertRow = async (p: any) => {
-    if (!confirm('Tem certeza que deseja estornar este lançamento? Ele será reaberto para edição.'))
-      return
-
-    try {
-      const updated = await pb
-        .collection('payroll')
-        .update(p.id, { closed: false, status: 'Pendente' }, { expand: 'employee' })
-
-      setDraftPayrolls((prev) =>
-        prev.map((item) =>
-          item.id === p.id ? { ...item, ...updated, _isDraft: false, _isModified: false } : item,
-        ),
-      )
-
-      if (editingRecord && editingRecord.id === p.id) {
-        setEditingRecord({ ...editingRecord, ...updated })
-        setIsClosed(false)
-        setStatus('Pendente')
-      }
-
-      await logAudit('estornar_lancamento', `Lançamento estornado.`)
-
-      toast({ title: 'Sucesso', description: 'Lançamento estornado com sucesso.' })
-    } catch (err) {
-      console.error(err)
-      toast({ title: 'Erro', description: 'Falha ao estornar lançamento.', variant: 'destructive' })
-    }
-  }
-
-  const handleRevertMonth = async () => {
-    if (!confirm('Tem certeza que deseja estornar o mês? Isso reabrirá os registros para edição.'))
-      return
-
-    setIsRevertingMonth(true)
-    try {
-      const [yStr, mStr] = filterMonth.split('-')
-      const y = parseInt(yStr, 10)
-      const m = parseInt(mStr, 10) - 1
-
-      const startOfMo = new Date(Date.UTC(y, m, 1, 0, 0, 0)).toISOString()
-      const endOfMo = new Date(Date.UTC(y, m + 1, 1, 0, 0, 0)).toISOString()
-
-      const recordsToRevert = await pb.collection('payroll').getFullList({
-        filter: `reference_date >= '${startOfMo}' && reference_date < '${endOfMo}' && closed = true`,
-      })
-
-      if (recordsToRevert.length > 0) {
-        await Promise.all(
-          recordsToRevert.map((p) =>
-            pb.collection('payroll').update(p.id, { closed: false, status: 'Pendente' }),
-          ),
-        )
-      }
-
-      // Force clean state before fetching to prevent ghost data
-      setDraftPayrolls([])
-      setReceiptRecord(null)
-      setIsOpen(false)
-
-      await loadMonthData()
-
-      const competenceStr = getHeaderCompetence(startOfMo)
-
-      await logAudit('estornar_mes', `Competência ${competenceStr} estornada.`)
-
-      toast({
-        title: 'Sucesso',
-        description: 'Mês estornado com sucesso.',
-      })
-    } catch (err) {
-      console.error(err)
-      toast({
-        title: 'Erro',
-        description: 'Ocorreu um erro ao estornar o mês.',
-        variant: 'destructive',
-      })
-    } finally {
-      setIsRevertingMonth(false)
-    }
-  }
-
   const filteredPayrolls = draftPayrolls.filter((p) => {
     if (filterStatus !== 'all' && p.status !== filterStatus) return false
     if (filterUser !== 'all' && p.employee !== filterUser) return false
@@ -846,17 +735,6 @@ export default function FolhaPagamento() {
                           >
                             <Edit className="w-4 h-4 text-slate-500" />
                           </Button>
-                          {p.closed && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleRevertRow(p)}
-                              title="Estornar Lançamento"
-                              className="hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 text-slate-500"
-                            >
-                              <RotateCcw className="w-4 h-4" />
-                            </Button>
-                          )}
                           {!p.closed && (
                             <Button
                               variant="ghost"
@@ -894,25 +772,10 @@ export default function FolhaPagamento() {
             </div>
           </div>
           <div className="flex gap-2">
-            {hasClosedRecords && (
-              <Button
-                variant="outline"
-                className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 dark:border-red-900/50 dark:text-red-400 dark:hover:bg-red-900/20"
-                onClick={handleRevertMonth}
-                disabled={isClosingMonth || isRevertingMonth}
-              >
-                {isRevertingMonth ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <RotateCcw className="w-4 h-4 mr-2" />
-                )}
-                Estornar Mês
-              </Button>
-            )}
             <Button
               variant="default"
               onClick={handleCloseMonth}
-              disabled={isClosingMonth || isRevertingMonth || !hasOpenRecords}
+              disabled={isClosingMonth || !hasOpenRecords}
             >
               {isClosingMonth ? (
                 <>
@@ -938,7 +801,7 @@ export default function FolhaPagamento() {
               <DialogDescription>
                 {editingRecord?.closed
                   ? 'Este lançamento está fechado e não pode ser editado.'
-                  : 'Preencha os valores financeiros. O Incentivo e o Total são calculados automaticamente.'}
+                  : 'Preencha os valores financeiros. O Total é calculado automaticamente.'}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
@@ -1004,14 +867,14 @@ export default function FolhaPagamento() {
                 </div>
                 <div className="space-y-2">
                   <Label className="flex items-center">
-                    Incentivo (Automático)
-                    <InfoTooltip text="Valor calculado automaticamente (Valor Install x Qtde Install)." />
+                    Incentivo
+                    <InfoTooltip text="Valor calculado automaticamente (Valor Install x Qtde Install) ou preenchido manualmente." />
                   </Label>
                   <Input
                     type="text"
                     value={formatCurrencyInput(installComm)}
-                    readOnly
-                    className="bg-slate-50 dark:bg-slate-800 text-slate-500 font-medium"
+                    onChange={(e) => setInstallComm(parseCurrencyInput(e.target.value))}
+                    disabled={editingRecord?.closed}
                   />
                 </div>
                 <div className="space-y-2">
@@ -1113,16 +976,6 @@ export default function FolhaPagamento() {
               <Button variant="outline" onClick={() => setIsOpen(false)}>
                 {editingRecord?.closed ? 'Fechar' : 'Cancelar'}
               </Button>
-              {editingRecord?.closed && (
-                <Button
-                  variant="outline"
-                  className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 dark:border-red-900/50 dark:text-red-400 dark:hover:bg-red-900/20"
-                  onClick={() => handleRevertRow(editingRecord)}
-                >
-                  <RotateCcw className="w-4 h-4 mr-2" />
-                  Estornar
-                </Button>
-              )}
               {!editingRecord?.closed && (
                 <Button onClick={handleSaveForm} disabled={isSaving}>
                   {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
