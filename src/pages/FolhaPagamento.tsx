@@ -78,7 +78,6 @@ export default function FolhaPagamento() {
   const [settingsId, setSettingsId] = useState<string>('')
 
   const [isOpen, setIsOpen] = useState(false)
-  const [isConsolidating, setIsConsolidating] = useState(false)
   const [savingRowId, setSavingRowId] = useState<string | null>(null)
   const [isClosingMonth, setIsClosingMonth] = useState(false)
   const [isRevertingMonth, setIsRevertingMonth] = useState(false)
@@ -212,7 +211,7 @@ export default function FolhaPagamento() {
   })
 
   const handleMonthChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const hasUnsaved = draftPayrolls.some((p) => p._isDraft || p._isModified)
+    const hasUnsaved = draftPayrolls.some((p) => (p._isDraft || p._isModified) && !p.closed)
     if (hasUnsaved) {
       if (
         !confirm(
@@ -444,71 +443,6 @@ export default function FolhaPagamento() {
     }
   }
 
-  const handleConsolidate = async () => {
-    setIsConsolidating(true)
-    try {
-      let currentSettingsId = settingsId
-      const [y, m] = filterMonth.split('-')
-      const startOfMo = new Date(Date.UTC(parseInt(y), parseInt(m) - 1, 1, 0, 0, 0)).toISOString()
-
-      if (!currentSettingsId && globalQty !== '') {
-        const s = await pb.collection('payroll_settings').create({
-          reference_date: startOfMo,
-          quantity: parseFloat(globalQty) || 0,
-        })
-        setSettingsId(s.id)
-      } else if (currentSettingsId) {
-        await pb.collection('payroll_settings').update(currentSettingsId, {
-          quantity: parseFloat(globalQty) || 0,
-        })
-      }
-
-      const updatedDrafts = [...draftPayrolls]
-      for (let i = 0; i < updatedDrafts.length; i++) {
-        const p = updatedDrafts[i]
-        if (!p._isDraft && !p._isModified) continue
-
-        const data = {
-          employee: p.employee,
-          reference_date: p.reference_date,
-          base_salary: p.base_salary,
-          unit_value: p.unit_value,
-          qtde_install: p.qtde_install,
-          install_commission: p.install_commission,
-          bonus: p.bonus,
-          extra_1: p.extra_1,
-          extra_2: p.extra_2,
-          extra_3: p.extra_3,
-          extra_4: p.extra_4,
-          total: p.total,
-          status: p.status,
-          observations: p.observations,
-          closed: p.closed,
-        }
-
-        let saved
-        if (p.id) {
-          saved = await pb.collection('payroll').update(p.id, data, { expand: 'employee' })
-        } else {
-          saved = await pb.collection('payroll').create(data, { expand: 'employee' })
-        }
-        updatedDrafts[i] = { ...p, ...saved, _isDraft: false, _isModified: false }
-      }
-      setDraftPayrolls(updatedDrafts)
-      toast({ title: 'Sucesso', description: 'Todos os registros foram consolidados.' })
-      loadMonthData()
-    } catch (e) {
-      const msg = getErrorMessage(e)
-      toast({
-        title: 'Erro na consolidação',
-        description: msg || 'Falha ao salvar alguns registros.',
-        variant: 'destructive',
-      })
-    } finally {
-      setIsConsolidating(false)
-    }
-  }
-
   const handleDelete = async (p: any) => {
     if (!confirm('Tem certeza que deseja excluir?')) return
     if (p.id) {
@@ -530,17 +464,7 @@ export default function FolhaPagamento() {
   }
 
   const handleCloseMonth = async () => {
-    const hasUnsaved = draftPayrolls.some((p) => p._isDraft || p._isModified)
-    if (hasUnsaved) {
-      toast({
-        title: 'Aviso',
-        description: 'Consolide o mês primeiro antes de fechar.',
-        variant: 'destructive',
-      })
-      return
-    }
-
-    const unclosedRecords = draftPayrolls.filter((p) => !p.closed && p.id)
+    const unclosedRecords = draftPayrolls.filter((p) => !p.closed)
     if (unclosedRecords.length === 0) {
       toast({ title: 'Aviso', description: 'Não há registros abertos nesta competência.' })
       return
@@ -548,7 +472,7 @@ export default function FolhaPagamento() {
 
     if (
       !confirm(
-        `Tem certeza que deseja fechar o mês para ${unclosedRecords.length} registro(s)? Eles serão bloqueados contra alterações.`,
+        `Tem certeza que deseja fechar o mês para ${unclosedRecords.length} registro(s)? Eles serão consolidados e bloqueados contra alterações.`,
       )
     ) {
       return
@@ -556,33 +480,66 @@ export default function FolhaPagamento() {
 
     setIsClosingMonth(true)
     try {
-      await Promise.all(
-        unclosedRecords.map((p) =>
-          pb.collection('payroll').update(p.id, { closed: true, status: 'Pago' }),
-        ),
-      )
-
-      setDraftPayrolls((prev) =>
-        prev.map((p) => {
-          if (unclosedRecords.some((ur) => ur.id === p.id)) {
-            return { ...p, closed: true, status: 'Pago' }
-          }
-          return p
-        }),
-      )
-
+      let currentSettingsId = settingsId
       const [y, m] = filterMonth.split('-')
       const startOfMo = new Date(Date.UTC(parseInt(y), parseInt(m) - 1, 1, 0, 0, 0)).toISOString()
-      const competenceStr = getHeaderCompetence(startOfMo)
 
+      if (!currentSettingsId && globalQty !== '') {
+        const s = await pb.collection('payroll_settings').create({
+          reference_date: startOfMo,
+          quantity: parseFloat(globalQty) || 0,
+        })
+        setSettingsId(s.id)
+      } else if (currentSettingsId && globalQty !== '') {
+        await pb.collection('payroll_settings').update(currentSettingsId, {
+          quantity: parseFloat(globalQty) || 0,
+        })
+      }
+
+      const updatedDrafts = [...draftPayrolls]
+      for (let i = 0; i < updatedDrafts.length; i++) {
+        const p = updatedDrafts[i]
+        if (p.closed) continue
+
+        const data = {
+          employee: p.employee,
+          reference_date: p.reference_date,
+          base_salary: p.base_salary,
+          unit_value: p.unit_value,
+          qtde_install: p.qtde_install,
+          install_commission: p.install_commission,
+          bonus: p.bonus,
+          extra_1: p.extra_1,
+          extra_2: p.extra_2,
+          extra_3: p.extra_3,
+          extra_4: p.extra_4,
+          total: p.total,
+          status: 'Pago',
+          observations: p.observations,
+          closed: true,
+        }
+
+        let saved
+        if (p.id) {
+          saved = await pb.collection('payroll').update(p.id, data, { expand: 'employee' })
+        } else {
+          saved = await pb.collection('payroll').create(data, { expand: 'employee' })
+        }
+        updatedDrafts[i] = { ...p, ...saved, _isDraft: false, _isModified: false }
+      }
+
+      setDraftPayrolls(updatedDrafts)
+
+      const competenceStr = getHeaderCompetence(startOfMo)
       await logAudit('fechar_mes', `Competência ${competenceStr} fechada.`)
 
       toast({ title: 'Sucesso', description: 'Mês fechado com sucesso.' })
     } catch (err) {
       console.error(err)
+      const msg = getErrorMessage(err)
       toast({
         title: 'Erro',
-        description: 'Ocorreu um erro ao fechar o mês.',
+        description: msg || 'Ocorreu um erro ao fechar o mês.',
         variant: 'destructive',
       })
     } finally {
@@ -706,19 +663,6 @@ export default function FolhaPagamento() {
             <p className="text-slate-500 text-sm">Gerencie salários e comissões da equipe.</p>
           </div>
           <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto mt-4 sm:mt-0">
-            <Button
-              variant="default"
-              className="bg-emerald-600 hover:bg-emerald-700 text-white w-full sm:w-auto"
-              onClick={handleConsolidate}
-              disabled={isConsolidating}
-            >
-              {isConsolidating ? (
-                <Loader2 className="w-4 h-4 animate-spin mr-2" />
-              ) : (
-                <Save className="w-4 h-4 mr-2" />
-              )}
-              Gravar Mês (Consolidar)
-            </Button>
             <Button onClick={() => openForm()} className="w-full sm:w-auto">
               <Plus className="w-4 h-4 mr-2" />
               Novo Lançamento
