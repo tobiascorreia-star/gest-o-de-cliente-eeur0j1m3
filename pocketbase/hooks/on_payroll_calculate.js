@@ -24,9 +24,10 @@ onRecordCreate((e) => {
   const ex2 = Number(e.record.get('extra_2')) || 0
   const ex3 = Number(e.record.get('extra_3')) || 0
   const ex4 = Number(e.record.get('extra_4')) || 0
+  const desconto = Number(e.record.get('desconto')) || 0
 
-  const total = base + comm + bonus + ex1 + ex2 + ex3 + ex4
-  e.record.set('total', total)
+  const total = base + comm + bonus + ex1 + ex2 + ex3 + ex4 - desconto
+  e.record.set('total_a_pagar', total)
   e.next()
 }, 'payroll')
 
@@ -56,8 +57,9 @@ onRecordUpdate((e) => {
   const ex2 = Number(e.record.get('extra_2')) || 0
   const ex3 = Number(e.record.get('extra_3')) || 0
   const ex4 = Number(e.record.get('extra_4')) || 0
+  const desconto = Number(e.record.get('desconto')) || 0
 
-  const total = base + comm + bonus + ex1 + ex2 + ex3 + ex4
-  e.record.set('total', total)
+  const total = base + comm + bonus + ex1 + ex2 + ex3 + ex4 - desconto
+  e.record.set('total_a_pagar', total)
   e.next()
 }, 'payroll')

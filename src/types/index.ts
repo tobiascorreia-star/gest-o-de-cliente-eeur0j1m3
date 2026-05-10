@@ -74,6 +74,7 @@ export interface Payroll {
   install_commission: number
   incentivo?: number
   bonus: number
+  desconto?: number
   extra_1: number
   extra_2: number
   extra_3: number

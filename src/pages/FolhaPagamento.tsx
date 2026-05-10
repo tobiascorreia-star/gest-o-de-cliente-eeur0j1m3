@@ -102,6 +102,7 @@ export default function FolhaPagamento() {
   const [currentQtde, setCurrentQtde] = useState<number>(0)
   const [manualInstallQty, setManualInstallQty] = useState(false)
   const [bonus, setBonus] = useState<number | null>(null)
+  const [desconto, setDesconto] = useState<number | null>(null)
   const [extra1, setExtra1] = useState<number | null>(null)
   const [extra2, setExtra2] = useState<number | null>(null)
   const [extra3, setExtra3] = useState<number | null>(null)
@@ -128,9 +129,10 @@ export default function FolhaPagamento() {
       (extra1 || 0) +
       (extra2 || 0) +
       (extra3 || 0) +
-      (extra4 || 0)
+      (extra4 || 0) -
+      (desconto || 0)
     setTotalValue(t)
-  }, [baseSalary, incentivo, bonus, extra1, extra2, extra3, extra4])
+  }, [baseSalary, incentivo, bonus, desconto, extra1, extra2, extra3, extra4])
 
   const loadMonthData = async () => {
     setLoading(true)
@@ -252,7 +254,8 @@ export default function FolhaPagamento() {
           (p.extra_1 || 0) +
           (p.extra_2 || 0) +
           (p.extra_3 || 0) +
-          (p.extra_4 || 0)
+          (p.extra_4 || 0) -
+          (p.desconto || 0)
 
         return {
           ...p,
@@ -279,6 +282,7 @@ export default function FolhaPagamento() {
       setCurrentQtde(dbQtde)
       setManualInstallQty(isManual)
       setBonus(p.bonus ?? null)
+      setDesconto(p.desconto ?? null)
       setExtra1(p.extra_1 ?? null)
       setExtra2(p.extra_2 ?? null)
       setExtra3(p.extra_3 ?? null)
@@ -297,6 +301,7 @@ export default function FolhaPagamento() {
       setCurrentQtde(q)
       setManualInstallQty(false)
       setBonus(null)
+      setDesconto(null)
       setExtra1(null)
       setExtra2(null)
       setExtra3(null)
@@ -342,7 +347,8 @@ export default function FolhaPagamento() {
       (extra1 || 0) +
       (extra2 || 0) +
       (extra3 || 0) +
-      (extra4 || 0)
+      (extra4 || 0) -
+      (desconto || 0)
 
     const globalQ = parseFloat(globalQty) || 0
 
@@ -364,6 +370,7 @@ export default function FolhaPagamento() {
       install_commission: finalIncentivo,
       incentivo: finalIncentivo,
       bonus: bonus || 0,
+      desconto: desconto || 0,
       extra_1: extra1 || 0,
       extra_2: extra2 || 0,
       extra_3: extra3 || 0,
@@ -458,6 +465,7 @@ export default function FolhaPagamento() {
           ? (p.incentivo ?? p.install_commission ?? 0)
           : (p.unit_value || 0) * (p.qtde_install || 0),
         bonus: p.bonus,
+        desconto: p.desconto,
         extra_1: p.extra_1,
         extra_2: p.extra_2,
         extra_3: p.extra_3,
@@ -623,6 +631,7 @@ export default function FolhaPagamento() {
             ? (p.incentivo ?? p.install_commission ?? 0)
             : (p.unit_value || 0) * (p.qtde_install || 0),
           bonus: p.bonus,
+          desconto: p.desconto,
           extra_1: p.extra_1,
           extra_2: p.extra_2,
           extra_3: p.extra_3,
@@ -665,6 +674,7 @@ export default function FolhaPagamento() {
         const newInstallCommission = 0
         const newBonus = 0
         const newIncentivo = p.manual_install_qty ? p.incentivo || 0 : 0
+        const newDesconto = 0
         const newTotal =
           (p.base_salary || 0) +
           newIncentivo +
@@ -672,7 +682,8 @@ export default function FolhaPagamento() {
           (p.extra_1 || 0) +
           (p.extra_2 || 0) +
           (p.extra_3 || 0) +
-          (p.extra_4 || 0)
+          (p.extra_4 || 0) -
+          newDesconto
 
         const nextMonthData = {
           colaborador: p.colaborador,
@@ -685,6 +696,7 @@ export default function FolhaPagamento() {
           install_commission: newInstallCommission,
           incentivo: newIncentivo,
           bonus: newBonus,
+          desconto: newDesconto,
           extra_1: p.extra_1 || 0,
           extra_2: p.extra_2 || 0,
           extra_3: p.extra_3 || 0,
@@ -1172,6 +1184,19 @@ export default function FolhaPagamento() {
                     disabled={editingRecord?.closed}
                   />
                 </div>
+                <div className="space-y-2">
+                  <Label className="flex items-center text-red-500 font-medium">
+                    Desconto
+                    <InfoTooltip text="Valores descontados do total a pagar." />
+                  </Label>
+                  <Input
+                    type="text"
+                    value={formatCurrencyInput(desconto)}
+                    onChange={(e) => setDesconto(parseCurrencyInput(e.target.value))}
+                    disabled={editingRecord?.closed}
+                    className="text-red-500 font-semibold border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-900/10"
+                  />
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4 border-t border-slate-100 dark:border-slate-800 pt-4">
@@ -1316,6 +1341,12 @@ export default function FolhaPagamento() {
                       <span>{fmtC(receiptRecord.bonus)}</span>
                     </div>
                   )}
+                  {!!receiptRecord?.desconto && (
+                    <div className="flex justify-between text-red-500 font-medium">
+                      <span>Desconto</span>
+                      <span>-{fmtC(receiptRecord.desconto)}</span>
+                    </div>
+                  )}
                   {!!receiptRecord?.extra_1 && (
                     <div className="flex justify-between">
                       <span>Extra 1</span>
@@ -1444,6 +1475,14 @@ export default function FolhaPagamento() {
                     <tr>
                       <td className="py-2 text-slate-700">Bônus</td>
                       <td className="text-right font-semibold">{fmtC(receiptRecord.bonus)}</td>
+                    </tr>
+                  )}
+                  {!!receiptRecord?.desconto && (
+                    <tr>
+                      <td className="py-2 text-red-600 font-medium">Desconto</td>
+                      <td className="text-right font-semibold text-red-600">
+                        -{fmtC(receiptRecord.desconto)}
+                      </td>
                     </tr>
                   )}
                   {!!receiptRecord?.extra_1 && (

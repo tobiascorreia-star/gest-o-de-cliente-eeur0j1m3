@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-10T19:21:42.462Z",
+  "generatedAt": "2026-05-10T19:47:06.615Z",
   "collections": [
     {
       "name": "users",
@@ -685,6 +685,12 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "desconto",
+          "type": "number",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": []
