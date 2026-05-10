@@ -672,18 +672,25 @@ export default function FolhaPagamento() {
         }
 
         const newQtdeInstall = p.qtde_install || 0
-        const newInstallCommission = p.manual_install_qty ? 0 : (p.unit_value || 0) * newQtdeInstall
-        const newBonus = 0
-        const newIncentivo = p.manual_install_qty ? p.incentivo || 0 : newInstallCommission
-        const newDesconto = 0
+        const newManualInstallQty = p.manual_install_qty || false
+        const newInstallCommission = p.install_commission || 0
+        const newIncentivo = p.incentivo || 0
+        const newBonus = p.bonus || 0
+        const newDesconto = p.desconto || 0
+        const newExtra1 = p.extra_1 || 0
+        const newExtra2 = p.extra_2 || 0
+        const newExtra3 = p.extra_3 || 0
+        const newExtra4 = p.extra_4 || 0
+        const newObservacoes = p.observacoes || ''
+
         const newTotal =
           (p.base_salary || 0) +
           newIncentivo +
           newBonus +
-          (p.extra_1 || 0) +
-          (p.extra_2 || 0) +
-          (p.extra_3 || 0) +
-          (p.extra_4 || 0) -
+          newExtra1 +
+          newExtra2 +
+          newExtra3 +
+          newExtra4 -
           newDesconto
 
         const nextMonthData = {
@@ -693,18 +700,18 @@ export default function FolhaPagamento() {
           base_salary: p.base_salary || 0,
           unit_value: p.unit_value || 0,
           qtde_install: newQtdeInstall,
-          manual_install_qty: p.manual_install_qty,
+          manual_install_qty: newManualInstallQty,
           install_commission: newInstallCommission,
           incentivo: newIncentivo,
           bonus: newBonus,
           desconto: newDesconto,
-          extra_1: p.extra_1 || 0,
-          extra_2: p.extra_2 || 0,
-          extra_3: p.extra_3 || 0,
-          extra_4: p.extra_4 || 0,
+          extra_1: newExtra1,
+          extra_2: newExtra2,
+          extra_3: newExtra3,
+          extra_4: newExtra4,
           total_a_pagar: newTotal,
           status: 'pendente',
-          observacoes: '',
+          observacoes: newObservacoes,
           closed: false,
         }
 
@@ -713,7 +720,17 @@ export default function FolhaPagamento() {
             base_salary: p.base_salary || 0,
             unit_value: p.unit_value || 0,
             qtde_install: newQtdeInstall,
-            manual_install_qty: p.manual_install_qty,
+            manual_install_qty: newManualInstallQty,
+            install_commission: newInstallCommission,
+            incentivo: newIncentivo,
+            bonus: newBonus,
+            desconto: newDesconto,
+            extra_1: newExtra1,
+            extra_2: newExtra2,
+            extra_3: newExtra3,
+            extra_4: newExtra4,
+            total_a_pagar: newTotal,
+            observacoes: newObservacoes,
           })
         } else {
           await pb.collection('payroll').create(nextMonthData)
