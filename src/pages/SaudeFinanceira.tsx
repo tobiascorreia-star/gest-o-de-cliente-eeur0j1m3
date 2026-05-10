@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import pb from '@/lib/pocketbase/client'
 import { useAuth } from '@/hooks/use-auth'
+import { useRealtime } from '@/hooks/use-realtime'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -19,87 +20,89 @@ import {
 
 const rules = [
   {
-    id: 'reserva',
-    title: 'Reserva de Futuro/Investimento',
-    pct: 0.3,
-    desc: 'Guardar para segurança',
-    icon: PiggyBank,
-    color: 'text-emerald-500',
-    bg: 'bg-emerald-50 dark:bg-emerald-950/50',
-    border: 'border-emerald-200 dark:border-emerald-800',
-  },
-  {
-    id: 'manutencao',
-    title: 'Manutenção Residencial',
-    pct: 0.2,
-    desc: 'Aluguel, contas fixas',
+    id: 'necessidades',
+    title: 'Necessidades Básicas',
+    pct: 0.5,
+    desc: 'Gastos essenciais como aluguel, alimentação e contas fixas.',
     icon: Home,
     color: 'text-blue-500',
     bg: 'bg-blue-50 dark:bg-blue-950/50',
     border: 'border-blue-200 dark:border-blue-800',
   },
   {
-    id: 'desenvolvimento',
-    title: 'Desenvolvimento Pessoal',
-    pct: 0.15,
-    desc: 'Cursos, saúde',
-    icon: BookOpen,
-    color: 'text-indigo-500',
-    bg: 'bg-indigo-50 dark:bg-indigo-950/50',
-    border: 'border-indigo-200 dark:border-indigo-800',
-  },
-  {
-    id: 'qualidade',
-    title: 'Qualidade de Vida/Diversão',
-    pct: 0.1,
-    desc: 'Lazer imediato',
+    id: 'desejos',
+    title: 'Desejos Pessoais',
+    pct: 0.3,
+    desc: 'Lazer, hobbies e gastos variáveis de estilo de vida.',
     icon: Smile,
     color: 'text-amber-500',
     bg: 'bg-amber-50 dark:bg-amber-950/50',
     border: 'border-amber-200 dark:border-amber-800',
   },
   {
-    id: 'despesas',
-    title: 'Despesas Variáveis',
-    pct: 0.25,
-    desc: 'Alimentação, transporte',
-    icon: ShoppingCart,
-    color: 'text-rose-500',
-    bg: 'bg-rose-50 dark:bg-rose-950/50',
-    border: 'border-rose-200 dark:border-rose-800',
+    id: 'investimentos',
+    title: 'Investimentos e Futuro',
+    pct: 0.2,
+    desc: 'Reserva de emergência, investimentos e quitação de dívidas.',
+    icon: PiggyBank,
+    color: 'text-emerald-500',
+    bg: 'bg-emerald-50 dark:bg-emerald-950/50',
+    border: 'border-emerald-200 dark:border-emerald-800',
   },
 ]
 
 export default function SaudeFinanceira() {
   const { user } = useAuth()
-  const [filterMonth, setFilterMonth] = useState(() => {
-    const now = new Date()
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
-  })
+  const [filterMonth, setFilterMonth] = useState('')
   const [record, setRecord] = useState<any>(null)
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     const loadRecord = async () => {
-      if (!user || !filterMonth) return
+      if (!user) return
       setLoading(true)
       try {
-        const [yStr, mStr] = filterMonth.split('-')
-        const y = parseInt(yStr, 10)
-        const m = parseInt(mStr, 10)
+        let data
+        if (filterMonth) {
+          const [yStr, mStr] = filterMonth.split('-')
+          const y = parseInt(yStr, 10)
+          const m = parseInt(mStr, 10)
 
-        const data = await pb
-          .collection('financial_education')
-          .getFirstListItem(`user = "${user.id}" && year = ${y} && month = ${m}`)
+          data = await pb
+            .collection('financial_education')
+            .getFirstListItem(`user = "${user.id}" && year = ${y} && month = ${m}`)
+        } else {
+          data = await pb
+            .collection('financial_education')
+            .getFirstListItem(`user = "${user.id}"`, {
+              sort: '-year,-month',
+            })
+          setFilterMonth(`${data.year}-${String(data.month).padStart(2, '0')}`)
+        }
         setRecord(data)
       } catch (err) {
         setRecord(null)
+        if (!filterMonth) {
+          const now = new Date()
+          setFilterMonth(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`)
+        }
       } finally {
         setLoading(false)
       }
     }
     loadRecord()
   }, [filterMonth, user])
+
+  useRealtime('financial_education', (e) => {
+    if (e.record.user === user?.id && filterMonth) {
+      const [yStr, mStr] = filterMonth.split('-')
+      const y = parseInt(yStr, 10)
+      const m = parseInt(mStr, 10)
+      if (e.record.year === y && e.record.month === m) {
+        setRecord(e.action === 'delete' ? null : e.record)
+      }
+    }
+  })
 
   const fmtC = (val: number) =>
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val)
