@@ -3,21 +3,42 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
 import { useDashboard } from '@/hooks/use-dashboard'
 import { Bar, BarChart, Line, LineChart, XAxis, YAxis, CartesianGrid, Cell } from 'recharts'
-import { format, subMonths } from 'date-fns'
+import { format, startOfMonth, eachDayOfInterval } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
 export function DashboardCharts() {
   const { clients, categories } = useDashboard()
 
   const lineData = useMemo(() => {
-    const data = []
-    for (let i = 5; i >= 0; i--) {
-      const d = subMonths(new Date(), i)
-      const monthStr = format(d, 'MMM', { locale: ptBR })
-      const count = clients.filter((c) => new Date(c.created) <= d).length
-      data.push({ month: monthStr, clientes: count })
+    const today = new Date()
+    const start = startOfMonth(today)
+
+    if (start > today) {
+      return []
     }
-    return data
+
+    const countsPerDay: Record<string, number> = {}
+    clients.forEach((c) => {
+      const catObj = Array.isArray(c.expand?.categoria)
+        ? c.expand.categoria[0]
+        : c.expand?.categoria
+      const isNovo = catObj?.name?.toLowerCase() === 'novo'
+      const created = new Date(c.created)
+
+      if (isNovo && created >= start) {
+        const dayStr = format(created, 'dd/MM')
+        countsPerDay[dayStr] = (countsPerDay[dayStr] || 0) + 1
+      }
+    })
+
+    const days = eachDayOfInterval({ start, end: today })
+    let cumulative = 0
+
+    return days.map((d) => {
+      const dayStr = format(d, 'dd/MM')
+      cumulative += countsPerDay[dayStr] || 0
+      return { period: dayStr, clientes: cumulative }
+    })
   }, [clients])
 
   const barData = useMemo(() => {
@@ -64,7 +85,7 @@ export function DashboardCharts() {
             <LineChart data={lineData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
               <XAxis
-                dataKey="month"
+                dataKey="period"
                 tickLine={false}
                 axisLine={false}
                 tickMargin={10}

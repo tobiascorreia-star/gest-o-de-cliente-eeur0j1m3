@@ -32,7 +32,8 @@ export function KpiCards() {
   const novosCount = clients.filter((c) => {
     const cat = Array.isArray(c.expand?.categoria) ? c.expand.categoria[0] : c.expand?.categoria
     const isNovo = cat?.name?.toLowerCase() === 'novo'
-    const isThisMonth = new Date(c.created) >= thisMonthStart
+    const created = new Date(c.created)
+    const isThisMonth = created >= thisMonthStart && created <= new Date()
     return isNovo && isThisMonth
   }).length
 
@@ -63,7 +64,7 @@ export function KpiCards() {
       bg: 'bg-emerald-500/10 dark:bg-emerald-500/20',
     },
     {
-      title: 'Novos do Mês',
+      title: 'Novos no Mês',
       value: novosCount,
       icon: UserPlus,
       color: 'text-indigo-500 dark:text-indigo-400',
