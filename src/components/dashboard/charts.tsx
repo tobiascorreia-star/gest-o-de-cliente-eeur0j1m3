@@ -21,14 +21,33 @@ export function DashboardCharts() {
   }, [clients])
 
   const barData = useMemo(() => {
-    const data = categories
-      .filter((cat) => cat.active !== false)
-      .map((cat) => {
-        const count = clients.filter((c) => c.categoria === cat.id).length
-        return { category: cat.name, total: count, fill: cat.color || 'hsl(var(--primary))' }
-      })
-      .filter((item) => item.total > 0)
-    return data.length > 0 ? data : []
+    const counts: Record<string, { total: number; fill: string }> = {}
+
+    clients.forEach((c) => {
+      const catObj = Array.isArray(c.expand?.categoria)
+        ? c.expand.categoria[0]
+        : c.expand?.categoria
+
+      if (catObj && catObj.name) {
+        const catName = catObj.name
+        if (!counts[catName]) {
+          const catConfig = categories.find((cat) => cat.id === catObj.id)
+          counts[catName] = {
+            total: 0,
+            fill: catConfig?.color || catObj.color || 'hsl(var(--primary))',
+          }
+        }
+        counts[catName].total += 1
+      }
+    })
+
+    const data = Object.entries(counts).map(([category, { total, fill }]) => ({
+      category,
+      total,
+      fill,
+    }))
+
+    return data.sort((a, b) => b.total - a.total)
   }, [clients, categories])
 
   return (

@@ -29,9 +29,12 @@ export function KpiCards() {
     (c) => c.status === baixaStatusId && new Date(c.updated) >= thisMonthStart,
   ).length
 
-  const novosCount = clients.filter(
-    (c) => c.expand?.categoria?.name?.toLowerCase() === 'novo',
-  ).length
+  const novosCount = clients.filter((c) => {
+    const cat = Array.isArray(c.expand?.categoria) ? c.expand.categoria[0] : c.expand?.categoria
+    const isNovo = cat?.name?.toLowerCase() === 'novo'
+    const isThisMonth = new Date(c.created) >= thisMonthStart
+    return isNovo && isThisMonth
+  }).length
 
   const cards = [
     {
@@ -60,7 +63,7 @@ export function KpiCards() {
       bg: 'bg-emerald-500/10 dark:bg-emerald-500/20',
     },
     {
-      title: 'Novos',
+      title: 'Novos do Mês',
       value: novosCount,
       icon: UserPlus,
       color: 'text-indigo-500 dark:text-indigo-400',
