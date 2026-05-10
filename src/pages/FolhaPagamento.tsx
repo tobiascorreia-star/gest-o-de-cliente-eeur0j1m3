@@ -614,7 +614,7 @@ export default function FolhaPagamento() {
       const updatedDrafts = [...draftPayrolls]
       for (let i = 0; i < updatedDrafts.length; i++) {
         const p = updatedDrafts[i]
-        if (p.closed || p.status === 'pago') continue
+        if (p.closed) continue
 
         const data = {
           colaborador: p.colaborador,
@@ -655,14 +655,19 @@ export default function FolhaPagamento() {
 
       const existingNextMonth = await pb.collection('payroll').getFullList({
         filter: `ano_referencia = ${nextMonthDate.getFullYear()} && mes_referencia = ${nextMonthDate.getMonth() + 1}`,
-        fields: 'id,colaborador',
+        fields: 'id,colaborador,status,closed',
       })
-      const existingEmployeeMap = new Map(existingNextMonth.map((r) => [r.colaborador, r.id]))
+      const existingEmployeeMap = new Map(existingNextMonth.map((r) => [r.colaborador, r]))
 
       for (let i = 0; i < updatedDrafts.length; i++) {
         const p = updatedDrafts[i]
         const employeeObj = users.find((u) => u.id === p.colaborador)
         if (employeeObj && employeeObj.active === false) {
+          continue
+        }
+
+        const existingRecord = existingEmployeeMap.get(p.colaborador)
+        if (existingRecord && (existingRecord.closed || existingRecord.status === 'pago')) {
           continue
         }
 
@@ -703,9 +708,13 @@ export default function FolhaPagamento() {
           closed: false,
         }
 
-        const existingId = existingEmployeeMap.get(p.colaborador)
-        if (existingId) {
-          await pb.collection('payroll').update(existingId, nextMonthData)
+        if (existingRecord) {
+          await pb.collection('payroll').update(existingRecord.id, {
+            base_salary: p.base_salary || 0,
+            unit_value: p.unit_value || 0,
+            qtde_install: newQtdeInstall,
+            manual_install_qty: p.manual_install_qty,
+          })
         } else {
           await pb.collection('payroll').create(nextMonthData)
         }
