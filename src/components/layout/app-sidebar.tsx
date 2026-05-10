@@ -16,6 +16,8 @@ import {
   LogOut,
   Banknote,
   Wallet,
+  HeartHandshake,
+  BookOpen,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -46,6 +48,8 @@ const navigation = [
   { name: 'Pag. Admin', href: '/pagamentos-admin', icon: Wallet, adminOnly: true },
   { name: 'Arquivo', href: '/arquivo', icon: Archive, adminOnly: true },
   { name: 'Relatório', href: '/relatorio', icon: FileBarChart },
+  { name: 'Saúde Financeira', href: '/saude-financeira', icon: HeartHandshake },
+  { name: 'Educ. Financeira', href: '/educacao-financeira-admin', icon: BookOpen, adminOnly: true },
   { name: 'Configuração', href: '/configuracao', icon: Settings, adminOnly: true },
 ]
 

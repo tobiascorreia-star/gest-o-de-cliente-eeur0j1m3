@@ -117,6 +117,21 @@ export interface PayrollSettings {
   updated: string
 }
 
+export interface FinancialEducation {
+  id: string
+  user: string
+  net_value: number
+  admin_message?: string
+  sync_date?: string
+  month: number
+  year: number
+  created: string
+  updated: string
+  expand?: {
+    user?: User
+  }
+}
+
 export interface AdminPayment {
   id: string
   dono_pagamento: string

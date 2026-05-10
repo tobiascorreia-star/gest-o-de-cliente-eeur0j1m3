@@ -21,6 +21,8 @@ import NotFound from './pages/NotFound'
 import Login from './pages/Login'
 import Setup from './pages/Setup'
 import PagamentosAdmin from './pages/PagamentosAdmin'
+import SaudeFinanceira from './pages/SaudeFinanceira'
+import EducacaoFinanceiraAdmin from './pages/EducacaoFinanceiraAdmin'
 import { UpdateNotification } from './components/update-notification'
 import { AdminPaymentsAlert } from './components/admin-payments-alert'
 
@@ -61,12 +63,14 @@ const AppRoutes = () => {
           <Route path="/historico" element={<Historico />} />
           <Route path="/concluidos" element={<Concluidos />} />
           <Route path="/relatorio" element={<Relatorio />} />
+          <Route path="/saude-financeira" element={<SaudeFinanceira />} />
           <Route element={<AdminRoute />}>
             <Route path="/arquivo" element={<Arquivo />} />
             <Route path="/auditoria" element={<Auditoria />} />
             <Route path="/usuarios" element={<Usuarios />} />
             <Route path="/folha-pagamento" element={<FolhaPagamento />} />
             <Route path="/pagamentos-admin" element={<PagamentosAdmin />} />
+            <Route path="/educacao-financeira-admin" element={<EducacaoFinanceiraAdmin />} />
             <Route path="/configuracao" element={<Configuracao />} />
           </Route>{' '}
         </Route>
