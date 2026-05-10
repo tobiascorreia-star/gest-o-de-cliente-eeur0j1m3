@@ -106,7 +106,7 @@ export default function FolhaPagamento() {
   const [extra2, setExtra2] = useState<number | null>(null)
   const [extra3, setExtra3] = useState<number | null>(null)
   const [extra4, setExtra4] = useState<number | null>(null)
-  const [status, setStatus] = useState('Pendente')
+  const [status, setStatus] = useState('pendente')
   const [observations, setObservations] = useState('')
   const [isClosed, setIsClosed] = useState(false)
   const [incentivo, setIncentivo] = useState<number>(0)
@@ -150,17 +150,17 @@ export default function FolhaPagamento() {
 
       const [yStr, mStr] = filterMonth.split('-')
       const y = parseInt(yStr, 10)
-      const m = parseInt(mStr, 10) - 1
+      const m = parseInt(mStr, 10)
 
-      const startOfMo = new Date(Date.UTC(y, m, 1, 0, 0, 0)).toISOString()
-      const endOfMo = new Date(Date.UTC(y, m + 1, 1, 0, 0, 0)).toISOString()
+      const startOfMo = new Date(Date.UTC(y, m - 1, 1, 0, 0, 0)).toISOString()
+      const endOfMo = new Date(Date.UTC(y, m, 1, 0, 0, 0)).toISOString()
 
       const filterStart = startOfMo.replace('T', ' ')
       const filterEnd = endOfMo.replace('T', ' ')
 
       const pData = await pb.collection('payroll').getFullList({
-        filter: `reference_date >= '${filterStart}' && reference_date < '${filterEnd}'`,
-        expand: 'employee',
+        filter: `ano_referencia = ${y} && mes_referencia = ${m}`,
+        expand: 'colaborador',
         sort: '-created',
       })
 
@@ -217,7 +217,7 @@ export default function FolhaPagamento() {
 
   const handleMonthChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const hasUnsaved = draftPayrolls.some(
-      (p) => (p._isDraft || p._isModified) && !(p.closed || p.status === 'Pago'),
+      (p) => (p._isDraft || p._isModified) && !(p.closed || p.status === 'pago'),
     )
     if (hasUnsaved) {
       if (
@@ -237,7 +237,7 @@ export default function FolhaPagamento() {
     const q = parseInt(intVal, 10) || 0
     setDraftPayrolls((prev) =>
       prev.map((p) => {
-        if (p.closed || p.status === 'Pago') return p
+        if (p.closed || p.status === 'pago') return p
 
         if (p.manual_install_qty) {
           return p
@@ -259,7 +259,7 @@ export default function FolhaPagamento() {
           qtde_install: q,
           install_commission: calculatedIncentivo,
           incentivo: calculatedIncentivo,
-          total,
+          total_a_pagar: total,
           _isModified: true,
         }
       }),
@@ -268,12 +268,12 @@ export default function FolhaPagamento() {
 
   const openForm = (p?: any) => {
     if (p) {
-      const isActuallyClosed = p.closed || p.status === 'Pago'
+      const isActuallyClosed = p.closed || p.status === 'pago'
       const isManual = p.manual_install_qty || false
       const dbQtde = p.qtde_install || 0
 
       setEditingRecord({ ...p, closed: isActuallyClosed })
-      setEmployee(p.employee)
+      setEmployee(p.colaborador)
       setBaseSalary(p.base_salary ?? null)
       setUnitValue(p.unit_value ?? null)
       setCurrentQtde(dbQtde)
@@ -283,11 +283,11 @@ export default function FolhaPagamento() {
       setExtra2(p.extra_2 ?? null)
       setExtra3(p.extra_3 ?? null)
       setExtra4(p.extra_4 ?? null)
-      setStatus(p.status || 'Pendente')
-      setObservations(p.observations || '')
+      setStatus(p.status || 'pendente')
+      setObservations(p.observacoes || '')
       setIsClosed(isActuallyClosed)
       setIncentivo(p.incentivo ?? p.install_commission ?? 0)
-      setTotalValue(p.total || 0)
+      setTotalValue(p.total_a_pagar || 0)
     } else {
       const q = parseInt(globalQty, 10) || 0
       setEditingRecord(null)
@@ -301,7 +301,7 @@ export default function FolhaPagamento() {
       setExtra2(null)
       setExtra3(null)
       setExtra4(null)
-      setStatus('Pendente')
+      setStatus('pendente')
       setObservations('')
       setIsClosed(false)
       setIncentivo(0)
@@ -334,7 +334,6 @@ export default function FolhaPagamento() {
       return
     }
 
-    // Ensure we await for the most fresh calculation if there was any race condition
     const finalIncentivo = manualInstallQty ? (incentivo ?? 0) : (unitValue || 0) * currentQtde
     const finalTotal =
       (baseSalary || 0) +
@@ -348,11 +347,16 @@ export default function FolhaPagamento() {
     const globalQ = parseFloat(globalQty) || 0
 
     const [y, m] = filterMonth.split('-')
-    const startOfMo = new Date(Date.UTC(parseInt(y), parseInt(m) - 1, 1, 0, 0, 0)).toISOString()
+    const ano_referencia = parseInt(y, 10)
+    const mes_referencia = parseInt(m, 10)
+    const startOfMo = new Date(
+      Date.UTC(ano_referencia, mes_referencia - 1, 1, 0, 0, 0),
+    ).toISOString()
 
     const data = {
-      employee,
-      reference_date: startOfMo,
+      colaborador: employee,
+      mes_referencia,
+      ano_referencia,
       base_salary: baseSalary || 0,
       unit_value: unitValue || 0,
       qtde_install: currentQtde,
@@ -364,9 +368,9 @@ export default function FolhaPagamento() {
       extra_2: extra2 || 0,
       extra_3: extra3 || 0,
       extra_4: extra4 || 0,
-      total: finalTotal,
+      total_a_pagar: finalTotal,
       status,
-      observations,
+      observacoes: observations,
       closed: isClosed,
     }
 
@@ -390,7 +394,7 @@ export default function FolhaPagamento() {
         await pb.collection('payroll').update(editingRecord.id, data)
       } else {
         const exists = draftPayrolls.some(
-          (p) => p.employee === employee && p.id !== editingRecord?.id,
+          (p) => p.colaborador === employee && p.id !== editingRecord?.id,
         )
         if (exists) {
           toast({
@@ -420,7 +424,7 @@ export default function FolhaPagamento() {
   }
 
   const handleSaveRow = async (p: any) => {
-    setSavingRowId(p.employee)
+    setSavingRowId(p.colaborador)
     try {
       let currentSettingsId = settingsId
       const [y, m] = filterMonth.split('-')
@@ -440,8 +444,9 @@ export default function FolhaPagamento() {
       }
 
       const data = {
-        employee: p.employee,
-        reference_date: p.reference_date,
+        colaborador: p.colaborador,
+        mes_referencia: p.mes_referencia,
+        ano_referencia: p.ano_referencia,
         base_salary: p.base_salary,
         unit_value: p.unit_value,
         qtde_install: p.qtde_install,
@@ -457,17 +462,17 @@ export default function FolhaPagamento() {
         extra_2: p.extra_2,
         extra_3: p.extra_3,
         extra_4: p.extra_4,
-        total: p.total,
+        total_a_pagar: p.total_a_pagar,
         status: p.status,
-        observations: p.observations,
+        observacoes: p.observacoes,
         closed: p.closed,
       }
 
       let saved
       if (p.id) {
-        saved = await pb.collection('payroll').update(p.id, data, { expand: 'employee' })
+        saved = await pb.collection('payroll').update(p.id, data, { expand: 'colaborador' })
       } else {
-        saved = await pb.collection('payroll').create(data, { expand: 'employee' })
+        saved = await pb.collection('payroll').create(data, { expand: 'colaborador' })
       }
 
       setDraftPayrolls((prev) =>
@@ -500,7 +505,7 @@ export default function FolhaPagamento() {
       }
     }
     setDraftPayrolls((prev) =>
-      prev.filter((item) => (p.id ? item.id !== p.id : item.employee !== p.employee)),
+      prev.filter((item) => (p.id ? item.id !== p.id : item.colaborador !== p.colaborador)),
     )
   }
 
@@ -514,9 +519,9 @@ export default function FolhaPagamento() {
     try {
       const data = {
         closed: false,
-        status: 'Pendente',
+        status: 'pendente',
       }
-      const saved = await pb.collection('payroll').update(p.id, data, { expand: 'employee' })
+      const saved = await pb.collection('payroll').update(p.id, data, { expand: 'colaborador' })
       setDraftPayrolls((prev) =>
         prev.map((item) =>
           item.id === p.id ? { ...item, ...saved, _isDraft: false, _isModified: false } : item,
@@ -524,7 +529,7 @@ export default function FolhaPagamento() {
       )
       await logAudit(
         'reabrir_folha',
-        `Lançamento de ${p.expand?.employee?.name || p.expand?.employee?.email} reaberto na competência ${getHeaderCompetence(p.reference_date)}.`,
+        `Lançamento de ${p.expand?.colaborador?.name || p.expand?.colaborador?.email} reaberto na competência ${getHeaderCompetence(p.mes_referencia, p.ano_referencia)}.`,
       )
       toast({ title: 'Sucesso', description: 'Lançamento reaberto com sucesso.' })
     } catch (err) {
@@ -580,11 +585,10 @@ export default function FolhaPagamento() {
       let currentSettingsId = settingsId
       const [y, m] = filterMonth.split('-')
       const currentYear = parseInt(y, 10)
-      const currentMonth = parseInt(m, 10) - 1
-      const startOfMo = new Date(Date.UTC(currentYear, currentMonth, 1, 0, 0, 0)).toISOString()
+      const currentMonth = parseInt(m, 10)
+      const startOfMo = new Date(Date.UTC(currentYear, currentMonth - 1, 1, 0, 0, 0)).toISOString()
 
-      const nextMonthDate = new Date(Date.UTC(currentYear, currentMonth + 1, 1, 0, 0, 0))
-      const nextMonthStr = nextMonthDate.toISOString()
+      const nextMonthDate = new Date(Date.UTC(currentYear, currentMonth, 1, 0, 0, 0))
       const nextFilterMonth = `${nextMonthDate.getFullYear()}-${String(nextMonthDate.getMonth() + 1).padStart(2, '0')}`
 
       if (!currentSettingsId && globalQty !== '') {
@@ -602,11 +606,12 @@ export default function FolhaPagamento() {
       const updatedDrafts = [...draftPayrolls]
       for (let i = 0; i < updatedDrafts.length; i++) {
         const p = updatedDrafts[i]
-        if (p.closed || p.status === 'Pago') continue
+        if (p.closed || p.status === 'pago') continue
 
         const data = {
-          employee: p.employee,
-          reference_date: p.reference_date,
+          colaborador: p.colaborador,
+          mes_referencia: p.mes_referencia,
+          ano_referencia: p.ano_referencia,
           base_salary: p.base_salary,
           unit_value: p.unit_value,
           qtde_install: p.qtde_install,
@@ -622,42 +627,37 @@ export default function FolhaPagamento() {
           extra_2: p.extra_2,
           extra_3: p.extra_3,
           extra_4: p.extra_4,
-          total: p.total,
-          status: 'Pago',
-          observations: p.observations,
+          total_a_pagar: p.total_a_pagar,
+          status: 'pago',
+          observacoes: p.observacoes,
           closed: true,
         }
 
         let saved
         if (p.id) {
-          saved = await pb.collection('payroll').update(p.id, data, { expand: 'employee' })
+          saved = await pb.collection('payroll').update(p.id, data, { expand: 'colaborador' })
         } else {
-          saved = await pb.collection('payroll').create(data, { expand: 'employee' })
+          saved = await pb.collection('payroll').create(data, { expand: 'colaborador' })
         }
         updatedDrafts[i] = { ...p, ...saved, _isDraft: false, _isModified: false }
       }
 
       setDraftPayrolls(updatedDrafts)
 
-      const filterStart = nextMonthStr.replace('T', ' ')
-      const nextMonthEndStr = new Date(Date.UTC(currentYear, currentMonth + 2, 1, 0, 0, 0))
-        .toISOString()
-        .replace('T', ' ')
-
       const existingNextMonth = await pb.collection('payroll').getFullList({
-        filter: `reference_date >= '${filterStart}' && reference_date < '${nextMonthEndStr}'`,
-        fields: 'employee',
+        filter: `ano_referencia = ${nextMonthDate.getFullYear()} && mes_referencia = ${nextMonthDate.getMonth() + 1}`,
+        fields: 'colaborador',
       })
-      const existingEmployeeIds = new Set(existingNextMonth.map((r) => r.employee))
+      const existingEmployeeIds = new Set(existingNextMonth.map((r) => r.colaborador))
 
       for (let i = 0; i < updatedDrafts.length; i++) {
         const p = updatedDrafts[i]
-        const employeeObj = users.find((u) => u.id === p.employee)
+        const employeeObj = users.find((u) => u.id === p.colaborador)
         if (employeeObj && employeeObj.active === false) {
           continue
         }
 
-        if (existingEmployeeIds.has(p.employee)) {
+        if (existingEmployeeIds.has(p.colaborador)) {
           continue
         }
 
@@ -675,8 +675,9 @@ export default function FolhaPagamento() {
           (p.extra_4 || 0)
 
         const nextMonthData = {
-          employee: p.employee,
-          reference_date: nextMonthStr,
+          colaborador: p.colaborador,
+          mes_referencia: nextMonthDate.getMonth() + 1,
+          ano_referencia: nextMonthDate.getFullYear(),
           base_salary: p.base_salary || 0,
           unit_value: p.unit_value || 0,
           qtde_install: newQtdeInstall,
@@ -688,17 +689,20 @@ export default function FolhaPagamento() {
           extra_2: p.extra_2 || 0,
           extra_3: p.extra_3 || 0,
           extra_4: p.extra_4 || 0,
-          total: newTotal,
-          status: 'Pendente',
-          observations: '',
+          total_a_pagar: newTotal,
+          status: 'pendente',
+          observacoes: '',
           closed: false,
         }
 
         await pb.collection('payroll').create(nextMonthData)
       }
 
-      const competenceStr = getHeaderCompetence(startOfMo)
-      const nextCompetenceStr = getHeaderCompetence(nextMonthStr)
+      const competenceStr = getHeaderCompetence(currentMonth, currentYear)
+      const nextCompetenceStr = getHeaderCompetence(
+        nextMonthDate.getMonth() + 1,
+        nextMonthDate.getFullYear(),
+      )
       await logAudit(
         'fechar_mes',
         `Competência ${competenceStr} fechada. Transporte realizado para ${nextCompetenceStr}.`,
@@ -721,16 +725,16 @@ export default function FolhaPagamento() {
 
   const filteredPayrolls = draftPayrolls.filter((p) => {
     if (filterStatus !== 'all' && p.status !== filterStatus) return false
-    if (filterUser !== 'all' && p.employee !== filterUser) return false
+    if (filterUser !== 'all' && p.colaborador !== filterUser) return false
     return true
   })
 
-  const hasClosedRecords = draftPayrolls.some((p) => p.closed || p.status === 'Pago')
-  const hasOpenRecords = draftPayrolls.some((p) => !(p.closed || p.status === 'Pago'))
+  const hasClosedRecords = draftPayrolls.some((p) => p.closed || p.status === 'pago')
+  const hasOpenRecords = draftPayrolls.some((p) => !(p.closed || p.status === 'pago'))
 
-  const getHeaderCompetence = (isoString: string) => {
-    if (!isoString) return ''
-    const d = new Date(isoString)
+  const getHeaderCompetence = (mes?: number, ano?: number) => {
+    if (!mes || !ano) return ''
+    const d = new Date(Date.UTC(ano, mes - 1, 1))
     const m = format(d, 'MMMM yyyy', { locale: ptBR })
     let formatted = m.charAt(0).toUpperCase() + m.slice(1)
     return formatted.replace(' de ', ' ')
@@ -739,7 +743,7 @@ export default function FolhaPagamento() {
   const fmtC = (val: number) =>
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val)
 
-  const totalProventos = filteredPayrolls.reduce((sum, p) => sum + (p.total || 0), 0)
+  const totalProventos = filteredPayrolls.reduce((sum, p) => sum + (p.total_a_pagar || 0), 0)
 
   return (
     <>
@@ -841,8 +845,8 @@ export default function FolhaPagamento() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Todos</SelectItem>
-                    <SelectItem value="Pendente">Pendente</SelectItem>
-                    <SelectItem value="Pago">Pago</SelectItem>
+                    <SelectItem value="pendente">Pendente</SelectItem>
+                    <SelectItem value="pago">Pago</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -886,19 +890,23 @@ export default function FolhaPagamento() {
                 filteredPayrolls.map((p) => {
                   const isUnsaved = p._isDraft || p._isModified
                   return (
-                    <TableRow key={p.id || p.employee}>
+                    <TableRow key={p.id || p.colaborador}>
                       <TableCell className="font-medium">
-                        {p.expand?.employee?.name || p.expand?.employee?.email || 'Desconhecido'}
+                        {p.expand?.colaborador?.name ||
+                          p.expand?.colaborador?.email ||
+                          'Desconhecido'}
                       </TableCell>
-                      <TableCell>{getHeaderCompetence(p.reference_date)}</TableCell>
+                      <TableCell>
+                        {getHeaderCompetence(p.mes_referencia, p.ano_referencia)}
+                      </TableCell>
                       <TableCell className="hidden md:table-cell">
                         <Badge
-                          variant={p.status === 'Pago' ? 'default' : 'secondary'}
+                          variant={p.status === 'pago' ? 'default' : 'secondary'}
                           className={
-                            p.status === 'Pago' ? 'bg-emerald-500 hover:bg-emerald-600' : ''
+                            p.status === 'pago' ? 'bg-emerald-500 hover:bg-emerald-600' : ''
                           }
                         >
-                          {p.status}
+                          {p.status === 'pago' ? 'Pago' : 'Pendente'}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right font-medium text-slate-700 dark:text-slate-300 hidden sm:table-cell">
@@ -908,20 +916,20 @@ export default function FolhaPagamento() {
                         {fmtC((p.incentivo ?? p.install_commission) || 0)}
                       </TableCell>
                       <TableCell className="text-right font-medium text-slate-700 dark:text-slate-300">
-                        {fmtC(p.total)}
+                        {fmtC(p.total_a_pagar)}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2 items-center">
-                          {isUnsaved && !(p.closed || p.status === 'Pago') && (
+                          {isUnsaved && !(p.closed || p.status === 'pago') && (
                             <Button
                               variant="ghost"
                               size="icon"
                               className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-900/20"
                               onClick={() => handleSaveRow(p)}
-                              disabled={savingRowId === p.employee}
+                              disabled={savingRowId === p.colaborador}
                               title="Gravar Alterações"
                             >
-                              {savingRowId === p.employee ? (
+                              {savingRowId === p.colaborador ? (
                                 <Loader2 className="w-4 h-4 animate-spin" />
                               ) : (
                                 <Save className="w-4 h-4" />
@@ -941,12 +949,12 @@ export default function FolhaPagamento() {
                             size="icon"
                             onClick={() => openForm(p)}
                             title={
-                              p.closed || p.status === 'Pago' ? 'Visualizar (Fechado)' : 'Editar'
+                              p.closed || p.status === 'pago' ? 'Visualizar (Fechado)' : 'Editar'
                             }
                           >
                             <Edit className="w-4 h-4 text-slate-500" />
                           </Button>
-                          {(p.closed || p.status === 'Pago') && (
+                          {(p.closed || p.status === 'pago') && (
                             <Button
                               variant="ghost"
                               size="icon"
@@ -957,7 +965,7 @@ export default function FolhaPagamento() {
                               <RotateCcw className="w-4 h-4 text-orange-500" />
                             </Button>
                           )}
-                          {!(p.closed || p.status === 'Pago') && (
+                          {!(p.closed || p.status === 'pago') && (
                             <Button
                               variant="ghost"
                               size="icon"
@@ -1055,8 +1063,8 @@ export default function FolhaPagamento() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Pendente">Pendente</SelectItem>
-                      <SelectItem value="Pago">Pago</SelectItem>
+                      <SelectItem value="pendente">Pendente</SelectItem>
+                      <SelectItem value="pago">Pago</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -1262,20 +1270,25 @@ export default function FolhaPagamento() {
                   <h3 className="font-bold text-lg">RECIBO DE PAGAMENTO</h3>
                   <p className="text-sm text-slate-500">
                     Competência:{' '}
-                    {receiptRecord ? getHeaderCompetence(receiptRecord.reference_date) : ''}
+                    {receiptRecord
+                      ? getHeaderCompetence(
+                          receiptRecord.mes_referencia,
+                          receiptRecord.ano_referencia,
+                        )
+                      : ''}
                   </p>
                 </div>
                 <div className="space-y-2 text-sm border-b border-slate-100 dark:border-slate-800 pb-4 mb-4">
                   <div className="flex justify-between">
                     <span className="text-slate-500">Colaborador:</span>
                     <span className="font-medium">
-                      {receiptRecord?.expand?.employee?.name ||
-                        receiptRecord?.expand?.employee?.email}
+                      {receiptRecord?.expand?.colaborador?.name ||
+                        receiptRecord?.expand?.colaborador?.email}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-500">Status:</span>
-                    <span>{receiptRecord?.status}</span>
+                    <span>{receiptRecord?.status === 'pago' ? 'Pago' : 'Pendente'}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-500">Data de Emissão:</span>
@@ -1330,7 +1343,7 @@ export default function FolhaPagamento() {
                 </div>
                 <div className="flex justify-between items-center bg-slate-50 dark:bg-slate-900 p-3 rounded-lg font-bold text-lg text-primary">
                   <span>Total</span>
-                  <span>{receiptRecord ? fmtC(receiptRecord.total) : ''}</span>
+                  <span>{receiptRecord ? fmtC(receiptRecord.total_a_pagar) : ''}</span>
                 </div>
               </div>
             </div>
@@ -1385,7 +1398,8 @@ export default function FolhaPagamento() {
                 Recibo de Pagamento
               </h1>
               <p className="text-lg mt-2 text-slate-700">
-                Competência: {getHeaderCompetence(receiptRecord.reference_date)}
+                Competência:{' '}
+                {getHeaderCompetence(receiptRecord.mes_referencia, receiptRecord.ano_referencia)}
               </p>
             </div>
 
@@ -1395,7 +1409,8 @@ export default function FolhaPagamento() {
                   Colaborador
                 </p>
                 <p className="font-bold text-xl">
-                  {receiptRecord?.expand?.employee?.name || receiptRecord?.expand?.employee?.email}
+                  {receiptRecord?.expand?.colaborador?.name ||
+                    receiptRecord?.expand?.colaborador?.email}
                 </p>
               </div>
               <div className="text-right">
@@ -1461,7 +1476,7 @@ export default function FolhaPagamento() {
 
             <div className="flex justify-between items-center bg-slate-100 p-6 rounded-lg font-bold text-3xl border-2 border-black mb-24">
               <span>TOTAL PAGO</span>
-              <span>{fmtC(receiptRecord.total)}</span>
+              <span>{fmtC(receiptRecord.total_a_pagar)}</span>
             </div>
 
             <div className="text-center pb-8">
@@ -1470,7 +1485,8 @@ export default function FolhaPagamento() {
                   Assinatura do Colaborador
                 </p>
                 <p className="text-lg text-slate-600 mt-1">
-                  {receiptRecord?.expand?.employee?.name || receiptRecord?.expand?.employee?.email}
+                  {receiptRecord?.expand?.colaborador?.name ||
+                    receiptRecord?.expand?.colaborador?.email}
                 </p>
               </div>
             </div>

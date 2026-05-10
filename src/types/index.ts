@@ -64,9 +64,13 @@ export interface AuditLog {
 
 export interface Payroll {
   id: string
-  employee: string
+  colaborador: string
+  mes_referencia: number
+  ano_referencia: number
   base_salary: number
   unit_value?: number
+  qtde_install?: number
+  manual_install_qty?: boolean
   install_commission: number
   incentivo?: number
   bonus: number
@@ -74,15 +78,14 @@ export interface Payroll {
   extra_2: number
   extra_3: number
   extra_4: number
-  total: number
-  reference_date: string
+  total_a_pagar: number
   status: string
-  observations?: string
+  observacoes?: string
   closed?: boolean
   created: string
   updated: string
   expand?: {
-    employee?: User
+    colaborador?: User
   }
 }
 
