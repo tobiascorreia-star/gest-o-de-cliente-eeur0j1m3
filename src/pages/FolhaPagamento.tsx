@@ -680,15 +680,22 @@ export default function FolhaPagamento() {
         const newManualInstallQty = false
         const newInstallCommission = 0
         const newIncentivo = 0
-        const newBonus = p.bonus || 0
+        const newBonus = 0
         const newDesconto = 0
-        const newExtra1 = 0
-        const newExtra2 = 0
-        const newExtra3 = 0
-        const newExtra4 = 0
-        const newObservacoes = p.observacoes || ''
+        const newExtra1 = p.extra_1 || 0
+        const newExtra2 = p.extra_2 || 0
+        const newExtra3 = p.extra_3 || 0
+        const newExtra4 = p.extra_4 || 0
+        const newObservacoes = ''
 
-        const newTotal = (p.base_salary || 0) + newBonus
+        const newTotal =
+          (p.base_salary || 0) +
+          newBonus +
+          newExtra1 +
+          newExtra2 +
+          newExtra3 +
+          newExtra4 -
+          newDesconto
 
         const nextMonthData = {
           colaborador: p.colaborador,
