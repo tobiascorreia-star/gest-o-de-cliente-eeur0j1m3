@@ -655,9 +655,9 @@ export default function FolhaPagamento() {
 
       const existingNextMonth = await pb.collection('payroll').getFullList({
         filter: `ano_referencia = ${nextMonthDate.getFullYear()} && mes_referencia = ${nextMonthDate.getMonth() + 1}`,
-        fields: 'colaborador',
+        fields: 'id,colaborador',
       })
-      const existingEmployeeIds = new Set(existingNextMonth.map((r) => r.colaborador))
+      const existingEmployeeMap = new Map(existingNextMonth.map((r) => [r.colaborador, r.id]))
 
       for (let i = 0; i < updatedDrafts.length; i++) {
         const p = updatedDrafts[i]
@@ -666,14 +666,10 @@ export default function FolhaPagamento() {
           continue
         }
 
-        if (existingEmployeeIds.has(p.colaborador)) {
-          continue
-        }
-
-        const newQtdeInstall = 0
-        const newInstallCommission = 0
+        const newQtdeInstall = p.qtde_install || 0
+        const newInstallCommission = p.manual_install_qty ? 0 : (p.unit_value || 0) * newQtdeInstall
         const newBonus = 0
-        const newIncentivo = p.manual_install_qty ? p.incentivo || 0 : 0
+        const newIncentivo = p.manual_install_qty ? p.incentivo || 0 : newInstallCommission
         const newDesconto = 0
         const newTotal =
           (p.base_salary || 0) +
@@ -707,7 +703,12 @@ export default function FolhaPagamento() {
           closed: false,
         }
 
-        await pb.collection('payroll').create(nextMonthData)
+        const existingId = existingEmployeeMap.get(p.colaborador)
+        if (existingId) {
+          await pb.collection('payroll').update(existingId, nextMonthData)
+        } else {
+          await pb.collection('payroll').create(nextMonthData)
+        }
       }
 
       const competenceStr = getHeaderCompetence(currentMonth, currentYear)
