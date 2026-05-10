@@ -596,8 +596,13 @@ export default function FolhaPagamento() {
       const currentMonth = parseInt(m, 10)
       const startOfMo = new Date(Date.UTC(currentYear, currentMonth - 1, 1, 0, 0, 0)).toISOString()
 
-      const nextMonthDate = new Date(Date.UTC(currentYear, currentMonth, 1, 0, 0, 0))
-      const nextFilterMonth = `${nextMonthDate.getFullYear()}-${String(nextMonthDate.getMonth() + 1).padStart(2, '0')}`
+      let nextYear = currentYear
+      let nextMonth = currentMonth + 1
+      if (nextMonth > 12) {
+        nextMonth = 1
+        nextYear += 1
+      }
+      const nextFilterMonth = `${nextYear}-${String(nextMonth).padStart(2, '0')}`
 
       if (!currentSettingsId && globalQty !== '') {
         const s = await pb.collection('payroll_settings').create({
@@ -654,7 +659,7 @@ export default function FolhaPagamento() {
       setDraftPayrolls(updatedDrafts)
 
       const existingNextMonth = await pb.collection('payroll').getFullList({
-        filter: `ano_referencia = ${nextMonthDate.getFullYear()} && mes_referencia = ${nextMonthDate.getMonth() + 1}`,
+        filter: `ano_referencia = ${nextYear} && mes_referencia = ${nextMonth}`,
         fields: 'id,colaborador,status,closed',
       })
       const existingEmployeeMap = new Map(existingNextMonth.map((r) => [r.colaborador, r]))
@@ -671,32 +676,24 @@ export default function FolhaPagamento() {
           continue
         }
 
-        const newQtdeInstall = p.qtde_install || 0
-        const newManualInstallQty = p.manual_install_qty || false
-        const newInstallCommission = p.install_commission || 0
-        const newIncentivo = p.incentivo || 0
+        const newQtdeInstall = 0
+        const newManualInstallQty = false
+        const newInstallCommission = 0
+        const newIncentivo = 0
         const newBonus = p.bonus || 0
-        const newDesconto = p.desconto || 0
-        const newExtra1 = p.extra_1 || 0
-        const newExtra2 = p.extra_2 || 0
-        const newExtra3 = p.extra_3 || 0
-        const newExtra4 = p.extra_4 || 0
+        const newDesconto = 0
+        const newExtra1 = 0
+        const newExtra2 = 0
+        const newExtra3 = 0
+        const newExtra4 = 0
         const newObservacoes = p.observacoes || ''
 
-        const newTotal =
-          (p.base_salary || 0) +
-          newIncentivo +
-          newBonus +
-          newExtra1 +
-          newExtra2 +
-          newExtra3 +
-          newExtra4 -
-          newDesconto
+        const newTotal = (p.base_salary || 0) + newBonus
 
         const nextMonthData = {
           colaborador: p.colaborador,
-          mes_referencia: nextMonthDate.getMonth() + 1,
-          ano_referencia: nextMonthDate.getFullYear(),
+          mes_referencia: nextMonth,
+          ano_referencia: nextYear,
           base_salary: p.base_salary || 0,
           unit_value: p.unit_value || 0,
           qtde_install: newQtdeInstall,
@@ -738,10 +735,7 @@ export default function FolhaPagamento() {
       }
 
       const competenceStr = getHeaderCompetence(currentMonth, currentYear)
-      const nextCompetenceStr = getHeaderCompetence(
-        nextMonthDate.getMonth() + 1,
-        nextMonthDate.getFullYear(),
-      )
+      const nextCompetenceStr = getHeaderCompetence(nextMonth, nextYear)
       await logAudit(
         'fechar_mes',
         `Competência ${competenceStr} fechada. Transporte realizado para ${nextCompetenceStr}.`,
@@ -773,7 +767,7 @@ export default function FolhaPagamento() {
 
   const getHeaderCompetence = (mes?: number, ano?: number) => {
     if (!mes || !ano) return ''
-    const d = new Date(Date.UTC(ano, mes - 1, 1))
+    const d = new Date(ano, mes - 1, 2)
     const m = format(d, 'MMMM yyyy', { locale: ptBR })
     let formatted = m.charAt(0).toUpperCase() + m.slice(1)
     return formatted.replace(' de ', ' ')
