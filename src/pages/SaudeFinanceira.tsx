@@ -242,7 +242,21 @@ export default function SaudeFinanceira() {
                 <SelectContent>
                   {availableMonths.map((m) => {
                     const val = `${m.year}-${String(m.month).padStart(2, '0')}`
-                    const label = `${String(m.month).padStart(2, '0')}/${m.year}`
+                    const monthNames = [
+                      'janeiro',
+                      'fevereiro',
+                      'março',
+                      'abril',
+                      'maio',
+                      'junho',
+                      'julho',
+                      'agosto',
+                      'setembro',
+                      'outubro',
+                      'novembro',
+                      'dezembro',
+                    ]
+                    const label = `${monthNames[m.month - 1]}/${m.year}`
                     return (
                       <SelectItem key={val} value={val}>
                         {label}
