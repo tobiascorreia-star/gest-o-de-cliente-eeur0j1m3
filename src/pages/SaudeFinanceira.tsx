@@ -73,8 +73,8 @@ export default function SaudeFinanceira() {
     if (!user) return
     const fetchAvailable = async () => {
       try {
-        const edFilter = user.role?.toLowerCase() === 'admin' ? '' : `user = "${user.id}"`
-        const prFilter = user.role?.toLowerCase() === 'admin' ? '' : `colaborador = "${user.id}"`
+        const edFilter = `user = "${user.id}"`
+        const prFilter = `colaborador = "${user.id}"`
 
         const [edRecords, prRecords] = await Promise.all([
           pb.collection('financial_education').getFullList({
@@ -153,7 +153,7 @@ export default function SaudeFinanceira() {
   }, [filterMonth, user])
 
   useRealtime('financial_education', (e) => {
-    const isRelevantForMonths = user?.role?.toLowerCase() === 'admin' || e.record.user === user?.id
+    const isRelevantForMonths = e.record.user === user?.id
 
     if (isRelevantForMonths) {
       if (e.action === 'create') {
@@ -182,8 +182,7 @@ export default function SaudeFinanceira() {
   })
 
   useRealtime('payroll', (e) => {
-    const isRelevantForMonths =
-      user?.role?.toLowerCase() === 'admin' || e.record.colaborador === user?.id
+    const isRelevantForMonths = e.record.colaborador === user?.id
 
     if (isRelevantForMonths) {
       if (e.action === 'create') {
