@@ -273,19 +273,19 @@ export default function SaudeFinanceira() {
                 className="w-auto bg-white dark:bg-slate-950"
               />
             )}
-            {payrollRecord && (
+            {!loading && filterMonth ? (
               <Badge
                 variant="outline"
                 className={cn(
                   'text-sm font-semibold whitespace-nowrap border-2',
-                  payrollRecord.closed
+                  payrollRecord?.closed
                     ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900/60'
                     : 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900/60',
                 )}
               >
-                {payrollRecord.closed ? 'Folha Fechada' : 'Folha Aberta'}
+                {payrollRecord?.closed ? 'Folha Fechada' : 'Folha Aberta'}
               </Badge>
-            )}
+            ) : null}
           </div>
         </div>
       </div>
@@ -308,11 +308,11 @@ export default function SaudeFinanceira() {
         </Card>
       ) : (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          {payrollRecord && !payrollRecord.closed && (
+          {(!payrollRecord || !payrollRecord.closed) && (
             <Alert className="bg-amber-50/50 border-amber-200/60 text-amber-800 dark:bg-amber-950/20 dark:border-amber-900/50 dark:text-amber-300 shadow-sm">
               <Info className="w-5 h-5 text-amber-500" />
               <AlertDescription className="font-medium mt-0.5">
-                Os valores mostrados podem sofrer alterações até o fechamento da folha.
+                O valor mostrado pode sofrer alterações até o fechamento da folha.
               </AlertDescription>
             </Alert>
           )}
