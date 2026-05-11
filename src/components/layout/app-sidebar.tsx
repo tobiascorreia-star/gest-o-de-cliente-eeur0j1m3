@@ -194,7 +194,7 @@ export function AppSidebar() {
                           </span>
                         )}
                         {item.name === 'Clientes' && clientAlertsCount > 0 && (
-                          <span className="ml-auto flex items-center justify-center bg-destructive text-destructive-foreground text-[10px] font-bold min-w-5 px-1 h-5 rounded-full shadow-sm">
+                          <span className="ml-auto flex items-center justify-center bg-orange-500 text-white text-[10px] font-bold min-w-5 px-1 h-5 rounded-full shadow-sm">
                             {clientAlertsCount > 99 ? '99+' : clientAlertsCount}
                           </span>
                         )}

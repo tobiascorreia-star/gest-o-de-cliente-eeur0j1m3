@@ -285,10 +285,10 @@ export default function SaudeFinanceira() {
           <CardContent className="py-16 text-center text-slate-500">
             <Info className="w-12 h-12 mx-auto text-slate-300 mb-4" />
             <p className="text-lg font-medium text-slate-700 dark:text-slate-300">
-              Nenhum dado encontrado para este mês.
+              Nenhum dado disponível para este período.
             </p>
             <p>
-              Os dados de saúde financeira deste mês ainda não foram liberados pelo administrador.
+              Não foram encontrados registros de saúde financeira para o mês e ano selecionados.
             </p>
           </CardContent>
         </Card>
