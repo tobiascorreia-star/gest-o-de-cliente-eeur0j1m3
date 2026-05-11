@@ -218,7 +218,20 @@ export default function SaudeFinanceira() {
   const fmtC = (val: number) =>
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val)
 
-  const isClosed = payrollRecord?.closed || payrollRecord?.status === 'pago'
+  let isClosed = payrollRecord?.closed || payrollRecord?.status === 'pago'
+
+  if (filterMonth) {
+    const [yStr, mStr] = filterMonth.split('-')
+    const y = parseInt(yStr, 10)
+    const m = parseInt(mStr, 10)
+    const now = new Date()
+    const currentY = now.getFullYear()
+    const currentM = now.getMonth() + 1
+
+    if (y < currentY || (y === currentY && m < currentM)) {
+      isClosed = true
+    }
+  }
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
