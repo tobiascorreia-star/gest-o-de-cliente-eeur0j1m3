@@ -73,16 +73,37 @@ export default function SaudeFinanceira() {
     if (!user) return
     const fetchAvailable = async () => {
       try {
-        const records = await pb.collection('financial_education').getFullList({
-          filter: `user = "${user.id}"`,
-          sort: '-year,-month',
-          fields: 'year,month',
-        })
-        const unique = Array.from(new Set(records.map((r) => `${r.year}-${r.month}`))).map((k) => {
+        const [edRecords, prRecords] = await Promise.all([
+          pb.collection('financial_education').getFullList({
+            filter: `user = "${user.id}"`,
+            fields: 'year,month',
+          }),
+          pb.collection('payroll').getFullList({
+            filter: `colaborador = "${user.id}"`,
+            fields: 'ano_referencia,mes_referencia',
+          }),
+        ])
+        const set = new Set<string>()
+        edRecords.forEach((r) => set.add(`${r.year}-${r.month}`))
+        prRecords.forEach((r) => set.add(`${r.ano_referencia}-${r.mes_referencia}`))
+
+        const unique = Array.from(set).map((k) => {
           const [y, m] = k.split('-')
           return { year: parseInt(y, 10), month: parseInt(m, 10) }
         })
+        unique.sort((a, b) => b.year - a.year || b.month - a.month)
         setAvailableMonths(unique)
+
+        if (unique.length > 0) {
+          setFilterMonth(
+            (prev) => prev || `${unique[0].year}-${String(unique[0].month).padStart(2, '0')}`,
+          )
+        } else {
+          const now = new Date()
+          setFilterMonth(
+            (prev) => prev || `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`,
+          )
+        }
       } catch (e) {
         // ignore
       }
@@ -91,53 +112,28 @@ export default function SaudeFinanceira() {
   }, [user])
 
   useEffect(() => {
-    if (!user) return
+    if (!user || !filterMonth) return
     let isMounted = true
 
     const loadData = async () => {
       setLoading(true)
       try {
-        let y: number | undefined
-        let m: number | undefined
-        let edData = null
+        const [yStr, mStr] = filterMonth.split('-')
+        const y = parseInt(yStr, 10)
+        const m = parseInt(mStr, 10)
 
-        if (!filterMonth) {
-          edData = await pb
-            .collection('financial_education')
-            .getFirstListItem(`user = "${user.id}"`, { sort: '-year,-month' })
-            .catch(() => null)
-
-          if (edData) {
-            y = edData.year
-            m = edData.month
-          } else {
-            const now = new Date()
-            y = now.getFullYear()
-            m = now.getMonth() + 1
-          }
-          if (isMounted) setFilterMonth(`${y}-${String(m).padStart(2, '0')}`)
-          return
-        } else {
-          const [yStr, mStr] = filterMonth.split('-')
-          y = parseInt(yStr, 10)
-          m = parseInt(mStr, 10)
-          edData = await pb
+        const [edData, prData] = await Promise.all([
+          pb
             .collection('financial_education')
             .getFirstListItem(`user = "${user.id}" && year = ${y} && month = ${m}`)
-            .catch(() => null)
-        }
-
-        if (!isMounted) return
-
-        let prData = null
-        if (y && m) {
-          prData = await pb
+            .catch(() => null),
+          pb
             .collection('payroll')
             .getFirstListItem(
               `colaborador = "${user.id}" && ano_referencia = ${y} && mes_referencia = ${m}`,
             )
-            .catch(() => null)
-        }
+            .catch(() => null),
+        ])
 
         if (isMounted) {
           setRecord(edData)
@@ -179,12 +175,31 @@ export default function SaudeFinanceira() {
   })
 
   useRealtime('payroll', (e) => {
-    if (e.record.colaborador === user?.id && filterMonth) {
-      const [yStr, mStr] = filterMonth.split('-')
-      const y = parseInt(yStr, 10)
-      const m = parseInt(mStr, 10)
-      if (e.record.ano_referencia === y && e.record.mes_referencia === m) {
-        setPayrollRecord(e.action === 'delete' ? null : e.record)
+    if (e.record.colaborador === user?.id) {
+      if (e.action === 'create') {
+        setAvailableMonths((prev) => {
+          const exists = prev.some(
+            (m) => m.year === e.record.ano_referencia && m.month === e.record.mes_referencia,
+          )
+          if (!exists) {
+            const updated = [
+              ...prev,
+              { year: e.record.ano_referencia, month: e.record.mes_referencia },
+            ]
+            updated.sort((a, b) => b.year - a.year || b.month - a.month)
+            return updated
+          }
+          return prev
+        })
+      }
+
+      if (filterMonth) {
+        const [yStr, mStr] = filterMonth.split('-')
+        const y = parseInt(yStr, 10)
+        const m = parseInt(mStr, 10)
+        if (e.record.ano_referencia === y && e.record.mes_referencia === m) {
+          setPayrollRecord(e.action === 'delete' ? null : e.record)
+        }
       }
     }
   })
@@ -278,12 +293,7 @@ export default function SaudeFinanceira() {
           )}
 
           <div className="grid md:grid-cols-3 gap-6">
-            <Card
-              className={cn(
-                'bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border-primary/20',
-                record.admin_message ? 'md:col-span-2' : 'md:col-span-3',
-              )}
-            >
+            <Card className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border-primary/20 md:col-span-3">
               <CardContent className="p-8 flex flex-col justify-center h-full">
                 <p className="text-sm font-semibold uppercase tracking-wider text-primary/80 mb-2">
                   Total a Receber
@@ -298,7 +308,7 @@ export default function SaudeFinanceira() {
             </Card>
 
             {record.admin_message && (
-              <Card className="bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800">
+              <Card className="bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800 md:col-span-3">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-amber-800 dark:text-amber-500 flex items-center gap-2 text-base">
                     <MessageSquareText className="w-5 h-5" />

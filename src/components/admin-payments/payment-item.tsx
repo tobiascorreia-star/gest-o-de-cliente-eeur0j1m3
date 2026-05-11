@@ -121,7 +121,7 @@ export function PaymentItem({ item, onEdit }: Props) {
           : isToday
             ? 'bg-orange-50/40 dark:bg-orange-950/20 border-orange-200 dark:border-orange-900/50 relative overflow-hidden'
             : isNearDeadline
-              ? 'bg-yellow-50/50 dark:bg-yellow-950/20 border-yellow-300 dark:border-yellow-900/50'
+              ? 'bg-yellow-50/50 dark:bg-yellow-950/20 border-yellow-300 dark:border-yellow-900/50 relative overflow-hidden'
               : 'bg-white dark:bg-slate-950 border-slate-100 dark:border-slate-800',
         'hover:border-slate-300 dark:hover:border-slate-700',
       )}
@@ -131,6 +131,9 @@ export function PaymentItem({ item, onEdit }: Props) {
       )}
       {isToday && (
         <div className="absolute inset-y-0 left-0 w-1 bg-orange-500 animate-pulse shadow-[0_0_8px_rgba(249,115,22,0.6)]" />
+      )}
+      {isNearDeadline && (
+        <div className="absolute inset-y-0 left-0 w-1 bg-yellow-400 animate-pulse shadow-[0_0_8px_rgba(250,204,21,0.6)]" />
       )}
       <Checkbox
         checked={item.status}
@@ -172,7 +175,7 @@ export function PaymentItem({ item, onEdit }: Props) {
               {isToday && (
                 <Badge
                   variant="default"
-                  className="text-[10px] h-5 px-1.5 py-0 uppercase tracking-wider bg-orange-500 hover:bg-orange-600 text-white whitespace-nowrap"
+                  className="text-[10px] h-5 px-1.5 py-0 uppercase tracking-wider bg-orange-500 hover:bg-orange-600 text-white whitespace-nowrap animate-pulse"
                 >
                   Vencendo Hoje
                 </Badge>
@@ -180,11 +183,11 @@ export function PaymentItem({ item, onEdit }: Props) {
               {isNearDeadline && (
                 <Badge
                   variant="outline"
-                  className="text-[10px] h-5 px-1.5 py-0 uppercase tracking-wider border-yellow-500 text-yellow-600 dark:border-yellow-400 dark:text-yellow-400 whitespace-nowrap"
+                  className="text-[10px] h-5 px-1.5 py-0 uppercase tracking-wider border-yellow-500 text-yellow-600 dark:border-yellow-400 dark:text-yellow-400 whitespace-nowrap animate-pulse"
                 >
                   Vencendo em 1 dia
                 </Badge>
-              )}
+              )}{' '}
             </>
           )}
           {item.status && (
@@ -227,9 +230,12 @@ export function PaymentItem({ item, onEdit }: Props) {
               >
                 {(isOverdue || isToday || isNearDeadline) && (
                   <AlertCircle
-                    className={cn('w-3 h-3', (isOverdue || isToday) && 'animate-pulse')}
+                    className={cn(
+                      'w-3 h-3',
+                      (isOverdue || isToday || isNearDeadline) && 'animate-pulse',
+                    )}
                   />
-                )}
+                )}{' '}
                 {item.data_notificacao
                   ? `Vence: ${format(getEffectiveDueDate(notifDate!), 'dd/MM/yyyy')}`
                   : 'Sem vencimento'}
