@@ -188,7 +188,7 @@ export function AppSidebar() {
                             className={cn(
                               'ml-auto flex items-center justify-center text-white text-[10px] font-bold min-w-[20px] h-5 px-1 rounded-full shadow-sm',
                               hasOverdueAdminPayments
-                                ? 'bg-red-600 animate-[pulse_1.5s_ease-in-out_infinite]'
+                                ? 'bg-orange-500 animate-[pulse_1.5s_ease-in-out_infinite]'
                                 : 'bg-amber-500 animate-[pulse_2s_ease-in-out_infinite]',
                             )}
                           >

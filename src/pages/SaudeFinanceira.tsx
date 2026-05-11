@@ -84,6 +84,11 @@ export default function SaudeFinanceira() {
           }),
         ])
         const set = new Set<string>()
+        const now = new Date()
+
+        // Ensure current month is always an option in the dropdown
+        set.add(`${now.getFullYear()}-${now.getMonth() + 1}`)
+
         edRecords.forEach((r) => set.add(`${r.year}-${r.month}`))
         prRecords.forEach((r) => set.add(`${r.ano_referencia}-${r.mes_referencia}`))
 
@@ -91,19 +96,14 @@ export default function SaudeFinanceira() {
           const [y, m] = k.split('-')
           return { year: parseInt(y, 10), month: parseInt(m, 10) }
         })
+        // Sort descending (most recent first)
         unique.sort((a, b) => b.year - a.year || b.month - a.month)
         setAvailableMonths(unique)
 
-        if (unique.length > 0) {
-          setFilterMonth(
-            (prev) => prev || `${unique[0].year}-${String(unique[0].month).padStart(2, '0')}`,
-          )
-        } else {
-          const now = new Date()
-          setFilterMonth(
-            (prev) => prev || `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`,
-          )
-        }
+        // Default to the most recent available month
+        setFilterMonth(
+          (prev) => prev || `${unique[0].year}-${String(unique[0].month).padStart(2, '0')}`,
+        )
       } catch (e) {
         // ignore
       }
