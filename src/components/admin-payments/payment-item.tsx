@@ -2,13 +2,31 @@ import { AdminPayment } from '@/types'
 import { useState, useRef, useEffect } from 'react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Button } from '@/components/ui/button'
-import { Pencil, Trash2, Clock, AlertCircle, ChevronDown, ChevronRight } from 'lucide-react'
+import {
+  Pencil,
+  Trash2,
+  Clock,
+  AlertCircle,
+  ChevronDown,
+  ChevronRight,
+  Archive,
+} from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { updateAdminPayment, deleteAdminPayment } from '@/services/admin_payments'
 import { toast } from 'sonner'
 import { format, startOfDay } from 'date-fns'
 import { Badge } from '@/components/ui/badge'
 import { isOverdueBusiness, isTomorrowBusiness, getEffectiveDueDate } from '@/lib/utils'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 
 interface Props {
   item: AdminPayment
@@ -19,6 +37,8 @@ export function PaymentItem({ item, onEdit }: Props) {
   const [isEditing, setIsEditing] = useState(false)
   const [desc, setDesc] = useState(item.descricao)
   const [isExpanded, setIsExpanded] = useState(!item.status)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [isArchiveDialogOpen, setIsArchiveDialogOpen] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -92,12 +112,27 @@ export function PaymentItem({ item, onEdit }: Props) {
   }
 
   const handleDelete = async () => {
-    if (!confirm('Deseja excluir este pagamento?')) return
+    setIsDeleteDialogOpen(false)
     try {
       await deleteAdminPayment(item.id)
       toast.success('Excluído com sucesso')
     } catch {
       toast.error('Erro ao excluir')
+    }
+  }
+
+  const handleArchive = async () => {
+    setIsArchiveDialogOpen(false)
+    try {
+      await updateAdminPayment(item.id, { archived: true })
+      toast.success('Arquivado com sucesso')
+      window.dispatchEvent(
+        new CustomEvent('admin-payment-optimistic', {
+          detail: { id: item.id, updates: { archived: true } },
+        }),
+      )
+    } catch {
+      toast.error('Erro ao arquivar')
     }
   }
 
@@ -245,6 +280,9 @@ export function PaymentItem({ item, onEdit }: Props) {
                   • {item.observacao}
                 </span>
               )}
+              <span className="text-slate-500 whitespace-nowrap">
+                • Ref: {item.mes_referencia.toString().padStart(2, '0')}/{item.ano_referencia}
+              </span>
             </div>
           </>
         )}
@@ -256,18 +294,68 @@ export function PaymentItem({ item, onEdit }: Props) {
           size="icon"
           className="h-8 w-8 text-slate-500 hover:text-primary"
           onClick={() => onEdit(item)}
+          title="Editar"
         >
           <Pencil className="w-4 h-4" />
         </Button>
+        {!item.archived && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-slate-500 hover:text-amber-600"
+            onClick={() => setIsArchiveDialogOpen(true)}
+            title="Arquivar"
+          >
+            <Archive className="w-4 h-4" />
+          </Button>
+        )}
         <Button
           variant="ghost"
           size="icon"
           className="h-8 w-8 text-slate-500 hover:text-destructive"
-          onClick={handleDelete}
+          onClick={() => setIsDeleteDialogOpen(true)}
+          title="Excluir"
         >
           <Trash2 className="w-4 h-4" />
         </Button>
       </div>
+
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir Pagamento</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir o pagamento "{item.descricao}"? Esta ação não pode ser
+              desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+            >
+              Confirmar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={isArchiveDialogOpen} onOpenChange={setIsArchiveDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Arquivar Pagamento</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja arquivar o pagamento "{item.descricao}"? Ele será movido para o
+              histórico.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleArchive}>Confirmar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
