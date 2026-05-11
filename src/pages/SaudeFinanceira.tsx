@@ -4,6 +4,8 @@ import { useAuth } from '@/hooks/use-auth'
 import { useRealtime } from '@/hooks/use-realtime'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Badge } from '@/components/ui/badge'
+import { cn } from '@/lib/utils'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import {
@@ -57,40 +59,69 @@ export default function SaudeFinanceira() {
   const [record, setRecord] = useState<any>(null)
   const [loading, setLoading] = useState(false)
 
+  const [payrollRecord, setPayrollRecord] = useState<any>(null)
+
   useEffect(() => {
-    const loadRecord = async () => {
-      if (!user) return
+    if (!user) return
+    let isMounted = true
+
+    const loadData = async () => {
       setLoading(true)
       try {
-        let data
-        if (filterMonth) {
-          const [yStr, mStr] = filterMonth.split('-')
-          const y = parseInt(yStr, 10)
-          const m = parseInt(mStr, 10)
+        let y: number | undefined
+        let m: number | undefined
+        let edData = null
 
-          data = await pb
+        if (!filterMonth) {
+          edData = await pb
+            .collection('financial_education')
+            .getFirstListItem(`user = "${user.id}"`, { sort: '-year,-month' })
+            .catch(() => null)
+
+          if (edData) {
+            y = edData.year
+            m = edData.month
+          } else {
+            const now = new Date()
+            y = now.getFullYear()
+            m = now.getMonth() + 1
+          }
+          if (isMounted) setFilterMonth(`${y}-${String(m).padStart(2, '0')}`)
+          return
+        } else {
+          const [yStr, mStr] = filterMonth.split('-')
+          y = parseInt(yStr, 10)
+          m = parseInt(mStr, 10)
+          edData = await pb
             .collection('financial_education')
             .getFirstListItem(`user = "${user.id}" && year = ${y} && month = ${m}`)
-        } else {
-          data = await pb
-            .collection('financial_education')
-            .getFirstListItem(`user = "${user.id}"`, {
-              sort: '-year,-month',
-            })
-          setFilterMonth(`${data.year}-${String(data.month).padStart(2, '0')}`)
+            .catch(() => null)
         }
-        setRecord(data)
-      } catch (err) {
-        setRecord(null)
-        if (!filterMonth) {
-          const now = new Date()
-          setFilterMonth(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`)
+
+        if (!isMounted) return
+
+        let prData = null
+        if (y && m) {
+          prData = await pb
+            .collection('payroll')
+            .getFirstListItem(
+              `colaborador = "${user.id}" && ano_referencia = ${y} && mes_referencia = ${m}`,
+            )
+            .catch(() => null)
+        }
+
+        if (isMounted) {
+          setRecord(edData)
+          setPayrollRecord(prData)
         }
       } finally {
-        setLoading(false)
+        if (isMounted) setLoading(false)
       }
     }
-    loadRecord()
+    loadData()
+    return () => {
+      isMounted = false
+    }
   }, [filterMonth, user])
 
   useRealtime('financial_education', (e) => {
@@ -100,6 +131,17 @@ export default function SaudeFinanceira() {
       const m = parseInt(mStr, 10)
       if (e.record.year === y && e.record.month === m) {
         setRecord(e.action === 'delete' ? null : e.record)
+      }
+    }
+  })
+
+  useRealtime('payroll', (e) => {
+    if (e.record.colaborador === user?.id && filterMonth) {
+      const [yStr, mStr] = filterMonth.split('-')
+      const y = parseInt(yStr, 10)
+      const m = parseInt(mStr, 10)
+      if (e.record.ano_referencia === y && e.record.mes_referencia === m) {
+        setPayrollRecord(e.action === 'delete' ? null : e.record)
       }
     }
   })
@@ -119,14 +161,30 @@ export default function SaudeFinanceira() {
         </AlertDescription>
       </Alert>
 
-      <div className="flex items-center gap-4 bg-white/50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4 bg-white/50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
         <div className="space-y-2">
           <Label>Selecione o Mês</Label>
-          <Input
-            type="month"
-            value={filterMonth}
-            onChange={(e) => setFilterMonth(e.target.value)}
-          />
+          <div className="flex items-center gap-4">
+            <Input
+              type="month"
+              value={filterMonth}
+              onChange={(e) => setFilterMonth(e.target.value)}
+              className="w-auto"
+            />
+            {payrollRecord && (
+              <Badge
+                variant="outline"
+                className={cn(
+                  'text-sm font-semibold whitespace-nowrap border-2',
+                  payrollRecord.closed
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900/60'
+                    : 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900/60',
+                )}
+              >
+                {payrollRecord.closed ? 'Folha Fechada' : 'Folha Aberta'}
+              </Badge>
+            )}
+          </div>
         </div>
       </div>
 
@@ -148,6 +206,15 @@ export default function SaudeFinanceira() {
         </Card>
       ) : (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          {payrollRecord && !payrollRecord.closed && (
+            <Alert className="bg-amber-50/50 border-amber-200/60 text-amber-800 dark:bg-amber-950/20 dark:border-amber-900/50 dark:text-amber-300 shadow-sm">
+              <Info className="w-5 h-5 text-amber-500" />
+              <AlertDescription className="font-medium mt-0.5">
+                Os valores mostrados podem sofrer alterações.
+              </AlertDescription>
+            </Alert>
+          )}
+
           <div className="grid md:grid-cols-3 gap-6">
             <Card className="md:col-span-2 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border-primary/20">
               <CardContent className="p-8 flex flex-col justify-center h-full">

@@ -6,7 +6,9 @@ import { Pencil, Trash2, Clock, AlertCircle, ChevronDown, ChevronRight } from 'l
 import { cn } from '@/lib/utils'
 import { updateAdminPayment, deleteAdminPayment } from '@/services/admin_payments'
 import { toast } from 'sonner'
-import { format, startOfDay, addDays } from 'date-fns'
+import { format } from 'date-fns'
+import { Badge } from '@/components/ui/badge'
+import { isOverdueBusiness, isTomorrowBusiness, getEffectiveDueDate } from '@/lib/utils'
 
 interface Props {
   item: AdminPayment
@@ -99,16 +101,12 @@ export function PaymentItem({ item, onEdit }: Props) {
     }
   }
 
-  const today = startOfDay(new Date())
-  const tomorrow = addDays(today, 1)
-
-  // Safely parse the date ensuring no timezone shifts (e.g. May 5th becoming May 4th)
   const notifDate = item.data_notificacao
-    ? startOfDay(new Date(item.data_notificacao.split(' ')[0] + 'T00:00:00'))
+    ? new Date(item.data_notificacao.split(' ')[0] + 'T00:00:00')
     : null
 
-  const isOverdue = !item.status && !!notifDate && notifDate.getTime() <= today.getTime()
-  const isNearDeadline = !item.status && !!notifDate && notifDate.getTime() === tomorrow.getTime()
+  const isOverdue = !item.status && isOverdueBusiness(notifDate)
+  const isNearDeadline = !item.status && isTomorrowBusiness(notifDate)
 
   return (
     <div
@@ -143,16 +141,26 @@ export function PaymentItem({ item, onEdit }: Props) {
               className="flex-1 min-w-[120px] text-sm font-medium bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2 py-0.5 focus:outline-none focus:ring-1 focus:ring-primary"
             />
           ) : (
-            <p
-              onClick={() => setIsEditing(true)}
-              className={cn(
-                'text-sm font-medium text-slate-900 dark:text-slate-100 cursor-text hover:bg-slate-100 dark:hover:bg-slate-800 px-1 -ml-1 rounded transition-colors',
-                item.status && 'line-through text-slate-500',
-                isOverdue && 'animate-pulse text-red-600 dark:text-red-400 font-bold',
+            <>
+              <p
+                onClick={() => setIsEditing(true)}
+                className={cn(
+                  'text-sm font-medium text-slate-900 dark:text-slate-100 cursor-text hover:bg-slate-100 dark:hover:bg-slate-800 px-1 -ml-1 rounded transition-colors',
+                  item.status && 'line-through text-slate-500',
+                  isOverdue && 'text-red-600 dark:text-red-400 font-bold',
+                )}
+              >
+                {item.descricao}
+              </p>
+              {isOverdue && (
+                <Badge
+                  variant="destructive"
+                  className="text-[10px] h-5 px-1.5 py-0 uppercase tracking-wider animate-pulse whitespace-nowrap"
+                >
+                  Pagamento Vencido
+                </Badge>
               )}
-            >
-              {item.descricao}
-            </p>
+            </>
           )}
           {item.status && (
             <button
@@ -195,7 +203,7 @@ export function PaymentItem({ item, onEdit }: Props) {
                   <AlertCircle className={cn('w-3 h-3', isOverdue && 'animate-pulse')} />
                 )}
                 {item.data_notificacao
-                  ? `Vence: ${format(new Date(item.data_notificacao.split(' ')[0] + 'T00:00:00'), 'dd/MM/yyyy')}`
+                  ? `Vence: ${format(getEffectiveDueDate(notifDate!), 'dd/MM/yyyy')}`
                   : 'Sem vencimento'}
               </span>
               {item.observacao && (

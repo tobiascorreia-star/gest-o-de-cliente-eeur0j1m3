@@ -9,7 +9,8 @@ import { toast } from 'sonner'
 import { Wallet, Plus, Search, X, CalendarClock, AlertTriangle } from 'lucide-react'
 import { ActiveMonthsView } from '@/components/admin-payments/active-months-view'
 import { Badge } from '@/components/ui/badge'
-import { cn } from '@/lib/utils'
+import { cn, isOverdueBusiness, isTomorrowBusiness, getEffectiveDueDate } from '@/lib/utils'
+import { startOfDay } from 'date-fns'
 import { HistoryYearsView } from '@/components/admin-payments/history-years-view'
 import { Button } from '@/components/ui/button'
 import { PaymentModal } from '@/components/admin-payments/payment-modal'
@@ -85,13 +86,6 @@ export default function PagamentosAdmin() {
     const isSearchActive = searchTerm !== ''
     const hasFilter = isSearchActive || statusFilter !== 'all' || dueDateFilter !== 'all'
 
-    const localDate = new Date()
-    const todayStr = `${localDate.getFullYear()}-${String(localDate.getMonth() + 1).padStart(2, '0')}-${String(localDate.getDate()).padStart(2, '0')}`
-
-    const tomorrowDate = new Date()
-    tomorrowDate.setDate(tomorrowDate.getDate() + 1)
-    const tomorrowStr = `${tomorrowDate.getFullYear()}-${String(tomorrowDate.getMonth() + 1).padStart(2, '0')}-${String(tomorrowDate.getDate()).padStart(2, '0')}`
-
     Object.entries(groupedByMonthYear).forEach(([key, items]) => {
       const [anoStr, mesStr] = key.split('-')
       const ano = parseInt(anoStr, 10)
@@ -113,11 +107,22 @@ export default function PagamentosAdmin() {
 
         let matchesDueDate = true
         if (dueDateFilter === 'today') {
-          matchesDueDate =
-            !p.status && !!p.data_notificacao && p.data_notificacao.substring(0, 10) === todayStr
+          matchesDueDate = false
+          if (!p.status && p.data_notificacao) {
+            const notifDate = new Date(p.data_notificacao.split(' ')[0] + 'T00:00:00')
+            const effective = getEffectiveDueDate(notifDate)
+            if (effective.getTime() === startOfDay(new Date()).getTime()) {
+              matchesDueDate = true
+            }
+          }
         } else if (dueDateFilter === 'tomorrow') {
-          matchesDueDate =
-            !p.status && !!p.data_notificacao && p.data_notificacao.substring(0, 10) === tomorrowStr
+          matchesDueDate = false
+          if (!p.status && p.data_notificacao) {
+            const notifDate = new Date(p.data_notificacao.split(' ')[0] + 'T00:00:00')
+            if (isTomorrowBusiness(notifDate)) {
+              matchesDueDate = true
+            }
+          }
         }
 
         return matchesSearch && matchesStatus && matchesDueDate
@@ -139,13 +144,17 @@ export default function PagamentosAdmin() {
     })
 
     active.sort((a, b) => {
-      const localDate = new Date()
-      const todayStr = `${localDate.getFullYear()}-${String(localDate.getMonth() + 1).padStart(2, '0')}-${String(localDate.getDate()).padStart(2, '0')} 23:59:59.999Z`
       const aHasOverdue = a.items.some(
-        (i) => !i.status && !!i.data_notificacao && i.data_notificacao <= todayStr,
+        (i) =>
+          !i.status &&
+          i.data_notificacao &&
+          isOverdueBusiness(new Date(i.data_notificacao.split(' ')[0] + 'T00:00:00')),
       )
       const bHasOverdue = b.items.some(
-        (i) => !i.status && !!i.data_notificacao && i.data_notificacao <= todayStr,
+        (i) =>
+          !i.status &&
+          i.data_notificacao &&
+          isOverdueBusiness(new Date(i.data_notificacao.split(' ')[0] + 'T00:00:00')),
       )
 
       if (aHasOverdue && !bHasOverdue) return -1
@@ -162,21 +171,18 @@ export default function PagamentosAdmin() {
   }, [payments, searchTerm, statusFilter, dueDateFilter])
 
   const { todayCount, tomorrowCount } = useMemo(() => {
-    const localDate = new Date()
-    const todayStr = `${localDate.getFullYear()}-${String(localDate.getMonth() + 1).padStart(2, '0')}-${String(localDate.getDate()).padStart(2, '0')}`
-
-    const tomorrowDate = new Date()
-    tomorrowDate.setDate(tomorrowDate.getDate() + 1)
-    const tomorrowStr = `${tomorrowDate.getFullYear()}-${String(tomorrowDate.getMonth() + 1).padStart(2, '0')}-${String(tomorrowDate.getDate()).padStart(2, '0')}`
+    const todayDate = startOfDay(new Date())
 
     let today = 0
     let tomorrow = 0
 
     payments.forEach((p) => {
       if (!p.status && p.data_notificacao) {
-        const notifDate = p.data_notificacao.substring(0, 10)
-        if (notifDate === todayStr) today++
-        else if (notifDate === tomorrowStr) tomorrow++
+        const notifDate = new Date(p.data_notificacao.split(' ')[0] + 'T00:00:00')
+        const effective = getEffectiveDueDate(notifDate)
+
+        if (effective.getTime() === todayDate.getTime()) today++
+        else if (isTomorrowBusiness(notifDate)) tomorrow++
       }
     })
 
