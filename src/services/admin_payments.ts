@@ -26,6 +26,13 @@ export const bulkArchiveAdminPayments = (mes: number, ano: number) =>
     headers: { 'Content-Type': 'application/json' },
   })
 
+export const bulkUnarchiveAdminPayments = (mes: number, ano: number) =>
+  pb.send('/backend/v1/admin-payments/bulk-unarchive', {
+    method: 'POST',
+    body: JSON.stringify({ mes, ano }),
+    headers: { 'Content-Type': 'application/json' },
+  })
+
 export const bulkDeleteAdminPayments = (mes: number, ano: number) =>
   pb.send('/backend/v1/admin-payments/bulk-delete', {
     method: 'POST',

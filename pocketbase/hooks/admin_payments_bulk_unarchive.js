@@ -1,6 +1,6 @@
 routerAdd(
   'POST',
-  '/backend/v1/admin-payments/bulk-archive',
+  '/backend/v1/admin-payments/bulk-unarchive',
   (e) => {
     if (e.auth?.getString('role') !== 'admin') return e.forbiddenError('Apenas admins')
 
@@ -12,7 +12,7 @@ routerAdd(
 
     const records = $app.findRecordsByFilter(
       'admin_payments',
-      `mes_referencia = {:mes} && ano_referencia = {:ano}`,
+      `mes_referencia = {:mes} && ano_referencia = {:ano} && archived = true`,
       '',
       0,
       0,
@@ -21,8 +21,7 @@ routerAdd(
 
     $app.runInTransaction((txApp) => {
       for (const record of records) {
-        record.set('archived', true)
-        // Usar saveNoValidate garante que registros antigos com possíveis erros de validação sejam atualizados
+        record.set('archived', false)
         txApp.saveNoValidate(record)
       }
     })

@@ -51,10 +51,23 @@ export function MonthGroup({ mes, ano, items, onEditItem, onAddForOwner }: Props
   }, [ano, mes])
 
   const headerBgClass = isCurrent
-    ? 'bg-green-50/80 dark:bg-green-950/30'
+    ? 'bg-green-200 dark:bg-green-900/60'
     : isPast
-      ? 'bg-orange-50/80 dark:bg-orange-950/30'
-      : 'bg-white dark:bg-slate-950'
+      ? 'bg-amber-200 dark:bg-amber-900/60'
+      : 'bg-slate-100 dark:bg-slate-800'
+
+  const titleClass = isCurrent
+    ? 'text-green-900 dark:text-green-100'
+    : isPast
+      ? 'text-amber-900 dark:text-amber-100'
+      : 'text-slate-800 dark:text-slate-100'
+
+  const subtitleClass = isCurrent
+    ? 'text-green-700 dark:text-green-300'
+    : isPast
+      ? 'text-amber-700 dark:text-amber-300'
+      : 'text-slate-500 dark:text-slate-400'
+
   const [cloning, setCloning] = useState(false)
   const { status: statusFilter, search } = useContext(AdminPaymentsFilterContext)
 
@@ -166,20 +179,20 @@ export function MonthGroup({ mes, ano, items, onEditItem, onAddForOwner }: Props
         )}
       >
         <div className="flex flex-col">
-          <h2 className="text-sm font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+          <h2 className={cn('text-sm font-bold flex items-center gap-2', titleClass)}>
             {MONTH_NAMES[mes - 1]} {ano}
             {isPaid && (
               <span className="w-2 h-2 rounded-full bg-emerald-500" title="Mês concluído" />
             )}
           </h2>
-          <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 mt-0.5">
+          <span className={cn('text-[10px] font-medium mt-0.5', subtitleClass)}>
             {paid}/{total} pagos
           </span>
         </div>
         <Button
           variant="outline"
           size="sm"
-          className="h-8 px-2 gap-1.5 text-slate-600 dark:text-slate-300"
+          className="h-8 px-2 gap-1.5 text-slate-600 dark:text-slate-300 bg-white/80 dark:bg-slate-950/50 hover:bg-white dark:hover:bg-slate-900 border-white/20 dark:border-slate-800"
           onClick={handleClone}
           disabled={cloning}
           title="Repetir Ciclo para o próximo mês"

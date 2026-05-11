@@ -8,6 +8,7 @@ import {
   createAdminPayment,
   updateAdminPayment,
   bulkArchiveAdminPayments,
+  bulkUnarchiveAdminPayments,
   bulkDeleteAdminPayments,
 } from '@/services/admin_payments'
 import { useRealtime } from '@/hooks/use-realtime'
@@ -21,6 +22,7 @@ import {
   AlertTriangle,
   Archive,
   Trash2,
+  RotateCcw,
 } from 'lucide-react'
 import { ActiveMonthsView } from '@/components/admin-payments/active-months-view'
 import { Badge } from '@/components/ui/badge'
@@ -85,7 +87,7 @@ export default function PagamentosAdmin() {
   const [dueDateFilter, setDueDateFilter] = useState<'all' | 'today' | 'tomorrow'>('all')
   const [monthYearFilter, setMonthYearFilter] = useState('all')
 
-  const [bulkAction, setBulkAction] = useState<'archive' | 'delete' | null>(null)
+  const [bulkAction, setBulkAction] = useState<'archive' | 'unarchive' | 'delete' | null>(null)
   const [bulkMonthYear, setBulkMonthYear] = useState<string>('')
   const [isProcessingBulk, setIsProcessingBulk] = useState(false)
 
@@ -321,6 +323,9 @@ export default function PagamentosAdmin() {
       if (bulkAction === 'archive') {
         await bulkArchiveAdminPayments(m, y)
         toast.success('Mês arquivado com sucesso!')
+      } else if (bulkAction === 'unarchive') {
+        await bulkUnarchiveAdminPayments(m, y)
+        toast.success('Mês restaurado com sucesso!')
       } else if (bulkAction === 'delete') {
         await bulkDeleteAdminPayments(m, y)
         toast.success('Pagamentos excluídos com sucesso!')
@@ -352,6 +357,18 @@ export default function PagamentosAdmin() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+          <Button
+            variant="outline"
+            onClick={() => {
+              setBulkMonthYear(monthYearFilter !== 'all' ? monthYearFilter : '')
+              setBulkAction('unarchive')
+            }}
+            className="bg-slate-50 hover:bg-slate-100 dark:bg-slate-900 dark:hover:bg-slate-800 flex-1 sm:flex-none justify-center"
+          >
+            <RotateCcw className="w-4 h-4 mr-2 text-slate-500" />
+            <span className="hidden sm:inline">Voltar para Ativo</span>
+            <span className="sm:hidden">Restaurar</span>
+          </Button>
           <Button
             variant="outline"
             onClick={() => {
@@ -591,12 +608,17 @@ export default function PagamentosAdmin() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {bulkAction === 'archive' ? 'Arquivar no Histórico' : 'Excluir Todos os Registros'}
+              {bulkAction === 'archive' && 'Arquivar no Histórico'}
+              {bulkAction === 'unarchive' && 'Voltar para Ativo'}
+              {bulkAction === 'delete' && 'Excluir Todos os Registros'}
             </DialogTitle>
             <DialogDescription>
-              {bulkAction === 'archive'
-                ? 'Esta ação moverá todos os pagamentos do período selecionado para o histórico. Eles deixarão de aparecer na visão ativa.'
-                : 'Atenção: Esta ação excluirá permanentemente todos os pagamentos do período selecionado. Esta ação não pode ser desfeita.'}
+              {bulkAction === 'archive' &&
+                'Esta ação moverá todos os pagamentos do período selecionado para o histórico. Eles deixarão de aparecer na visão ativa.'}
+              {bulkAction === 'unarchive' &&
+                'Esta ação moverá todos os pagamentos do período selecionado do histórico de volta para a visão ativa.'}
+              {bulkAction === 'delete' &&
+                'Atenção: Esta ação excluirá permanentemente todos os pagamentos do período selecionado. Esta ação não pode ser desfeita.'}
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
