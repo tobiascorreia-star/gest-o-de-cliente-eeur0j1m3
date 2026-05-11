@@ -92,6 +92,10 @@ export function AlertsWidget() {
         <Card className="border-border/50 shadow-sm border-l-4 border-l-red-500 bg-red-50/50 dark:bg-red-950/20">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-light flex items-center gap-2 text-red-600 dark:text-red-400">
+              <span className="relative flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+              </span>
               <AlertTriangle className="w-4 h-4" strokeWidth={1.5} />
               Atenção: Clientes Atrasados ({delayedClients.length})
             </CardTitle>
@@ -139,6 +143,10 @@ export function AlertsWidget() {
         <Card className="border-border/50 shadow-sm border-l-4 border-l-primary bg-primary/5">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-light flex items-center gap-2 text-primary">
+              <span className="relative flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary/60 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
+              </span>
               <KeyRound className="w-4 h-4" strokeWidth={1.25} />
               Solicitações de Redefinição de Senha
             </CardTitle>

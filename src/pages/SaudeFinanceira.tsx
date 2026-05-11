@@ -73,13 +73,16 @@ export default function SaudeFinanceira() {
     if (!user) return
     const fetchAvailable = async () => {
       try {
+        const edFilter = user.role?.toLowerCase() === 'admin' ? '' : `user = "${user.id}"`
+        const prFilter = user.role?.toLowerCase() === 'admin' ? '' : `colaborador = "${user.id}"`
+
         const [edRecords, prRecords] = await Promise.all([
           pb.collection('financial_education').getFullList({
-            filter: `user = "${user.id}"`,
+            filter: edFilter,
             fields: 'year,month',
           }),
           pb.collection('payroll').getFullList({
-            filter: `colaborador = "${user.id}"`,
+            filter: prFilter,
             fields: 'ano_referencia,mes_referencia',
           }),
         ])
@@ -150,7 +153,9 @@ export default function SaudeFinanceira() {
   }, [filterMonth, user])
 
   useRealtime('financial_education', (e) => {
-    if (e.record.user === user?.id) {
+    const isRelevantForMonths = user?.role?.toLowerCase() === 'admin' || e.record.user === user?.id
+
+    if (isRelevantForMonths) {
       if (e.action === 'create') {
         setAvailableMonths((prev) => {
           const exists = prev.some((m) => m.year === e.record.year && m.month === e.record.month)
@@ -162,7 +167,9 @@ export default function SaudeFinanceira() {
           return prev
         })
       }
+    }
 
+    if (e.record.user === user?.id) {
       if (filterMonth) {
         const [yStr, mStr] = filterMonth.split('-')
         const y = parseInt(yStr, 10)
@@ -175,7 +182,10 @@ export default function SaudeFinanceira() {
   })
 
   useRealtime('payroll', (e) => {
-    if (e.record.colaborador === user?.id) {
+    const isRelevantForMonths =
+      user?.role?.toLowerCase() === 'admin' || e.record.colaborador === user?.id
+
+    if (isRelevantForMonths) {
       if (e.action === 'create') {
         setAvailableMonths((prev) => {
           const exists = prev.some(
@@ -192,7 +202,9 @@ export default function SaudeFinanceira() {
           return prev
         })
       }
+    }
 
+    if (e.record.colaborador === user?.id) {
       if (filterMonth) {
         const [yStr, mStr] = filterMonth.split('-')
         const y = parseInt(yStr, 10)
