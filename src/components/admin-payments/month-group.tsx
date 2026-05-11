@@ -39,6 +39,22 @@ const MONTH_NAMES = [
 ]
 
 export function MonthGroup({ mes, ano, items, onEditItem, onAddForOwner }: Props) {
+  const { isCurrent, isPast } = useMemo(() => {
+    const today = new Date()
+    const currentMonth = today.getMonth() + 1
+    const currentYear = today.getFullYear()
+
+    const isCurrent = ano === currentYear && mes === currentMonth
+    const isPast = ano < currentYear || (ano === currentYear && mes < currentMonth)
+
+    return { isCurrent, isPast }
+  }, [ano, mes])
+
+  const headerBgClass = isCurrent
+    ? 'bg-green-50/80 dark:bg-green-950/30'
+    : isPast
+      ? 'bg-orange-50/80 dark:bg-orange-950/30'
+      : 'bg-white dark:bg-slate-950'
   const [cloning, setCloning] = useState(false)
   const { status: statusFilter, search } = useContext(AdminPaymentsFilterContext)
 
@@ -143,7 +159,12 @@ export function MonthGroup({ mes, ano, items, onEditItem, onAddForOwner }: Props
 
   return (
     <div className="flex flex-col bg-slate-100/50 dark:bg-slate-900/30 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm max-h-full h-full w-full">
-      <div className="flex items-center justify-between p-3 bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 shrink-0">
+      <div
+        className={cn(
+          'flex items-center justify-between p-3 border-b border-slate-200 dark:border-slate-800 shrink-0 transition-colors',
+          headerBgClass,
+        )}
+      >
         <div className="flex flex-col">
           <h2 className="text-sm font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
             {MONTH_NAMES[mes - 1]} {ano}

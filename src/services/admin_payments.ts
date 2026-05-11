@@ -18,3 +18,17 @@ export const cloneMonthPayments = (mes: number, ano: number) =>
     body: JSON.stringify({ mes, ano }),
     headers: { 'Content-Type': 'application/json' },
   })
+
+export const bulkArchiveAdminPayments = (mes: number, ano: number) =>
+  pb.send('/backend/v1/admin-payments/bulk-archive', {
+    method: 'POST',
+    body: JSON.stringify({ mes, ano }),
+    headers: { 'Content-Type': 'application/json' },
+  })
+
+export const bulkDeleteAdminPayments = (mes: number, ano: number) =>
+  pb.send('/backend/v1/admin-payments/bulk-delete', {
+    method: 'POST',
+    body: JSON.stringify({ mes, ano }),
+    headers: { 'Content-Type': 'application/json' },
+  })

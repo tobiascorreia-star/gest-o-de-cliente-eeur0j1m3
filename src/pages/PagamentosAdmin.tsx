@@ -3,31 +3,71 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { Input } from '@/components/ui/input'
 import { AdminPayment } from '@/types'
-import { getAdminPayments, createAdminPayment, updateAdminPayment } from '@/services/admin_payments'
+import {
+  getAdminPayments,
+  createAdminPayment,
+  updateAdminPayment,
+  bulkArchiveAdminPayments,
+  bulkDeleteAdminPayments,
+} from '@/services/admin_payments'
 import { useRealtime } from '@/hooks/use-realtime'
 import { toast } from 'sonner'
-import { Wallet, Plus, Search, X, CalendarClock, AlertTriangle } from 'lucide-react'
+import {
+  Wallet,
+  Plus,
+  Search,
+  X,
+  CalendarClock,
+  AlertTriangle,
+  Archive,
+  Trash2,
+} from 'lucide-react'
 import { ActiveMonthsView } from '@/components/admin-payments/active-months-view'
 import { Badge } from '@/components/ui/badge'
-import {
-  cn,
-  isOverdueBusiness,
-  isTodayBusiness,
-  isTomorrowBusiness,
-  getEffectiveDueDate,
-} from '@/lib/utils'
-import { startOfDay } from 'date-fns'
+import { cn, isOverdueBusiness, isTodayBusiness, isTomorrowBusiness } from '@/lib/utils'
 import { Card } from '@/components/ui/card'
 import { HistoryYearsView } from '@/components/admin-payments/history-years-view'
 import { Button } from '@/components/ui/button'
 import { PaymentModal } from '@/components/admin-payments/payment-modal'
 import { useAuth } from '@/hooks/use-auth'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
 
 export const AdminPaymentsFilterContext = createContext<{
   status: 'all' | 'pending' | 'paid'
   search: string
   dueDateFilter: 'all' | 'today' | 'tomorrow'
-}>({ status: 'all', search: '', dueDateFilter: 'all' })
+  monthYearFilter: string
+}>({ status: 'all', search: '', dueDateFilter: 'all', monthYearFilter: 'all' })
+
+const MONTH_NAMES = [
+  'Janeiro',
+  'Fevereiro',
+  'Março',
+  'Abril',
+  'Maio',
+  'Junho',
+  'Julho',
+  'Agosto',
+  'Setembro',
+  'Outubro',
+  'Novembro',
+  'Dezembro',
+]
 
 export default function PagamentosAdmin() {
   const { user } = useAuth()
@@ -39,9 +79,16 @@ export default function PagamentosAdmin() {
     ano: number
     owner: string
   } | null>(null)
+
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'paid'>('all')
   const [searchTerm, setSearchTerm] = useState('')
   const [dueDateFilter, setDueDateFilter] = useState<'all' | 'today' | 'tomorrow'>('all')
+  const [monthYearFilter, setMonthYearFilter] = useState('all')
+
+  const [bulkAction, setBulkAction] = useState<'archive' | 'delete' | null>(null)
+  const [bulkMonthYear, setBulkMonthYear] = useState<string>('')
+  const [isProcessingBulk, setIsProcessingBulk] = useState(false)
+
   const searchInputRef = useRef<HTMLInputElement>(null)
 
   const loadData = async () => {
@@ -68,19 +115,41 @@ export default function PagamentosAdmin() {
     loadData()
   })
 
-  const { activeMonths, historyYears } = useMemo(() => {
-    const groupedByMonthYear: Record<string, AdminPayment[]> = {}
-
+  const availableMonths = useMemo(() => {
+    const map = new Map<string, string>()
     payments.forEach((p) => {
-      const key = `${p.ano_referencia}-${p.mes_referencia}`
-      if (!groupedByMonthYear[key]) groupedByMonthYear[key] = []
-      groupedByMonthYear[key].push(p)
+      const y = p.ano_referencia
+      const m = p.mes_referencia
+      const key = `${y}-${m.toString().padStart(2, '0')}`
+      const label = `${MONTH_NAMES[m - 1]} ${y}`
+      map.set(key, label)
     })
+    return Array.from(map.entries())
+      .map(([value, label]) => ({ value, label }))
+      .sort((a, b) => b.value.localeCompare(a.value))
+  }, [payments])
+
+  const { activeMonths, historyYears } = useMemo(() => {
+    const activePayments = payments.filter((p) => !p.archived)
+    const historyPayments = payments.filter((p) => p.archived)
+
+    const groupItems = (items: AdminPayment[]) => {
+      const map: Record<string, AdminPayment[]> = {}
+      items.forEach((p) => {
+        const key = `${p.ano_referencia}-${p.mes_referencia}`
+        if (!map[key]) map[key] = []
+        map[key].push(p)
+      })
+      return map
+    }
+
+    const groupedActive = groupItems(activePayments)
+    const groupedHistory = groupItems(historyPayments)
 
     const now = new Date()
     const currentKey = `${now.getFullYear()}-${now.getMonth() + 1}`
-    if (!groupedByMonthYear[currentKey]) {
-      groupedByMonthYear[currentKey] = []
+    if (monthYearFilter === 'all' && !groupedActive[currentKey]) {
+      groupedActive[currentKey] = []
     }
 
     const active: { mes: number; ano: number; items: AdminPayment[] }[] = []
@@ -91,48 +160,57 @@ export default function PagamentosAdmin() {
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '')
     const isSearchActive = searchTerm !== ''
-    const hasFilter = isSearchActive || statusFilter !== 'all' || dueDateFilter !== 'all'
+    const hasFilter =
+      isSearchActive ||
+      statusFilter !== 'all' ||
+      dueDateFilter !== 'all' ||
+      monthYearFilter !== 'all'
 
-    Object.entries(groupedByMonthYear).forEach(([key, items]) => {
+    const filterItem = (p: AdminPayment) => {
+      const matchesSearch = isSearchActive
+        ? p.dono_pagamento
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .includes(searchNormalized)
+        : true
+      const matchesStatus =
+        statusFilter === 'all' || (statusFilter === 'paid' ? p.status : !p.status)
+
+      let matchesDueDate = true
+      if (dueDateFilter === 'today') {
+        matchesDueDate = false
+        if (!p.status && p.data_notificacao) {
+          const notifDateStr = p.data_notificacao.replace(' ', 'T')
+          if (isTodayBusiness(notifDateStr) || isOverdueBusiness(notifDateStr)) {
+            matchesDueDate = true
+          }
+        }
+      } else if (dueDateFilter === 'tomorrow') {
+        matchesDueDate = false
+        if (!p.status && p.data_notificacao) {
+          const notifDateStr = p.data_notificacao.replace(' ', 'T')
+          if (isTomorrowBusiness(notifDateStr)) {
+            matchesDueDate = true
+          }
+        }
+      }
+
+      return matchesSearch && matchesStatus && matchesDueDate
+    }
+
+    Object.entries(groupedActive).forEach(([key, items]) => {
       const [anoStr, mesStr] = key.split('-')
       const ano = parseInt(anoStr, 10)
       const mes = parseInt(mesStr, 10)
-
-      const isAllPaid = items.length > 0 && items.every((i) => i.status)
       const isCurrent = key === currentKey
 
-      const filteredItems = items.filter((p) => {
-        const matchesSearch = isSearchActive
-          ? p.dono_pagamento
-              .toLowerCase()
-              .normalize('NFD')
-              .replace(/[\u0300-\u036f]/g, '')
-              .includes(searchNormalized)
-          : true
-        const matchesStatus =
-          statusFilter === 'all' || (statusFilter === 'paid' ? p.status : !p.status)
+      if (monthYearFilter !== 'all') {
+        const mKey = `${ano}-${mes.toString().padStart(2, '0')}`
+        if (mKey !== monthYearFilter) return
+      }
 
-        let matchesDueDate = true
-        if (dueDateFilter === 'today') {
-          matchesDueDate = false
-          if (!p.status && p.data_notificacao) {
-            const notifDateStr = p.data_notificacao.replace(' ', 'T')
-            if (isTodayBusiness(notifDateStr) || isOverdueBusiness(notifDateStr)) {
-              matchesDueDate = true
-            }
-          }
-        } else if (dueDateFilter === 'tomorrow') {
-          matchesDueDate = false
-          if (!p.status && p.data_notificacao) {
-            const notifDateStr = p.data_notificacao.replace(' ', 'T')
-            if (isTomorrowBusiness(notifDateStr)) {
-              matchesDueDate = true
-            }
-          }
-        }
-
-        return matchesSearch && matchesStatus && matchesDueDate
-      })
+      const filteredItems = items.filter(filterItem)
 
       if (filteredItems.length === 0) {
         if (items.length === 0 && !hasFilter && isCurrent) {
@@ -140,13 +218,24 @@ export default function PagamentosAdmin() {
         }
         return
       }
+      active.push({ mes, ano, items: filteredItems })
+    })
 
-      if (isAllPaid && !isCurrent) {
-        if (!history[ano]) history[ano] = []
-        history[ano].push({ mes, ano, items: filteredItems })
-      } else {
-        active.push({ mes, ano, items: filteredItems })
+    Object.entries(groupedHistory).forEach(([key, items]) => {
+      const [anoStr, mesStr] = key.split('-')
+      const ano = parseInt(anoStr, 10)
+      const mes = parseInt(mesStr, 10)
+
+      if (monthYearFilter !== 'all') {
+        const mKey = `${ano}-${mes.toString().padStart(2, '0')}`
+        if (mKey !== monthYearFilter) return
       }
+
+      const filteredItems = items.filter(filterItem)
+      if (filteredItems.length === 0) return
+
+      if (!history[ano]) history[ano] = []
+      history[ano].push({ mes, ano, items: filteredItems })
     })
 
     active.sort((a, b) => {
@@ -174,14 +263,14 @@ export default function PagamentosAdmin() {
     })
 
     return { activeMonths: active, historyYears: history }
-  }, [payments, searchTerm, statusFilter, dueDateFilter])
+  }, [payments, searchTerm, statusFilter, dueDateFilter, monthYearFilter])
 
   const { todayCount, tomorrowCount } = useMemo(() => {
     let today = 0
     let tomorrow = 0
 
     payments.forEach((p) => {
-      if (!p.status && p.data_notificacao) {
+      if (!p.archived && !p.status && p.data_notificacao) {
         const notifDateStr = p.data_notificacao.replace(' ', 'T')
         if (isTodayBusiness(notifDateStr) || isOverdueBusiness(notifDateStr)) today++
         else if (isTomorrowBusiness(notifDateStr)) tomorrow++
@@ -224,9 +313,30 @@ export default function PagamentosAdmin() {
     }
   }
 
+  const handleExecuteBulkAction = async () => {
+    if (!bulkMonthYear) return
+    const [y, m] = bulkMonthYear.split('-').map(Number)
+    setIsProcessingBulk(true)
+    try {
+      if (bulkAction === 'archive') {
+        await bulkArchiveAdminPayments(m, y)
+        toast.success('Mês arquivado com sucesso!')
+      } else if (bulkAction === 'delete') {
+        await bulkDeleteAdminPayments(m, y)
+        toast.success('Pagamentos excluídos com sucesso!')
+      }
+      setBulkAction(null)
+      loadData()
+    } catch (err) {
+      toast.error('Erro ao processar ação em massa')
+    } finally {
+      setIsProcessingBulk(false)
+    }
+  }
+
   return (
     <div className="flex-1 flex flex-col p-4 md:p-8 overflow-hidden h-full max-w-[1200px] mx-auto w-full">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 shrink-0 gap-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 shrink-0 gap-4">
         <div className="flex items-center gap-3">
           <div className="p-3 bg-primary/10 rounded-xl shrink-0">
             <Wallet className="w-6 h-6 text-primary" />
@@ -240,14 +350,45 @@ export default function PagamentosAdmin() {
             </p>
           </div>
         </div>
-        <Button onClick={() => setIsModalOpen(true)} className="gap-2 shrink-0 w-full sm:w-auto">
-          <Plus className="w-4 h-4" />
-          Novo Pagamento
-        </Button>
+
+        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+          <Button
+            variant="outline"
+            onClick={() => {
+              setBulkMonthYear(monthYearFilter !== 'all' ? monthYearFilter : '')
+              setBulkAction('archive')
+            }}
+            className="bg-slate-50 hover:bg-slate-100 dark:bg-slate-900 dark:hover:bg-slate-800 flex-1 sm:flex-none justify-center"
+          >
+            <Archive className="w-4 h-4 mr-2 text-slate-500" />
+            <span className="hidden sm:inline">Arquivar no Histórico</span>
+            <span className="sm:hidden">Arquivar</span>
+          </Button>
+          <Button
+            variant="destructive"
+            onClick={() => {
+              setBulkMonthYear(monthYearFilter !== 'all' ? monthYearFilter : '')
+              setBulkAction('delete')
+            }}
+            className="flex-1 sm:flex-none justify-center"
+          >
+            <Trash2 className="w-4 h-4 mr-2" />
+            <span className="hidden sm:inline">Excluir Tudo</span>
+            <span className="sm:hidden">Excluir</span>
+          </Button>
+          <Button
+            onClick={() => setIsModalOpen(true)}
+            className="gap-2 flex-1 sm:flex-none justify-center"
+          >
+            <Plus className="w-4 h-4" />
+            <span className="hidden sm:inline">Novo Pagamento</span>
+            <span className="sm:hidden">Novo</span>
+          </Button>
+        </div>
       </div>
 
       <AdminPaymentsFilterContext.Provider
-        value={{ status: statusFilter, search: searchTerm, dueDateFilter }}
+        value={{ status: statusFilter, search: searchTerm, dueDateFilter, monthYearFilter }}
       >
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6 shrink-0">
           <Card
@@ -333,51 +474,70 @@ export default function PagamentosAdmin() {
         </div>
 
         <Tabs defaultValue="active" className="flex-1 flex flex-col min-h-0">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 shrink-0 gap-4">
-            <TabsList className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 shrink-0">
-              <TabsTrigger value="active">Ativos</TabsTrigger>
-              <TabsTrigger value="history">Histórico</TabsTrigger>
+          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-6 shrink-0 gap-4">
+            <TabsList className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 shrink-0 w-full sm:w-auto flex">
+              <TabsTrigger value="active" className="flex-1 sm:flex-none">
+                Ativos
+              </TabsTrigger>
+              <TabsTrigger value="history" className="flex-1 sm:flex-none">
+                Histórico
+              </TabsTrigger>
             </TabsList>
 
-            <div className="flex flex-wrap items-center gap-4 w-full sm:w-auto">
-              <div className="relative w-full sm:w-64">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
-                <Input
-                  ref={searchInputRef}
-                  placeholder="Buscar dono do pagamento..."
-                  className="pl-9 pr-8 h-9 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-sm"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-                {searchTerm && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSearchTerm('')
-                      searchInputRef.current?.focus()
-                    }}
-                    className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 focus:outline-none"
-                    aria-label="Limpar busca"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                )}
+            <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+              <div className="flex items-center gap-2 w-full sm:w-auto flex-1">
+                <Select value={monthYearFilter} onValueChange={setMonthYearFilter}>
+                  <SelectTrigger className="w-[140px] sm:w-[150px] bg-white dark:bg-slate-950 h-9">
+                    <SelectValue placeholder="Mês/Ano" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os Meses</SelectItem>
+                    {availableMonths.map((m) => (
+                      <SelectItem key={m.value} value={m.value}>
+                        {m.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <div className="relative flex-1 min-w-[150px]">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
+                  <Input
+                    ref={searchInputRef}
+                    placeholder="Buscar dono..."
+                    className="pl-9 pr-8 h-9 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-sm"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                  {searchTerm && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSearchTerm('')
+                        searchInputRef.current?.focus()
+                      }}
+                      className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 focus:outline-none"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 w-full sm:w-auto">
                 <ToggleGroup
                   type="single"
                   value={statusFilter}
                   onValueChange={(v) => v && setStatusFilter(v as any)}
-                  className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-0.5 self-start sm:self-auto"
+                  className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-0.5 w-full sm:w-auto justify-start"
                 >
-                  <ToggleGroupItem value="all" className="h-9 text-sm px-3">
+                  <ToggleGroupItem value="all" className="h-9 text-sm px-3 flex-1 sm:flex-none">
                     Todos
                   </ToggleGroupItem>
-                  <ToggleGroupItem value="pending" className="h-9 text-sm px-3">
+                  <ToggleGroupItem value="pending" className="h-9 text-sm px-3 flex-1 sm:flex-none">
                     A pagar
                   </ToggleGroupItem>
-                  <ToggleGroupItem value="paid" className="h-9 text-sm px-3">
+                  <ToggleGroupItem value="paid" className="h-9 text-sm px-3 flex-1 sm:flex-none">
                     Pagos
                   </ToggleGroupItem>
                 </ToggleGroup>
@@ -396,7 +556,10 @@ export default function PagamentosAdmin() {
             />
           </TabsContent>
 
-          <TabsContent value="history" className="flex-1 min-h-0 mt-0 overflow-y-auto pr-2 pb-16">
+          <TabsContent
+            value="history"
+            className="flex-1 min-h-0 mt-0 overflow-y-auto pr-2 pb-16 scrollbar-thin"
+          >
             <HistoryYearsView
               years={historyYears}
               onEditItem={setEditingItem}
@@ -423,6 +586,52 @@ export default function PagamentosAdmin() {
         defaultOwner={addingParams?.owner}
         onSave={handleSaveAdd}
       />
+
+      <Dialog open={!!bulkAction} onOpenChange={(o) => !o && setBulkAction(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {bulkAction === 'archive' ? 'Arquivar no Histórico' : 'Excluir Todos os Registros'}
+            </DialogTitle>
+            <DialogDescription>
+              {bulkAction === 'archive'
+                ? 'Esta ação moverá todos os pagamentos do período selecionado para o histórico. Eles deixarão de aparecer na visão ativa.'
+                : 'Atenção: Esta ação excluirá permanentemente todos os pagamentos do período selecionado. Esta ação não pode ser desfeita.'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Label className="mb-2 block">Selecione o Mês e Ano</Label>
+            <Select value={bulkMonthYear} onValueChange={setBulkMonthYear}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione um período" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableMonths.map((m) => (
+                  <SelectItem key={m.value} value={m.value}>
+                    {m.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setBulkAction(null)}
+              disabled={isProcessingBulk}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant={bulkAction === 'delete' ? 'destructive' : 'default'}
+              disabled={!bulkMonthYear || isProcessingBulk}
+              onClick={handleExecuteBulkAction}
+            >
+              {isProcessingBulk ? 'Aguarde...' : 'Confirmar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

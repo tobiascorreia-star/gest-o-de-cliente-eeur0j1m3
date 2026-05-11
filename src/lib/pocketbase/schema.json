@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-11T15:30:10.935Z",
+  "generatedAt": "2026-05-11T18:45:42.480Z",
   "collections": [
     {
       "name": "users",
@@ -543,6 +543,12 @@
           "type": "number",
           "required": true,
           "system": false
+        },
+        {
+          "name": "archived",
+          "type": "bool",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [
@@ -756,6 +762,13 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["Aberto", "Fechado"]
         }
       ],
       "indexes": []

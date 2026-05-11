@@ -143,6 +143,7 @@ export interface AdminPayment {
   mes_referencia: number
   ano_referencia: number
   admin: string
+  archived?: boolean
   created: string
   updated: string
 }
