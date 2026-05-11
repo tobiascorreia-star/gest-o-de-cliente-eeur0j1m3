@@ -9,8 +9,15 @@ import { toast } from 'sonner'
 import { Wallet, Plus, Search, X, CalendarClock, AlertTriangle } from 'lucide-react'
 import { ActiveMonthsView } from '@/components/admin-payments/active-months-view'
 import { Badge } from '@/components/ui/badge'
-import { cn, isOverdueBusiness, isTomorrowBusiness, getEffectiveDueDate } from '@/lib/utils'
+import {
+  cn,
+  isOverdueBusiness,
+  isTodayBusiness,
+  isTomorrowBusiness,
+  getEffectiveDueDate,
+} from '@/lib/utils'
 import { startOfDay } from 'date-fns'
+import { Card } from '@/components/ui/card'
 import { HistoryYearsView } from '@/components/admin-payments/history-years-view'
 import { Button } from '@/components/ui/button'
 import { PaymentModal } from '@/components/admin-payments/payment-modal'
@@ -109,17 +116,16 @@ export default function PagamentosAdmin() {
         if (dueDateFilter === 'today') {
           matchesDueDate = false
           if (!p.status && p.data_notificacao) {
-            const notifDate = new Date(p.data_notificacao.split(' ')[0] + 'T00:00:00')
-            const effective = getEffectiveDueDate(notifDate)
-            if (effective.getTime() === startOfDay(new Date()).getTime()) {
+            const notifDateStr = p.data_notificacao.replace(' ', 'T')
+            if (isTodayBusiness(notifDateStr) || isOverdueBusiness(notifDateStr)) {
               matchesDueDate = true
             }
           }
         } else if (dueDateFilter === 'tomorrow') {
           matchesDueDate = false
           if (!p.status && p.data_notificacao) {
-            const notifDate = new Date(p.data_notificacao.split(' ')[0] + 'T00:00:00')
-            if (isTomorrowBusiness(notifDate)) {
+            const notifDateStr = p.data_notificacao.replace(' ', 'T')
+            if (isTomorrowBusiness(notifDateStr)) {
               matchesDueDate = true
             }
           }
@@ -171,18 +177,14 @@ export default function PagamentosAdmin() {
   }, [payments, searchTerm, statusFilter, dueDateFilter])
 
   const { todayCount, tomorrowCount } = useMemo(() => {
-    const todayDate = startOfDay(new Date())
-
     let today = 0
     let tomorrow = 0
 
     payments.forEach((p) => {
       if (!p.status && p.data_notificacao) {
-        const notifDate = new Date(p.data_notificacao.split(' ')[0] + 'T00:00:00')
-        const effective = getEffectiveDueDate(notifDate)
-
-        if (effective.getTime() === todayDate.getTime()) today++
-        else if (isTomorrowBusiness(notifDate)) tomorrow++
+        const notifDateStr = p.data_notificacao.replace(' ', 'T')
+        if (isTodayBusiness(notifDateStr) || isOverdueBusiness(notifDateStr)) today++
+        else if (isTomorrowBusiness(notifDateStr)) tomorrow++
       }
     })
 
@@ -247,66 +249,86 @@ export default function PagamentosAdmin() {
       <AdminPaymentsFilterContext.Provider
         value={{ status: statusFilter, search: searchTerm, dueDateFilter }}
       >
-        <div className="flex flex-wrap items-center gap-3 mb-6 shrink-0 bg-white dark:bg-slate-950 p-3 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
-          <Button
-            variant={dueDateFilter === 'today' ? 'default' : 'outline'}
-            onClick={() => setDueDateFilter((f) => (f === 'today' ? 'all' : 'today'))}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6 shrink-0">
+          <Card
             className={cn(
-              'gap-2 h-9 text-sm rounded-full transition-colors',
+              'cursor-pointer transition-all border-l-4 overflow-hidden shadow-sm',
               dueDateFilter === 'today'
-                ? 'bg-red-50 hover:bg-red-100 text-red-700 border-red-200 dark:bg-red-900/40 dark:text-red-300 dark:border-red-800'
-                : 'bg-white hover:bg-red-50 text-red-700 border-red-200 dark:bg-transparent dark:hover:bg-red-900/20 dark:text-red-400 dark:border-red-900/50',
+                ? 'border-l-red-500 bg-red-50 dark:bg-red-950/20 ring-1 ring-red-500/20'
+                : 'border-l-transparent hover:bg-slate-50 dark:hover:bg-slate-900/50 border-slate-200 dark:border-slate-800',
             )}
+            onClick={() => setDueDateFilter((f) => (f === 'today' ? 'all' : 'today'))}
           >
-            <CalendarClock className="w-4 h-4" />
-            Vencendo Hoje
-            <Badge
-              variant="secondary"
-              className={cn(
-                'ml-1 rounded-full px-2 py-0.5 text-xs',
-                dueDateFilter === 'today'
-                  ? 'bg-red-100 text-red-800 hover:bg-red-200 dark:bg-red-900/60 dark:text-red-200'
-                  : 'bg-red-50 text-red-700 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-300',
-              )}
-            >
-              {todayCount}
-            </Badge>
-          </Button>
+            <div className="p-4 flex items-center justify-between">
+              <div>
+                <p className="text-sm font-semibold text-slate-500 dark:text-slate-400 mb-1">
+                  Vencendo Hoje / Atrasado
+                </p>
+                <div className="flex items-end gap-2">
+                  <span className="text-3xl font-bold text-red-600 dark:text-red-500">
+                    {todayCount}
+                  </span>
+                  <span className="text-sm text-slate-400 mb-1 font-medium">pagamentos</span>
+                </div>
+              </div>
+              <div
+                className={cn(
+                  'p-3 rounded-full',
+                  dueDateFilter === 'today'
+                    ? 'bg-red-100 dark:bg-red-900/40'
+                    : 'bg-red-50 dark:bg-red-900/20',
+                )}
+              >
+                <CalendarClock className="w-6 h-6 text-red-600 dark:text-red-500" />
+              </div>
+            </div>
+          </Card>
 
-          <Button
-            variant={dueDateFilter === 'tomorrow' ? 'default' : 'outline'}
-            onClick={() => setDueDateFilter((f) => (f === 'tomorrow' ? 'all' : 'tomorrow'))}
+          <Card
             className={cn(
-              'gap-2 h-9 text-sm rounded-full transition-colors',
+              'cursor-pointer transition-all border-l-4 overflow-hidden shadow-sm',
               dueDateFilter === 'tomorrow'
-                ? 'bg-yellow-50 hover:bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-900/40 dark:text-yellow-300 dark:border-yellow-800'
-                : 'bg-white hover:bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-transparent dark:hover:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-900/50',
+                ? 'border-l-amber-500 bg-amber-50 dark:bg-amber-950/20 ring-1 ring-amber-500/20'
+                : 'border-l-transparent hover:bg-slate-50 dark:hover:bg-slate-900/50 border-slate-200 dark:border-slate-800',
             )}
+            onClick={() => setDueDateFilter((f) => (f === 'tomorrow' ? 'all' : 'tomorrow'))}
           >
-            <AlertTriangle className="w-4 h-4" />
-            Vencendo em 1 dia
-            <Badge
-              variant="secondary"
-              className={cn(
-                'ml-1 rounded-full px-2 py-0.5 text-xs',
-                dueDateFilter === 'tomorrow'
-                  ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200 dark:bg-yellow-900/60 dark:text-yellow-200'
-                  : 'bg-yellow-50 text-yellow-700 hover:bg-yellow-100 dark:bg-yellow-900/30 dark:text-yellow-300',
-              )}
-            >
-              {tomorrowCount}
-            </Badge>
-          </Button>
+            <div className="p-4 flex items-center justify-between">
+              <div>
+                <p className="text-sm font-semibold text-slate-500 dark:text-slate-400 mb-1">
+                  Vencendo em 1 dia
+                </p>
+                <div className="flex items-end gap-2">
+                  <span className="text-3xl font-bold text-amber-600 dark:text-amber-500">
+                    {tomorrowCount}
+                  </span>
+                  <span className="text-sm text-slate-400 mb-1 font-medium">pagamentos</span>
+                </div>
+              </div>
+              <div
+                className={cn(
+                  'p-3 rounded-full',
+                  dueDateFilter === 'tomorrow'
+                    ? 'bg-amber-100 dark:bg-amber-900/40'
+                    : 'bg-amber-50 dark:bg-amber-900/20',
+                )}
+              >
+                <AlertTriangle className="w-6 h-6 text-amber-600 dark:text-amber-500" />
+              </div>
+            </div>
+          </Card>
 
           {dueDateFilter !== 'all' && (
-            <Button
-              variant="ghost"
-              onClick={() => setDueDateFilter('all')}
-              className="h-9 px-3 text-sm text-slate-500 hover:text-slate-900 dark:hover:text-slate-100"
-            >
-              <X className="w-4 h-4 mr-2" />
-              Limpar Filtros
-            </Button>
+            <div className="flex items-center sm:col-span-2 lg:col-span-1">
+              <Button
+                variant="ghost"
+                onClick={() => setDueDateFilter('all')}
+                className="text-sm text-slate-500 hover:text-slate-900 dark:hover:text-slate-100"
+              >
+                <X className="w-4 h-4 mr-2" />
+                Limpar Filtros
+              </Button>
+            </div>
           )}
         </div>
 

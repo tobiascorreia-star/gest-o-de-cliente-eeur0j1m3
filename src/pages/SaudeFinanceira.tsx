@@ -287,7 +287,7 @@ export default function SaudeFinanceira() {
             <Alert className="bg-amber-50/50 border-amber-200/60 text-amber-800 dark:bg-amber-950/20 dark:border-amber-900/50 dark:text-amber-300 shadow-sm">
               <Info className="w-5 h-5 text-amber-500" />
               <AlertDescription className="font-medium mt-0.5">
-                Os valores mostrados podem sofrer alterações.
+                Os valores mostrados podem sofrer alterações até o fechamento da folha.
               </AlertDescription>
             </Alert>
           )}

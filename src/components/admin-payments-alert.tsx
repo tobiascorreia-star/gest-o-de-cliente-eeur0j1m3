@@ -3,7 +3,8 @@ import { useAuth } from '@/hooks/use-auth'
 import pb from '@/lib/pocketbase/client'
 import { useRealtime } from '@/hooks/use-realtime'
 import { toast } from 'sonner'
-import { isToday, isPast, startOfDay } from 'date-fns'
+import { startOfDay } from 'date-fns'
+import { isOverdueBusiness, isTodayBusiness } from '@/lib/utils'
 
 const playBeep = () => {
   try {
@@ -44,16 +45,15 @@ export function AdminPaymentsAlert() {
         if (!payment.data_notificacao) return
 
         const dueDateStr = payment.data_notificacao.replace(' ', 'T')
-        const dueDate = startOfDay(new Date(dueDateStr))
+        const isToday = isTodayBusiness(dueDateStr)
+        const isOverdue = isOverdueBusiness(dueDateStr)
 
-        if (isToday(dueDate) || isPast(dueDate)) {
+        if (isToday || isOverdue) {
           alertedIds.current.add(payment.id)
           shouldBeep = true
 
           toast.warning(`Aviso de Pagamento: ${payment.descricao}`, {
-            description: isToday(dueDate)
-              ? 'O pagamento vence hoje.'
-              : 'O pagamento está em atraso.',
+            description: isToday ? 'O pagamento vence hoje.' : 'O pagamento está em atraso.',
             duration: 10000,
           })
         }

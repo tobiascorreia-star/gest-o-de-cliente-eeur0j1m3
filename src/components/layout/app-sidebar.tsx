@@ -36,7 +36,7 @@ import { useSidebar } from '@/components/ui/sidebar'
 import { useAuth } from '@/hooks/use-auth'
 import { APP_VERSION } from '@/constants/version'
 import logoUrl from '@/assets/generatedimage_1777858728629-bed4a.png'
-import { cn } from '@/lib/utils'
+import { cn, isOverdueBusiness, isTodayBusiness, isTomorrowBusiness } from '@/lib/utils'
 
 const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
@@ -97,30 +97,18 @@ export function AppSidebar() {
   const fetchPendingAdminPayments = async () => {
     if (user?.role?.toLowerCase() !== 'admin') return
     try {
-      const today = new Date()
-      const tomorrow = new Date(today)
-      tomorrow.setDate(tomorrow.getDate() + 1)
-      const tomorrowStr = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(tomorrow.getDate()).padStart(2, '0')} 23:59:59.999Z`
-
       const res = await pb.collection('admin_payments').getFullList({
-        filter: `status = false && data_notificacao != '' && data_notificacao <= "${tomorrowStr}"`,
+        filter: `status = false && data_notificacao != ''`,
       })
 
       let overdueCount = 0
       let tomorrowCount = 0
 
-      const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime()
-      const tomorrowStart = new Date(
-        tomorrow.getFullYear(),
-        tomorrow.getMonth(),
-        tomorrow.getDate(),
-      ).getTime()
-
       res.forEach((item: any) => {
-        const notifDate = new Date(item.data_notificacao.split(' ')[0] + 'T00:00:00').getTime()
-        if (notifDate <= todayStart) {
+        const notifDateStr = item.data_notificacao.replace(' ', 'T')
+        if (isOverdueBusiness(notifDateStr) || isTodayBusiness(notifDateStr)) {
           overdueCount++
-        } else if (notifDate === tomorrowStart) {
+        } else if (isTomorrowBusiness(notifDateStr)) {
           tomorrowCount++
         }
       })
@@ -198,8 +186,10 @@ export function AppSidebar() {
                         {item.name === 'Pag. Admin' && pendingAdminPaymentsCount > 0 && (
                           <span
                             className={cn(
-                              'ml-auto flex items-center justify-center text-white text-[10px] font-bold w-5 h-5 rounded-full animate-pulse shadow-sm',
-                              hasOverdueAdminPayments ? 'bg-red-500' : 'bg-yellow-500',
+                              'ml-auto flex items-center justify-center text-white text-[10px] font-bold min-w-[20px] h-5 px-1 rounded-full shadow-sm',
+                              hasOverdueAdminPayments
+                                ? 'bg-red-600 animate-[pulse_1.5s_ease-in-out_infinite]'
+                                : 'bg-amber-500 animate-[pulse_2s_ease-in-out_infinite]',
                             )}
                           >
                             {pendingAdminPaymentsCount > 99 ? '99+' : pendingAdminPaymentsCount}

@@ -27,6 +27,13 @@ export function isOverdueBusiness(dueDate: Date | string | number | null | undef
   return effectiveDue.getTime() < today.getTime()
 }
 
+export function isTodayBusiness(dueDate: Date | string | number | null | undefined): boolean {
+  if (!dueDate) return false
+  const effectiveDue = getEffectiveDueDate(dueDate)
+  const today = startOfDay(new Date())
+  return effectiveDue.getTime() === today.getTime()
+}
+
 export function isTomorrowBusiness(dueDate: Date | string | number | null | undefined): boolean {
   if (!dueDate) return false
   const effectiveDue = getEffectiveDueDate(dueDate)
