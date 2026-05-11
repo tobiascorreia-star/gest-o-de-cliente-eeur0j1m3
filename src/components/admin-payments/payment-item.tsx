@@ -6,7 +6,7 @@ import { Pencil, Trash2, Clock, AlertCircle, ChevronDown, ChevronRight } from 'l
 import { cn } from '@/lib/utils'
 import { updateAdminPayment, deleteAdminPayment } from '@/services/admin_payments'
 import { toast } from 'sonner'
-import { format } from 'date-fns'
+import { format, startOfDay } from 'date-fns'
 import { Badge } from '@/components/ui/badge'
 import { isOverdueBusiness, isTomorrowBusiness, getEffectiveDueDate } from '@/lib/utils'
 
@@ -107,6 +107,10 @@ export function PaymentItem({ item, onEdit }: Props) {
 
   const isOverdue = !item.status && isOverdueBusiness(notifDate)
   const isNearDeadline = !item.status && isTomorrowBusiness(notifDate)
+  const isToday =
+    !item.status &&
+    notifDate &&
+    getEffectiveDueDate(notifDate).getTime() === startOfDay(new Date()).getTime()
 
   return (
     <div
@@ -114,14 +118,19 @@ export function PaymentItem({ item, onEdit }: Props) {
         'group flex items-start gap-3 p-3 rounded-lg transition-colors border shadow-sm',
         isOverdue
           ? 'bg-red-50/30 dark:bg-red-950/20 border-red-200 dark:border-red-900/50 relative overflow-hidden'
-          : isNearDeadline
-            ? 'bg-yellow-50/50 dark:bg-yellow-950/20 border-yellow-300 dark:border-yellow-900/50'
-            : 'bg-white dark:bg-slate-950 border-slate-100 dark:border-slate-800',
+          : isToday
+            ? 'bg-orange-50/40 dark:bg-orange-950/20 border-orange-200 dark:border-orange-900/50 relative overflow-hidden'
+            : isNearDeadline
+              ? 'bg-yellow-50/50 dark:bg-yellow-950/20 border-yellow-300 dark:border-yellow-900/50'
+              : 'bg-white dark:bg-slate-950 border-slate-100 dark:border-slate-800',
         'hover:border-slate-300 dark:hover:border-slate-700',
       )}
     >
       {isOverdue && (
         <div className="absolute inset-y-0 left-0 w-1 bg-red-500 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.6)]" />
+      )}
+      {isToday && (
+        <div className="absolute inset-y-0 left-0 w-1 bg-orange-500 animate-pulse shadow-[0_0_8px_rgba(249,115,22,0.6)]" />
       )}
       <Checkbox
         checked={item.status}
@@ -160,6 +169,22 @@ export function PaymentItem({ item, onEdit }: Props) {
                   Pagamento Vencido
                 </Badge>
               )}
+              {isToday && (
+                <Badge
+                  variant="default"
+                  className="text-[10px] h-5 px-1.5 py-0 uppercase tracking-wider bg-orange-500 hover:bg-orange-600 text-white whitespace-nowrap"
+                >
+                  Vencendo Hoje
+                </Badge>
+              )}
+              {isNearDeadline && (
+                <Badge
+                  variant="outline"
+                  className="text-[10px] h-5 px-1.5 py-0 uppercase tracking-wider border-yellow-500 text-yellow-600 dark:border-yellow-400 dark:text-yellow-400 whitespace-nowrap"
+                >
+                  Vencendo em 1 dia
+                </Badge>
+              )}
             </>
           )}
           {item.status && (
@@ -196,11 +221,14 @@ export function PaymentItem({ item, onEdit }: Props) {
                 className={cn(
                   'flex items-center gap-1',
                   isOverdue && 'text-red-500 font-semibold',
+                  isToday && 'text-orange-500 font-semibold',
                   isNearDeadline && 'text-yellow-500 font-semibold',
                 )}
               >
-                {(isOverdue || isNearDeadline) && (
-                  <AlertCircle className={cn('w-3 h-3', isOverdue && 'animate-pulse')} />
+                {(isOverdue || isToday || isNearDeadline) && (
+                  <AlertCircle
+                    className={cn('w-3 h-3', (isOverdue || isToday) && 'animate-pulse')}
+                  />
                 )}
                 {item.data_notificacao
                   ? `Vence: ${format(getEffectiveDueDate(notifDate!), 'dd/MM/yyyy')}`

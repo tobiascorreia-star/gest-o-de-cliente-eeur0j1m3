@@ -9,6 +9,13 @@ import { cn } from '@/lib/utils'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
   PiggyBank,
   Home,
   BookOpen,
@@ -56,10 +63,32 @@ const rules = [
 export default function SaudeFinanceira() {
   const { user } = useAuth()
   const [filterMonth, setFilterMonth] = useState('')
+  const [availableMonths, setAvailableMonths] = useState<{ year: number; month: number }[]>([])
   const [record, setRecord] = useState<any>(null)
   const [loading, setLoading] = useState(false)
 
   const [payrollRecord, setPayrollRecord] = useState<any>(null)
+
+  useEffect(() => {
+    if (!user) return
+    const fetchAvailable = async () => {
+      try {
+        const records = await pb.collection('financial_education').getFullList({
+          filter: `user = "${user.id}"`,
+          sort: '-year,-month',
+          fields: 'year,month',
+        })
+        const unique = Array.from(new Set(records.map((r) => `${r.year}-${r.month}`))).map((k) => {
+          const [y, m] = k.split('-')
+          return { year: parseInt(y, 10), month: parseInt(m, 10) }
+        })
+        setAvailableMonths(unique)
+      } catch (e) {
+        // ignore
+      }
+    }
+    fetchAvailable()
+  }, [user])
 
   useEffect(() => {
     if (!user) return
@@ -125,12 +154,26 @@ export default function SaudeFinanceira() {
   }, [filterMonth, user])
 
   useRealtime('financial_education', (e) => {
-    if (e.record.user === user?.id && filterMonth) {
-      const [yStr, mStr] = filterMonth.split('-')
-      const y = parseInt(yStr, 10)
-      const m = parseInt(mStr, 10)
-      if (e.record.year === y && e.record.month === m) {
-        setRecord(e.action === 'delete' ? null : e.record)
+    if (e.record.user === user?.id) {
+      if (e.action === 'create') {
+        setAvailableMonths((prev) => {
+          const exists = prev.some((m) => m.year === e.record.year && m.month === e.record.month)
+          if (!exists) {
+            const updated = [...prev, { year: e.record.year, month: e.record.month }]
+            updated.sort((a, b) => b.year - a.year || b.month - a.month)
+            return updated
+          }
+          return prev
+        })
+      }
+
+      if (filterMonth) {
+        const [yStr, mStr] = filterMonth.split('-')
+        const y = parseInt(yStr, 10)
+        const m = parseInt(mStr, 10)
+        if (e.record.year === y && e.record.month === m) {
+          setRecord(e.action === 'delete' ? null : e.record)
+        }
       }
     }
   })
@@ -165,12 +208,31 @@ export default function SaudeFinanceira() {
         <div className="space-y-2">
           <Label>Selecione o Mês</Label>
           <div className="flex items-center gap-4">
-            <Input
-              type="month"
-              value={filterMonth}
-              onChange={(e) => setFilterMonth(e.target.value)}
-              className="w-auto"
-            />
+            {availableMonths.length > 0 ? (
+              <Select value={filterMonth} onValueChange={setFilterMonth}>
+                <SelectTrigger className="w-[160px] bg-white dark:bg-slate-950">
+                  <SelectValue placeholder="Selecione o mês" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableMonths.map((m) => {
+                    const val = `${m.year}-${String(m.month).padStart(2, '0')}`
+                    const label = `${String(m.month).padStart(2, '0')}/${m.year}`
+                    return (
+                      <SelectItem key={val} value={val}>
+                        {label}
+                      </SelectItem>
+                    )
+                  })}
+                </SelectContent>
+              </Select>
+            ) : (
+              <Input
+                type="month"
+                value={filterMonth}
+                onChange={(e) => setFilterMonth(e.target.value)}
+                className="w-auto bg-white dark:bg-slate-950"
+              />
+            )}
             {payrollRecord && (
               <Badge
                 variant="outline"
@@ -216,7 +278,12 @@ export default function SaudeFinanceira() {
           )}
 
           <div className="grid md:grid-cols-3 gap-6">
-            <Card className="md:col-span-2 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border-primary/20">
+            <Card
+              className={cn(
+                'bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border-primary/20',
+                record.admin_message ? 'md:col-span-2' : 'md:col-span-3',
+              )}
+            >
               <CardContent className="p-8 flex flex-col justify-center h-full">
                 <p className="text-sm font-semibold uppercase tracking-wider text-primary/80 mb-2">
                   Total a Receber
