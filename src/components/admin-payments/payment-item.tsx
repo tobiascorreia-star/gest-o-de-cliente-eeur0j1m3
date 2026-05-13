@@ -10,6 +10,7 @@ import {
   ChevronDown,
   ChevronRight,
   Archive,
+  RotateCcw,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { updateAdminPayment, deleteAdminPayment } from '@/services/admin_payments'
@@ -39,6 +40,7 @@ export function PaymentItem({ item, onEdit }: Props) {
   const [isExpanded, setIsExpanded] = useState(!item.status)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [isArchiveDialogOpen, setIsArchiveDialogOpen] = useState(false)
+  const [isUnarchiveDialogOpen, setIsUnarchiveDialogOpen] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -133,6 +135,21 @@ export function PaymentItem({ item, onEdit }: Props) {
       )
     } catch {
       toast.error('Erro ao arquivar')
+    }
+  }
+
+  const handleUnarchive = async () => {
+    setIsUnarchiveDialogOpen(false)
+    try {
+      await updateAdminPayment(item.id, { archived: false })
+      toast.success('Restaurado com sucesso')
+      window.dispatchEvent(
+        new CustomEvent('admin-payment-optimistic', {
+          detail: { id: item.id, updates: { archived: false } },
+        }),
+      )
+    } catch {
+      toast.error('Erro ao restaurar')
     }
   }
 
@@ -298,7 +315,17 @@ export function PaymentItem({ item, onEdit }: Props) {
         >
           <Pencil className="w-4 h-4" />
         </Button>
-        {!item.archived && (
+        {item.archived ? (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-slate-500 hover:text-emerald-600"
+            onClick={() => setIsUnarchiveDialogOpen(true)}
+            title="Restaurar para Ativo"
+          >
+            <RotateCcw className="w-4 h-4" />
+          </Button>
+        ) : (
           <Button
             variant="ghost"
             size="icon"
@@ -353,6 +380,21 @@ export function PaymentItem({ item, onEdit }: Props) {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={handleArchive}>Confirmar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={isUnarchiveDialogOpen} onOpenChange={setIsUnarchiveDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Restaurar Pagamento</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja restaurar o pagamento "{item.descricao}" para a visão ativa?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleUnarchive}>Confirmar</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

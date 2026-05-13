@@ -39,28 +39,34 @@ cronAdd('check_client_delays', '*/15 * * * *', () => {
 
     const admins = $app.findRecordsByFilter('users', "role='admin'", '', 100, 0)
 
-    for (let client of delayedClients) {
-      for (let admin of admins) {
-        try {
-          $app.findFirstRecordByFilter(
+    $app.runInTransaction((txApp) => {
+      const notifCol = txApp.findCollectionByNameOrId('notifications')
+      for (let client of delayedClients) {
+        for (let admin of admins) {
+          const existing = txApp.findRecordsByFilter(
             'notifications',
             "type='atraso_cliente' && client={:client} && user={:user} && (resolved=false || created > {:updated})",
+            '',
+            1,
+            0,
             {
               client: client.id,
               user: admin.id,
               updated: client.getString('updated'),
             },
           )
-        } catch (_) {
-          const notif = new Record($app.findCollectionByNameOrId('notifications'))
-          notif.set('user', admin.id)
-          notif.set('type', 'atraso_cliente')
-          notif.set('client', client.id)
-          notif.set('resolved', false)
-          $app.save(notif)
+
+          if (existing.length === 0) {
+            const notif = new Record(notifCol)
+            notif.set('user', admin.id)
+            notif.set('type', 'atraso_cliente')
+            notif.set('client', client.id)
+            notif.set('resolved', false)
+            txApp.save(notif)
+          }
         }
       }
-    }
+    })
   } catch (err) {
     $app.logger().error('Cron check_client_delays error', 'error', err.message)
   }

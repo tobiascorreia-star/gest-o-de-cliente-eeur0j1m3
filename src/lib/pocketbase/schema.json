@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-11T19:55:49.007Z",
+  "generatedAt": "2026-05-13T01:46:03.186Z",
   "collections": [
     {
       "name": "users",
@@ -316,7 +316,11 @@
           "collectionRef": "users"
         }
       ],
-      "indexes": ["CREATE INDEX `idx_clients_status_updated` ON `clients` (status, updated)"]
+      "indexes": [
+        "CREATE INDEX `idx_clients_status_updated` ON `clients` (status, updated)",
+        "CREATE INDEX `idx_clients_nome` ON `clients` (nome_cliente)",
+        "CREATE INDEX `idx_clients_created` ON `clients` (created)"
+      ]
     },
     {
       "name": "alert_settings",
@@ -554,7 +558,10 @@
       "indexes": [
         "CREATE INDEX `idx_admin_payments_ref` ON `admin_payments` (ano_referencia, mes_referencia)",
         "CREATE INDEX `idx_admin_payments_ref_dono` ON `admin_payments` (ano_referencia, mes_referencia, dono_pagamento)",
-        "CREATE INDEX `idx_admin_payments_admin` ON `admin_payments` (admin)"
+        "CREATE INDEX `idx_admin_payments_admin` ON `admin_payments` (admin)",
+        "CREATE INDEX `idx_admin_payments_archived` ON `admin_payments` (archived)",
+        "CREATE INDEX `idx_admin_payments_status_notif` ON `admin_payments` (status, data_notificacao)",
+        "CREATE INDEX `idx_admin_payments_ref_dono_arch` ON `admin_payments` (ano_referencia, mes_referencia, dono_pagamento, archived)"
       ]
     },
     {

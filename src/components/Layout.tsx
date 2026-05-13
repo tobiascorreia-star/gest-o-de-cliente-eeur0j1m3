@@ -2,6 +2,7 @@ import { Outlet } from 'react-router-dom'
 import { SidebarProvider } from '@/components/ui/sidebar'
 import { AppSidebar } from './layout/app-sidebar'
 import { AppHeader } from './layout/app-header'
+import { APP_VERSION } from '@/constants/version'
 
 export default function Layout() {
   return (
@@ -16,8 +17,8 @@ export default function Layout() {
                 <Outlet />
               </div>
             </div>
-            <footer className="w-full py-4 text-center text-xs text-muted-foreground mt-auto">
-              © 2026 - MegaFllex Soluções
+            <footer className="w-full py-4 text-center text-xs text-muted-foreground mt-auto font-medium">
+              © 2026 - MegaFllex Soluções • Versão {APP_VERSION}
             </footer>
           </main>
         </div>

@@ -51,22 +51,22 @@ export function MonthGroup({ mes, ano, items, onEditItem, onAddForOwner }: Props
   }, [ano, mes])
 
   const headerBgClass = isCurrent
-    ? 'bg-green-200 dark:bg-green-900/60'
+    ? 'bg-emerald-300 dark:bg-emerald-800/80'
     : isPast
-      ? 'bg-amber-200 dark:bg-amber-900/60'
-      : 'bg-slate-100 dark:bg-slate-800'
+      ? 'bg-orange-300 dark:bg-orange-800/80'
+      : 'bg-slate-200 dark:bg-slate-800'
 
   const titleClass = isCurrent
-    ? 'text-green-900 dark:text-green-100'
+    ? 'text-emerald-950 dark:text-emerald-50'
     : isPast
-      ? 'text-amber-900 dark:text-amber-100'
-      : 'text-slate-800 dark:text-slate-100'
+      ? 'text-orange-950 dark:text-orange-50'
+      : 'text-slate-900 dark:text-slate-50'
 
   const subtitleClass = isCurrent
-    ? 'text-green-700 dark:text-green-300'
+    ? 'text-emerald-800 dark:text-emerald-200'
     : isPast
-      ? 'text-amber-700 dark:text-amber-300'
-      : 'text-slate-500 dark:text-slate-400'
+      ? 'text-orange-800 dark:text-orange-200'
+      : 'text-slate-600 dark:text-slate-400'
 
   const [cloning, setCloning] = useState(false)
   const { status: statusFilter, search } = useContext(AdminPaymentsFilterContext)
