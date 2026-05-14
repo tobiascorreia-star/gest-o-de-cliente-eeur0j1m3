@@ -2,18 +2,17 @@ import { useAuth } from '@/hooks/use-auth'
 import { useDashboard } from '@/hooks/use-dashboard'
 import { useEffect, useState } from 'react'
 import pb from '@/lib/pocketbase/client'
-import { AuditLog } from '@/types'
 import { useRealtime } from '@/hooks/use-realtime'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { differenceInDays, format } from 'date-fns'
+import { format, endOfMonth } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { Clock, KeyRound, CheckCircle2, AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 export function AlertsWidget() {
   const { user: currentUser } = useAuth()
-  const { clients, statuses, alertSettings } = useDashboard()
+  const { clients, statuses } = useDashboard()
   const [notificationsList, setNotificationsList] = useState<any[]>([])
 
   useEffect(() => {
@@ -66,29 +65,38 @@ export function AlertsWidget() {
     }
   }
 
+  const now = new Date()
+  const currentMonthEnd = endOfMonth(now)
+
   const alerts = clients
     .filter((c) => {
       const statusName = statuses.find((s) => s.id === c.status)?.name?.toUpperCase() || ''
-      return statusName !== 'BAIXA' && statusName !== 'CONCLUÍDO' && statusName !== 'CONCLUIDO'
-    })
-    .map((c) => {
-      const days = differenceInDays(new Date(), new Date(c.updated))
-      let severity: 'none' | 'old' | 'critical' = 'none'
-      if (alertSettings && days >= alertSettings.critical_days) severity = 'critical'
-      else if (alertSettings && days >= alertSettings.old_days) severity = 'old'
+      if (statusName === 'BAIXA' || statusName === 'CONCLUÍDO' || statusName === 'CONCLUIDO')
+        return false
 
-      return { ...c, days, severity }
+      const createdDate = new Date(c.created)
+      if (
+        createdDate.getMonth() !== currentMonthEnd.getMonth() ||
+        createdDate.getFullYear() !== currentMonthEnd.getFullYear()
+      ) {
+        return false
+      }
+
+      return currentMonthEnd.getDate() - createdDate.getDate() <= 5
     })
-    .filter((c) => c.severity !== 'none')
-    .sort((a, b) => b.days - a.days)
+    .sort((a, b) => new Date(b.created).getTime() - new Date(a.created).getTime())
     .slice(0, 6)
 
   const pendingResets = notificationsList.filter((n) => n.type === 'password_reset')
   const delayedClients = notificationsList.filter((n) => n.type === 'atraso_cliente')
 
+  if (currentUser?.role?.toLowerCase() !== 'admin') {
+    return null
+  }
+
   return (
     <div className="space-y-4 mt-4">
-      {currentUser?.role?.toLowerCase() === 'admin' && delayedClients.length > 0 && (
+      {delayedClients.length > 0 && (
         <Card className="border-border/50 shadow-sm border-l-4 border-l-red-500 bg-red-50/50 dark:bg-red-950/20">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-light flex items-center gap-2 text-red-600 dark:text-red-400">
@@ -139,7 +147,7 @@ export function AlertsWidget() {
         </Card>
       )}
 
-      {currentUser?.role?.toLowerCase() === 'admin' && pendingResets.length > 0 && (
+      {pendingResets.length > 0 && (
         <Card className="border-border/50 shadow-sm border-l-4 border-l-primary bg-primary/5">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-light flex items-center gap-2 text-primary">
@@ -186,11 +194,11 @@ export function AlertsWidget() {
         </Card>
       )}
 
-      <Card className="border-slate-100 dark:border-slate-800 shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] border-l-4 border-l-emerald-400 overflow-hidden">
+      <Card className="border-slate-100 dark:border-slate-800 shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] border-l-4 border-l-amber-400 overflow-hidden">
         <CardHeader className="bg-white/50 dark:bg-slate-900/50 pb-4 border-b border-slate-100 dark:border-slate-800">
           <CardTitle className="text-sm font-light flex items-center gap-2 text-slate-700 dark:text-slate-200">
-            <Clock className="w-4 h-4 text-emerald-500" strokeWidth={1.25} />
-            Alertas de Pendências
+            <Clock className="w-4 h-4 text-amber-500" strokeWidth={1.25} />
+            Alertas de Pendências (Fim de Mês)
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-4">
@@ -198,12 +206,15 @@ export function AlertsWidget() {
             <div className="py-8 text-center flex flex-col items-center justify-center gap-2 text-emerald-600 dark:text-emerald-400">
               <CheckCircle2 className="w-8 h-8 opacity-50" strokeWidth={1.25} />
               <p className="text-sm font-light">Tudo em dia!</p>
-              <p className="text-xs font-light opacity-80">
-                Nenhuma pendência antiga ou crítica encontrada.
+              <p className="text-xs font-light opacity-80 text-center px-4">
+                Nenhum item pendente criado nos últimos 5 dias do mês atual.
               </p>
             </div>
           ) : (
             <div className="space-y-4">
+              <p className="text-xs font-light text-muted-foreground pb-2">
+                Atenção: Itens criados nos últimos 5 dias do mês atual.
+              </p>
               {alerts.map((alert) => (
                 <div
                   key={alert.id}
@@ -217,18 +228,11 @@ export function AlertsWidget() {
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="text-[11px] font-light text-muted-foreground">
-                      {alert.days} dias
-                    </span>
                     <Badge
                       variant="secondary"
-                      className={
-                        alert.severity === 'critical'
-                          ? 'bg-red-100 text-red-800 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 font-light text-[10px]'
-                          : 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 font-light text-[10px]'
-                      }
+                      className="bg-amber-100 text-amber-800 hover:bg-amber-200 dark:bg-amber-900/30 dark:text-amber-400 font-light text-[10px]"
                     >
-                      {alert.severity === 'critical' ? 'Crítico' : 'Antiga'}
+                      Fim de Mês
                     </Badge>
                   </div>
                 </div>
