@@ -315,9 +315,6 @@ export function ClienteList({
                 </TableRow>
               )}
               {clients.map((client) => {
-                const days = client.updated
-                  ? differenceInCalendarDays(new Date(), new Date(client.updated))
-                  : 0
                 const createdDays = client.created
                   ? differenceInCalendarDays(new Date(), new Date(client.created))
                   : 0
@@ -325,8 +322,8 @@ export function ClienteList({
                 const isPending =
                   statusName !== 'BAIXA' && statusName !== 'CONCLUÍDO' && statusName !== 'CONCLUIDO'
                 const isOver3Days = isPending && createdDays > 3
-                const isCritical = alertSettings && days >= alertSettings.critical_days
-                const isOld = alertSettings && !isCritical && days >= alertSettings.old_days
+                const isCritical = alertSettings && createdDays >= alertSettings.critical_days
+                const isOld = alertSettings && !isCritical && createdDays >= alertSettings.old_days
                 const hasNotification = notifications.some((n) => n.client === client.id)
                 const showCritical = isPending && isCritical
                 const showOld = isPending && isOld
@@ -473,9 +470,6 @@ export function ClienteList({
           </div>
         )}
         {clients.map((client) => {
-          const days = client.updated
-            ? differenceInCalendarDays(new Date(), new Date(client.updated))
-            : 0
           const createdDays = client.created
             ? differenceInCalendarDays(new Date(), new Date(client.created))
             : 0
@@ -483,8 +477,8 @@ export function ClienteList({
           const isPending =
             statusName !== 'BAIXA' && statusName !== 'CONCLUÍDO' && statusName !== 'CONCLUIDO'
           const isOver3Days = isPending && createdDays > 3
-          const isCritical = alertSettings && days >= alertSettings.critical_days
-          const isOld = alertSettings && !isCritical && days >= alertSettings.old_days
+          const isCritical = alertSettings && createdDays >= alertSettings.critical_days
+          const isOld = alertSettings && !isCritical && createdDays >= alertSettings.old_days
           const hasNotification = notifications.some((n) => n.client === client.id)
           const showCritical = isPending && isCritical
           const showOld = isPending && isOld

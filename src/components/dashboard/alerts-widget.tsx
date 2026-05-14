@@ -5,14 +5,14 @@ import pb from '@/lib/pocketbase/client'
 import { useRealtime } from '@/hooks/use-realtime'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { format, endOfMonth } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
+import { format, differenceInCalendarDays } from 'date-fns'
 import { Clock, KeyRound, CheckCircle2, AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 
 export function AlertsWidget() {
   const { user: currentUser } = useAuth()
-  const { clients, statuses } = useDashboard()
+  const { clients, statuses, alertSettings } = useDashboard()
   const [notificationsList, setNotificationsList] = useState<any[]>([])
 
   useEffect(() => {
@@ -65,45 +65,85 @@ export function AlertsWidget() {
     }
   }
 
-  const now = new Date()
-  const currentMonthEnd = endOfMonth(now)
-
-  const alerts = clients
-    .filter((c) => {
-      const statusName = statuses.find((s) => s.id === c.status)?.name?.toUpperCase() || ''
-      if (statusName === 'BAIXA' || statusName === 'CONCLUÍDO' || statusName === 'CONCLUIDO')
-        return false
-
-      const createdDate = new Date(c.created)
-      if (
-        createdDate.getMonth() !== currentMonthEnd.getMonth() ||
-        createdDate.getFullYear() !== currentMonthEnd.getFullYear()
-      ) {
-        return false
-      }
-
-      return currentMonthEnd.getDate() - createdDate.getDate() <= 5
-    })
-    .sort((a, b) => new Date(b.created).getTime() - new Date(a.created).getTime())
-    .slice(0, 6)
-
-  const pendingResets = notificationsList.filter((n) => n.type === 'password_reset')
-  const delayedClients = notificationsList.filter((n) => n.type === 'atraso_cliente')
-
   if (currentUser?.role?.toLowerCase() !== 'admin') {
     return null
   }
 
+  const pendingClients = clients.filter((c) => {
+    const statusName = statuses.find((s) => s.id === c.status)?.name?.toUpperCase() || ''
+    return statusName !== 'BAIXA' && statusName !== 'CONCLUÍDO' && statusName !== 'CONCLUIDO'
+  })
+
+  const pendingCount = pendingClients.length
+
+  const now = new Date()
+  const oldClients: any[] = []
+  const criticalClients: any[] = []
+
+  pendingClients.forEach((c) => {
+    const createdDate = new Date(c.created)
+    const days = differenceInCalendarDays(now, createdDate)
+
+    if (days >= (alertSettings?.critical_days ?? 30)) {
+      criticalClients.push(c)
+    } else if (days >= (alertSettings?.old_days ?? 15)) {
+      oldClients.push(c)
+    }
+  })
+
+  const agingClients = [...criticalClients, ...oldClients].sort(
+    (a, b) => new Date(a.created).getTime() - new Date(b.created).getTime(),
+  )
+
+  const pendingResets = notificationsList.filter((n) => n.type === 'password_reset')
+  const delayedClients = notificationsList.filter((n) => n.type === 'atraso_cliente')
+
   return (
     <div className="space-y-4 mt-4">
+      {pendingCount >= (alertSettings?.critical_threshold ?? 20) ? (
+        <Card className="border-border/50 shadow-sm border-l-4 border-l-destructive bg-destructive/10">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-light flex items-center gap-2 text-destructive">
+              <span className="relative flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-destructive opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-destructive"></span>
+              </span>
+              <AlertTriangle className="w-4 h-4" strokeWidth={1.5} />
+              Volume Crítico de Atendimentos
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm">
+              Existem <strong>{pendingCount}</strong> atendimentos pendentes no total, excedendo o
+              limite crítico ({alertSettings?.critical_threshold ?? 20}).
+            </p>
+          </CardContent>
+        </Card>
+      ) : pendingCount >= (alertSettings?.moderate_threshold ?? 10) ? (
+        <Card className="border-border/50 shadow-sm border-l-4 border-l-amber-500 bg-amber-50 dark:bg-amber-950/20">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-light flex items-center gap-2 text-amber-600 dark:text-amber-500">
+              <span className="relative flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span>
+              </span>
+              <AlertTriangle className="w-4 h-4" strokeWidth={1.5} />
+              Volume Moderado de Atendimentos
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-amber-700 dark:text-amber-400">
+              Existem <strong>{pendingCount}</strong> atendimentos pendentes no total, excedendo o
+              limite moderado ({alertSettings?.moderate_threshold ?? 10}).
+            </p>
+          </CardContent>
+        </Card>
+      ) : null}
+
       {delayedClients.length > 0 && (
         <Card className="border-border/50 shadow-sm border-l-4 border-l-red-500 bg-red-50/50 dark:bg-red-950/20">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-light flex items-center gap-2 text-red-600 dark:text-red-400">
-              <span className="relative flex h-3 w-3">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
-              </span>
               <AlertTriangle className="w-4 h-4" strokeWidth={1.5} />
               Atenção: Clientes Atrasados ({delayedClients.length})
             </CardTitle>
@@ -151,10 +191,6 @@ export function AlertsWidget() {
         <Card className="border-border/50 shadow-sm border-l-4 border-l-primary bg-primary/5">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-light flex items-center gap-2 text-primary">
-              <span className="relative flex h-3 w-3">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary/60 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
-              </span>
               <KeyRound className="w-4 h-4" strokeWidth={1.25} />
               Solicitações de Redefinição de Senha
             </CardTitle>
@@ -194,49 +230,80 @@ export function AlertsWidget() {
         </Card>
       )}
 
-      <Card className="border-slate-100 dark:border-slate-800 shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] border-l-4 border-l-amber-400 overflow-hidden">
+      <Card
+        className={cn(
+          'border-slate-100 dark:border-slate-800 shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] border-l-4 overflow-hidden',
+          criticalClients.length > 0 ? 'border-l-destructive' : 'border-l-amber-400',
+        )}
+      >
         <CardHeader className="bg-white/50 dark:bg-slate-900/50 pb-4 border-b border-slate-100 dark:border-slate-800">
-          <CardTitle className="text-sm font-light flex items-center gap-2 text-slate-700 dark:text-slate-200">
-            <Clock className="w-4 h-4 text-amber-500" strokeWidth={1.25} />
-            Alertas de Pendências (Fim de Mês)
+          <CardTitle
+            className={cn(
+              'text-sm font-light flex items-center gap-2',
+              criticalClients.length > 0
+                ? 'text-destructive'
+                : 'text-slate-700 dark:text-slate-200',
+            )}
+          >
+            <Clock
+              className={cn(
+                'w-4 h-4',
+                criticalClients.length > 0 ? 'text-destructive' : 'text-amber-500',
+              )}
+              strokeWidth={1.25}
+            />
+            Aviso
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-4">
-          {alerts.length === 0 ? (
+          {agingClients.length === 0 ? (
             <div className="py-8 text-center flex flex-col items-center justify-center gap-2 text-emerald-600 dark:text-emerald-400">
               <CheckCircle2 className="w-8 h-8 opacity-50" strokeWidth={1.25} />
               <p className="text-sm font-light">Tudo em dia!</p>
               <p className="text-xs font-light opacity-80 text-center px-4">
-                Nenhum item pendente criado nos últimos 5 dias do mês atual.
+                Nenhum atendimento antigo ou em estado crítico.
               </p>
             </div>
           ) : (
             <div className="space-y-4">
-              <p className="text-xs font-light text-muted-foreground pb-2">
-                Atenção: Itens criados nos últimos 5 dias do mês atual.
+              <p className="text-sm text-foreground">
+                Existem <strong>{oldClients.length}</strong> atendimentos antigos e{' '}
+                <strong>{criticalClients.length}</strong> atendimentos em estado crítico.
               </p>
-              {alerts.map((alert) => (
-                <div
-                  key={alert.id}
-                  className="flex items-center justify-between border-b border-border/50 pb-3 last:border-0 last:pb-0"
-                >
-                  <div>
-                    <p className="font-light text-sm">{alert.razao_social}</p>
-                    <p className="text-[11px] font-light text-muted-foreground mt-0.5">
-                      Cadastrado em{' '}
-                      {format(new Date(alert.created), "dd 'de' MMM, yyyy", { locale: ptBR })}
-                    </p>
+              {agingClients.slice(0, 5).map((alert) => {
+                const isCritical = criticalClients.includes(alert)
+                return (
+                  <div
+                    key={alert.id}
+                    className="flex items-center justify-between border-b border-border/50 pb-3 last:border-0 last:pb-0"
+                  >
+                    <div>
+                      <p className="font-light text-sm">{alert.razao_social}</p>
+                      <p className="text-[11px] font-light text-muted-foreground mt-0.5">
+                        Cadastrado em {format(new Date(alert.created), 'dd/MM/yyyy')} (
+                        {differenceInCalendarDays(now, new Date(alert.created))} dias)
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Badge
+                        variant={isCritical ? 'destructive' : 'outline'}
+                        className={cn(
+                          'font-light text-[10px]',
+                          !isCritical &&
+                            'border-amber-500 text-amber-600 bg-amber-50 dark:bg-amber-950 dark:text-amber-500',
+                        )}
+                      >
+                        {isCritical ? 'Crítica' : 'Antiga'}
+                      </Badge>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <Badge
-                      variant="secondary"
-                      className="bg-amber-100 text-amber-800 hover:bg-amber-200 dark:bg-amber-900/30 dark:text-amber-400 font-light text-[10px]"
-                    >
-                      Fim de Mês
-                    </Badge>
-                  </div>
-                </div>
-              ))}
+                )
+              })}
+              {agingClients.length > 5 && (
+                <p className="text-xs text-center text-muted-foreground pt-2">
+                  + {agingClients.length - 5} outros atendimentos antigos/críticos.
+                </p>
+              )}
             </div>
           )}
         </CardContent>
