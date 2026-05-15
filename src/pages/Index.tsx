@@ -9,6 +9,7 @@ import { useDashboard } from '@/hooks/use-dashboard'
 import { useRealtime } from '@/hooks/use-realtime'
 import { toast } from '@/hooks/use-toast'
 import { differenceInCalendarDays } from 'date-fns'
+import { getClientAlertState } from '@/lib/utils'
 import {
   Dialog,
   DialogContent,
@@ -139,16 +140,12 @@ const Index = () => {
 
   const oldDaysThreshold = alertSettings?.old_days ?? 15
   const pendingOldCount = pendingClients.filter((c) => {
-    const belongsToUser =
-      currentUser?.role?.toLowerCase() === 'admin'
-        ? true
-        : c.expand?.colaborador?.name === currentUser?.name
+    const isAdmin = currentUser?.role?.toLowerCase() === 'admin'
+    const belongsToUser = isAdmin ? true : c.expand?.colaborador?.name === currentUser?.name
+    if (!belongsToUser) return false
 
-    return (
-      belongsToUser &&
-      c.created &&
-      differenceInCalendarDays(new Date(), new Date(c.created)) >= oldDaysThreshold
-    )
+    const { isCritical, isModerate, isOldAdmin } = getClientAlertState(c, alertSettings, isAdmin)
+    return isCritical || isModerate || isOldAdmin
   }).length
 
   const getGreeting = () => {

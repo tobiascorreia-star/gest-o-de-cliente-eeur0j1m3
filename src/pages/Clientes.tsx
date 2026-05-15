@@ -13,6 +13,7 @@ import { useAuth } from '@/hooks/use-auth'
 import pb from '@/lib/pocketbase/client'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { startOfMonth, differenceInCalendarDays } from 'date-fns'
+import { getClientAlertState } from '@/lib/utils'
 
 export default function Clientes() {
   const [clients, setClients] = useState<Client[]>([])
@@ -104,15 +105,14 @@ export default function Clientes() {
       })
     }
     if (showOnlyPendingOld) {
-      const now = new Date()
       result = result.filter((c) => {
-        const statusName = c.expand?.status?.name?.toUpperCase() || ''
-        const isPending =
-          statusName !== 'BAIXA' && statusName !== 'CONCLUÍDO' && statusName !== 'CONCLUIDO'
-        if (!isPending) return false
-
-        if (!c.created) return false
-        return differenceInCalendarDays(now, new Date(c.created)) > 3
+        const isAdmin = user?.role?.toLowerCase() === 'admin'
+        const { isCritical, isModerate, isOldAdmin } = getClientAlertState(
+          c,
+          alertSettings,
+          isAdmin,
+        )
+        return isCritical || isModerate || isOldAdmin
       })
     }
     return result

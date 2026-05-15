@@ -31,7 +31,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { format, differenceInCalendarDays } from 'date-fns'
+import { format } from 'date-fns'
 import {
   Dialog,
   DialogContent,
@@ -40,7 +40,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
-import { cn } from '@/lib/utils'
+import { cn, getClientAlertState } from '@/lib/utils'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
 const ObservationBlock = ({
@@ -315,27 +315,23 @@ export function ClienteList({
                 </TableRow>
               )}
               {clients.map((client) => {
-                const createdDays = client.created
-                  ? differenceInCalendarDays(new Date(), new Date(client.created))
-                  : 0
-                const statusName = client.expand?.status?.name?.toUpperCase() || ''
-                const isPending =
-                  statusName !== 'BAIXA' && statusName !== 'CONCLUÍDO' && statusName !== 'CONCLUIDO'
-                const isCritical = alertSettings && createdDays >= alertSettings.critical_days
-                const isOld = alertSettings && !isCritical && createdDays >= alertSettings.old_days
-                const hasNotification = notifications.some((n) => n.client === client.id)
-                const showCritical = isPending && isCritical
-                const showOld = isPending && isOld
-                const showAtrasado = isPending && hasNotification
+                const { isCritical, isModerate, isOldAdmin, daysSinceUpdated, isMonthTurnover } =
+                  getClientAlertState(client, alertSettings, isAdmin)
+
+                const showCritical = isCritical
+                const showModerate = isModerate
+                const showOldAdmin = isOldAdmin
+                const showAtrasado = notifications.some((n) => n.client === client.id)
                 const hasUnreadObs = Boolean(client.observacoes && !client.observacao_lida)
-                const hasActiveAlert = showCritical || hasUnreadObs || showAtrasado
+                const hasActiveAlert =
+                  showCritical || showModerate || showOldAdmin || hasUnreadObs || showAtrasado
 
                 return (
                   <TableRow
                     key={client.id}
                     className={cn(
                       'group transition-colors hover:bg-muted/30 print:break-inside-avoid',
-                      showOld &&
+                      (showModerate || showOldAdmin) &&
                         'bg-amber-50/40 hover:bg-amber-50/60 dark:bg-amber-900/10 dark:hover:bg-amber-900/20',
                       showCritical &&
                         'bg-destructive/5 hover:bg-destructive/10 dark:bg-destructive/10 dark:hover:bg-destructive/20',
@@ -366,12 +362,20 @@ export function ClienteList({
                             <AlertTriangle className="w-3 h-3" /> Crítica
                           </Badge>
                         )}
-                        {!showAtrasado && showOld && (
+                        {!showAtrasado && !showCritical && showModerate && (
                           <Badge
                             variant="outline"
                             className="h-5 px-1.5 text-[10px] flex gap-1 items-center font-medium border-amber-500 text-amber-600 bg-amber-50 dark:bg-amber-950 dark:text-amber-500 print:hidden"
                           >
-                            <Clock className="w-3 h-3" /> Antiga
+                            <Clock className="w-3 h-3" /> Pendente
+                          </Badge>
+                        )}
+                        {!showAtrasado && !showCritical && !showModerate && showOldAdmin && (
+                          <Badge
+                            variant="outline"
+                            className="h-5 px-1.5 text-[10px] flex gap-1 items-center font-medium border-purple-500 text-purple-600 bg-purple-50 dark:bg-purple-950 dark:text-purple-500 print:hidden"
+                          >
+                            <AlertTriangle className="w-3 h-3" /> Antiga
                           </Badge>
                         )}
                       </div>
@@ -417,24 +421,37 @@ export function ClienteList({
                           name={client.expand?.status?.name}
                           color={client.expand?.status?.color}
                         />
-                        {(showOld || showCritical) && (
+                        {(showModerate || showCritical || showOldAdmin) && (
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <AlertTriangle
                                 className={cn(
                                   'w-4 h-4 cursor-help shrink-0',
-                                  showCritical ? 'text-destructive' : 'text-amber-500',
+                                  showCritical
+                                    ? 'text-destructive'
+                                    : showOldAdmin
+                                      ? 'text-purple-500'
+                                      : 'text-amber-500',
                                 )}
                               />
                             </TooltipTrigger>
                             <TooltipContent>
-                              <p>
-                                Este registro excedeu o prazo de{' '}
-                                {showCritical
-                                  ? alertSettings?.critical_days
-                                  : alertSettings?.old_days}{' '}
-                                dias para baixa
-                              </p>
+                              {showCritical ? (
+                                <p>
+                                  Atendimento crítico: pendente há {daysSinceUpdated} dias
+                                  {isMonthTurnover ? ' (Virada de mês)' : ''}
+                                </p>
+                              ) : showOldAdmin ? (
+                                <p>
+                                  Destacada como antiga: pagamento em aberto há {daysSinceUpdated}{' '}
+                                  dias
+                                </p>
+                              ) : (
+                                <p>
+                                  Atendimento pendente há {daysSinceUpdated} dias (limite:{' '}
+                                  {alertSettings?.old_days})
+                                </p>
+                              )}
                             </TooltipContent>
                           </Tooltip>
                         )}
@@ -479,27 +496,23 @@ export function ClienteList({
           </div>
         )}
         {clients.map((client) => {
-          const createdDays = client.created
-            ? differenceInCalendarDays(new Date(), new Date(client.created))
-            : 0
-          const statusName = client.expand?.status?.name?.toUpperCase() || ''
-          const isPending =
-            statusName !== 'BAIXA' && statusName !== 'CONCLUÍDO' && statusName !== 'CONCLUIDO'
-          const isCritical = alertSettings && createdDays >= alertSettings.critical_days
-          const isOld = alertSettings && !isCritical && createdDays >= alertSettings.old_days
-          const hasNotification = notifications.some((n) => n.client === client.id)
-          const showCritical = isPending && isCritical
-          const showOld = isPending && isOld
-          const showAtrasado = isPending && hasNotification
+          const { isCritical, isModerate, isOldAdmin, daysSinceUpdated, isMonthTurnover } =
+            getClientAlertState(client, alertSettings, isAdmin)
+
+          const showCritical = isCritical
+          const showModerate = isModerate
+          const showOldAdmin = isOldAdmin
+          const showAtrasado = notifications.some((n) => n.client === client.id)
           const hasUnreadObs = Boolean(client.observacoes && !client.observacao_lida)
-          const hasActiveAlert = showCritical || hasUnreadObs || showAtrasado
+          const hasActiveAlert =
+            showCritical || showModerate || showOldAdmin || hasUnreadObs || showAtrasado
 
           return (
             <Card
               key={client.id}
               className={cn(
                 'overflow-hidden rounded-xl shadow-sm transition-colors',
-                showOld &&
+                (showModerate || showOldAdmin) &&
                   'border-amber-200/50 bg-amber-50/40 dark:bg-amber-900/10 dark:border-amber-900/50',
                 showCritical && 'border-destructive bg-destructive/5 dark:bg-destructive/10',
               )}
@@ -531,12 +544,20 @@ export function ClienteList({
                           <AlertTriangle className="w-3 h-3" /> Crítica
                         </Badge>
                       )}
-                      {!showAtrasado && showOld && (
+                      {!showAtrasado && !showCritical && showModerate && (
                         <Badge
                           variant="outline"
                           className="h-5 px-1.5 text-[10px] flex gap-1 items-center font-medium border-amber-500 text-amber-600 bg-amber-50 dark:bg-amber-950 dark:text-amber-500"
                         >
-                          <Clock className="w-3 h-3" /> Antiga
+                          <Clock className="w-3 h-3" /> Pendente
+                        </Badge>
+                      )}
+                      {!showAtrasado && !showCritical && !showModerate && showOldAdmin && (
+                        <Badge
+                          variant="outline"
+                          className="h-5 px-1.5 text-[10px] flex gap-1 items-center font-medium border-purple-500 text-purple-600 bg-purple-50 dark:bg-purple-950 dark:text-purple-500 print:hidden"
+                        >
+                          <AlertTriangle className="w-3 h-3" /> Antiga
                         </Badge>
                       )}
                     </div>
@@ -553,22 +574,36 @@ export function ClienteList({
                       name={client.expand?.status?.name}
                       color={client.expand?.status?.color}
                     />
-                    {(showOld || showCritical) && (
+                    {(showModerate || showCritical || showOldAdmin) && (
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <AlertTriangle
                             className={cn(
                               'w-4 h-4 cursor-help shrink-0',
-                              showCritical ? 'text-destructive' : 'text-amber-500',
+                              showCritical
+                                ? 'text-destructive'
+                                : showOldAdmin
+                                  ? 'text-purple-500'
+                                  : 'text-amber-500',
                             )}
                           />
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p>
-                            Este registro excedeu o prazo de{' '}
-                            {showCritical ? alertSettings?.critical_days : alertSettings?.old_days}{' '}
-                            dias para baixa
-                          </p>
+                          {showCritical ? (
+                            <p>
+                              Atendimento crítico: pendente há {daysSinceUpdated} dias
+                              {isMonthTurnover ? ' (Virada de mês)' : ''}
+                            </p>
+                          ) : showOldAdmin ? (
+                            <p>
+                              Destacada como antiga: pagamento em aberto há {daysSinceUpdated} dias
+                            </p>
+                          ) : (
+                            <p>
+                              Atendimento pendente há {daysSinceUpdated} dias (limite:{' '}
+                              {alertSettings?.old_days})
+                            </p>
+                          )}
                         </TooltipContent>
                       </Tooltip>
                     )}

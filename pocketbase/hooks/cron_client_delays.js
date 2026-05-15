@@ -8,33 +8,54 @@ cronAdd('check_client_delays', '*/15 * * * *', () => {
     if (thresholdDays <= 0) return
 
     const now = new Date()
-    now.setDate(now.getDate() - thresholdDays)
-    const targetDate = now.toISOString().replace('T', ' ').substring(0, 19) + 'Z'
 
     const configs = $app.findRecordsByFilter('configurations', "type='STATUS'", '', 100, 0)
     let excludeStatuses = []
+    let aguardandoAtencaoStatuses = []
     for (let c of configs) {
       let name = c.getString('name').toUpperCase()
       if (name === 'BAIXA' || name === 'CONCLUÍDO' || name === 'CONCLUIDO') {
         excludeStatuses.push(c.id)
       }
+      if (name === 'AGUARDANDO' || name === 'ATENÇÃO' || name === 'ATENCAO') {
+        aguardandoAtencaoStatuses.push(c.id)
+      }
     }
 
-    let filter = `updated <= {:targetDate}`
-    let bindParams = { targetDate: targetDate }
-
+    let filter = `1=1`
     if (excludeStatuses.length > 0) {
       filter += ` && status != '` + excludeStatuses.join(`' && status != '`) + `'`
     }
 
-    const delayedClients = $app.findRecordsByFilter(
-      'clients',
-      filter,
-      '-updated',
-      1000,
-      0,
-      bindParams,
-    )
+    const pendingClients = $app.findRecordsByFilter('clients', filter, '-updated', 1000, 0, {})
+
+    let delayedClients = []
+    for (let client of pendingClients) {
+      const updatedStr = client.getString('updated')
+      if (!updatedStr) continue
+
+      const updatedDate = new Date(updatedStr)
+      const nowMs = now.getTime()
+      const updatedMs = updatedDate.getTime()
+      const daysSince = Math.floor((nowMs - updatedMs) / (1000 * 60 * 60 * 24))
+      const isMonthTurnover =
+        now.getMonth() !== updatedDate.getMonth() || now.getFullYear() !== updatedDate.getFullYear()
+
+      const statusId = client.getString('status')
+      const isAguardandoAtencao = aguardandoAtencaoStatuses.includes(statusId)
+
+      let isDelayed = false
+      if (isAguardandoAtencao && (daysSince > criticalDays || isMonthTurnover)) {
+        isDelayed = true
+      } else if (daysSince > oldDays) {
+        isDelayed = true
+      }
+
+      if (isDelayed) {
+        delayedClients.push(client)
+      }
+    }
+
     if (delayedClients.length === 0) return
 
     const admins = $app.findRecordsByFilter('users', "role='admin'", '', 100, 0)

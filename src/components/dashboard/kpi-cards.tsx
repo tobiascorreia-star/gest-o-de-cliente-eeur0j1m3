@@ -2,24 +2,26 @@ import { Users, AlertCircle, CheckCircle2, UserPlus } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useDashboard } from '@/hooks/use-dashboard'
 import { differenceInDays, startOfMonth } from 'date-fns'
+import { useAuth } from '@/hooks/use-auth'
+import { getClientAlertState } from '@/lib/utils'
 
 export function KpiCards() {
+  const { user } = useAuth()
   const { clients, statuses, alertSettings } = useDashboard()
 
   const baixaStatusId = statuses.find((s) => s.name.toLowerCase() === 'baixa')?.id
+  const isAdmin = user?.role?.toLowerCase() === 'admin'
 
   const total = clients.length
 
-  const criticalCount = clients.filter((c) => {
-    if (c.status === baixaStatusId) return false
-    return differenceInDays(new Date(), new Date(c.created)) >= alertSettings.critical_days
-  }).length
+  let criticalCount = 0
+  let oldCount = 0
 
-  const oldCount = clients.filter((c) => {
-    if (c.status === baixaStatusId) return false
-    const days = differenceInDays(new Date(), new Date(c.created))
-    return days >= alertSettings.old_days && days < alertSettings.critical_days
-  }).length
+  clients.forEach((c) => {
+    const { isCritical, isModerate, isOldAdmin } = getClientAlertState(c, alertSettings, isAdmin)
+    if (isCritical) criticalCount++
+    else if (isModerate || isOldAdmin) oldCount++
+  })
 
   const pending = criticalCount + oldCount
 

@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { format, differenceInCalendarDays } from 'date-fns'
 import { Clock, KeyRound, CheckCircle2, AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { cn } from '@/lib/utils'
+import { cn, getClientAlertState } from '@/lib/utils'
 
 export function AlertsWidget() {
   const { user: currentUser } = useAuth()
@@ -81,19 +81,20 @@ export function AlertsWidget() {
   const criticalClients: any[] = []
 
   pendingClients.forEach((c) => {
-    const createdDate = new Date(c.created)
-    const days = differenceInCalendarDays(now, createdDate)
+    const { isCritical, isModerate, isOldAdmin } = getClientAlertState(c, alertSettings, true)
 
-    if (days >= (alertSettings?.critical_days ?? 30)) {
+    if (isCritical) {
       criticalClients.push(c)
-    } else if (days >= (alertSettings?.old_days ?? 15)) {
+    } else if (isModerate || isOldAdmin) {
       oldClients.push(c)
     }
   })
 
-  const agingClients = [...criticalClients, ...oldClients].sort(
-    (a, b) => new Date(a.created).getTime() - new Date(b.created).getTime(),
-  )
+  const agingClients = [...criticalClients, ...oldClients].sort((a, b) => {
+    const dateA = a.updated ? new Date(a.updated).getTime() : new Date(a.created).getTime()
+    const dateB = b.updated ? new Date(b.updated).getTime() : new Date(b.created).getTime()
+    return dateA - dateB
+  })
 
   const pendingResets = notificationsList.filter((n) => n.type === 'password_reset')
   const delayedClients = notificationsList.filter((n) => n.type === 'atraso_cliente')
@@ -280,8 +281,17 @@ export function AlertsWidget() {
                     <div>
                       <p className="font-light text-sm">{alert.razao_social}</p>
                       <p className="text-[11px] font-light text-muted-foreground mt-0.5">
-                        Cadastrado em {format(new Date(alert.created), 'dd/MM/yyyy')} (
-                        {differenceInCalendarDays(now, new Date(alert.created))} dias)
+                        Atualizado em{' '}
+                        {format(
+                          alert.updated ? new Date(alert.updated) : new Date(alert.created),
+                          'dd/MM/yyyy',
+                        )}{' '}
+                        (
+                        {differenceInCalendarDays(
+                          now,
+                          alert.updated ? new Date(alert.updated) : new Date(alert.created),
+                        )}{' '}
+                        dias)
                       </p>
                     </div>
                     <div className="flex items-center gap-3">
