@@ -137,14 +137,17 @@ const Index = () => {
   const pendingClients = clients.filter((c) => c.status !== baixaStatusId)
   const totalPending = pendingClients.length
 
-  const pendingOver3DaysCount = pendingClients.filter((c) => {
+  const oldDaysThreshold = alertSettings?.old_days ?? 15
+  const pendingOldCount = pendingClients.filter((c) => {
     const belongsToUser =
       currentUser?.role?.toLowerCase() === 'admin'
         ? true
         : c.expand?.colaborador?.name === currentUser?.name
 
     return (
-      belongsToUser && c.created && differenceInCalendarDays(new Date(), new Date(c.created)) > 3
+      belongsToUser &&
+      c.created &&
+      differenceInCalendarDays(new Date(), new Date(c.created)) >= oldDaysThreshold
     )
   }).length
 
@@ -252,12 +255,12 @@ const Index = () => {
         </Alert>
       )}
 
-      {pendingOver3DaysCount > 0 && (
+      {pendingOldCount > 0 && (
         <Alert className="mb-6 border-l-4 border-l-amber-500 bg-amber-50 text-amber-900 border-amber-200 dark:bg-amber-950/30 dark:text-amber-200 dark:border-amber-900 shadow-sm animate-fade-in-down">
           <AlertDescription className="font-medium text-sm flex items-center">
-            <span className="mr-2">🟡</span> Atenção: Você possui {pendingOver3DaysCount}{' '}
-            {pendingOver3DaysCount === 1 ? 'atendimento pendente' : 'atendimentos pendentes'} há
-            mais de 3 dias.
+            <span className="mr-2">🟡</span> Atenção: Você possui {pendingOldCount}{' '}
+            {pendingOldCount === 1 ? 'atendimento pendente' : 'atendimentos pendentes'} há mais de{' '}
+            {oldDaysThreshold} dias.
           </AlertDescription>
         </Alert>
       )}

@@ -321,7 +321,6 @@ export function ClienteList({
                 const statusName = client.expand?.status?.name?.toUpperCase() || ''
                 const isPending =
                   statusName !== 'BAIXA' && statusName !== 'CONCLUÍDO' && statusName !== 'CONCLUIDO'
-                const isOver3Days = isPending && createdDays > 3
                 const isCritical = alertSettings && createdDays >= alertSettings.critical_days
                 const isOld = alertSettings && !isCritical && createdDays >= alertSettings.old_days
                 const hasNotification = notifications.some((n) => n.client === client.id)
@@ -336,8 +335,7 @@ export function ClienteList({
                     key={client.id}
                     className={cn(
                       'group transition-colors hover:bg-muted/30 print:break-inside-avoid',
-                      isOver3Days &&
-                        !showCritical &&
+                      showOld &&
                         'bg-amber-50/40 hover:bg-amber-50/60 dark:bg-amber-900/10 dark:hover:bg-amber-900/20',
                       showCritical &&
                         'bg-destructive/5 hover:bg-destructive/10 dark:bg-destructive/10 dark:hover:bg-destructive/20',
@@ -419,13 +417,24 @@ export function ClienteList({
                           name={client.expand?.status?.name}
                           color={client.expand?.status?.color}
                         />
-                        {isOver3Days && (
+                        {(showOld || showCritical) && (
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <AlertTriangle className="w-4 h-4 text-amber-500 cursor-help shrink-0" />
+                              <AlertTriangle
+                                className={cn(
+                                  'w-4 h-4 cursor-help shrink-0',
+                                  showCritical ? 'text-destructive' : 'text-amber-500',
+                                )}
+                              />
                             </TooltipTrigger>
                             <TooltipContent>
-                              <p>Este registro excedeu o prazo de 3 dias para baixa</p>
+                              <p>
+                                Este registro excedeu o prazo de{' '}
+                                {showCritical
+                                  ? alertSettings?.critical_days
+                                  : alertSettings?.old_days}{' '}
+                                dias para baixa
+                              </p>
                             </TooltipContent>
                           </Tooltip>
                         )}
@@ -476,7 +485,6 @@ export function ClienteList({
           const statusName = client.expand?.status?.name?.toUpperCase() || ''
           const isPending =
             statusName !== 'BAIXA' && statusName !== 'CONCLUÍDO' && statusName !== 'CONCLUIDO'
-          const isOver3Days = isPending && createdDays > 3
           const isCritical = alertSettings && createdDays >= alertSettings.critical_days
           const isOld = alertSettings && !isCritical && createdDays >= alertSettings.old_days
           const hasNotification = notifications.some((n) => n.client === client.id)
@@ -491,8 +499,7 @@ export function ClienteList({
               key={client.id}
               className={cn(
                 'overflow-hidden rounded-xl shadow-sm transition-colors',
-                isOver3Days &&
-                  !showCritical &&
+                showOld &&
                   'border-amber-200/50 bg-amber-50/40 dark:bg-amber-900/10 dark:border-amber-900/50',
                 showCritical && 'border-destructive bg-destructive/5 dark:bg-destructive/10',
               )}
@@ -546,13 +553,22 @@ export function ClienteList({
                       name={client.expand?.status?.name}
                       color={client.expand?.status?.color}
                     />
-                    {isOver3Days && (
+                    {(showOld || showCritical) && (
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <AlertTriangle className="w-4 h-4 text-amber-500 cursor-help shrink-0" />
+                          <AlertTriangle
+                            className={cn(
+                              'w-4 h-4 cursor-help shrink-0',
+                              showCritical ? 'text-destructive' : 'text-amber-500',
+                            )}
+                          />
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p>Este registro excedeu o prazo de 3 dias para baixa</p>
+                          <p>
+                            Este registro excedeu o prazo de{' '}
+                            {showCritical ? alertSettings?.critical_days : alertSettings?.old_days}{' '}
+                            dias para baixa
+                          </p>
                         </TooltipContent>
                       </Tooltip>
                     )}
