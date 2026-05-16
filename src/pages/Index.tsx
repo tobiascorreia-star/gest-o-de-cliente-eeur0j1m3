@@ -166,8 +166,8 @@ const Index = () => {
     if (monthCriticalCount > 0) {
       systemAlert = {
         type: 'critical',
-        title: 'Clientes com Virada de Mês Sem Atualização',
-        description: `${monthCriticalCount} atendimento(s) com status Aguardando ou Atenção estão pendentes desde o mês anterior. Ação imediata necessária.`,
+        title: 'Virada de Mês Sem Atualização',
+        description: `${monthCriticalCount} atendimento(s) com status Aguardando ou Atenção pendentes desde o mês anterior.`,
         icon: AlertTriangle,
         className:
           'bg-red-50 text-red-900 border-red-200 dark:bg-red-950/50 dark:text-red-200 dark:border-red-900',
@@ -176,7 +176,7 @@ const Index = () => {
       systemAlert = {
         type: 'critical',
         title: 'Alerta Crítico de Pendências',
-        description: `${criticalCount} atendimento(s) com status Aguardando ou Atenção estão sem atualização há mais de ${alertSettings.critical_days ?? 30} dias.`,
+        description: `${criticalCount} atendimento(s) sem atualização há mais de ${alertSettings.critical_days ?? 30} dias.`,
         icon: AlertTriangle,
         className:
           'bg-red-50 text-red-900 border-red-200 dark:bg-red-950/50 dark:text-red-200 dark:border-red-900',
@@ -185,16 +185,16 @@ const Index = () => {
       systemAlert = {
         type: 'moderate',
         title: 'Aviso de Pendências em Aberto',
-        description: `${moderateCount} atendimento(s) com status Aguardando estão sem atualização há mais de ${alertSettings.old_days ?? 15} dias. Acompanhe de perto.`,
+        description: `${moderateCount} atendimento(s) com status Aguardando sem atualização há mais de ${alertSettings.old_days ?? 15} dias.`,
         icon: Info,
         className:
-          'bg-emerald-50 text-emerald-900 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-200 dark:border-emerald-900',
+          'bg-amber-50 text-amber-900 border-amber-200 dark:bg-amber-950/50 dark:text-amber-200 dark:border-amber-900',
       }
     } else if (isAdmin && oldAdminCount > 0) {
       systemAlert = {
         type: 'oldAdmin',
-        title: 'Pagamentos em Aberto com Pendência Antiga',
-        description: `${oldAdminCount} atendimento(s) com Pgto Aberto estão sem atualização há mais de ${alertSettings.old_admin_days ?? alertSettings.old_days ?? 15} dias.`,
+        title: 'Pagamentos Abertos Antigos',
+        description: `${oldAdminCount} atendimento(s) com Pgto Aberto sem atualização há mais de ${alertSettings.old_admin_days ?? 15} dias.`,
         icon: Info,
         className:
           'bg-blue-50 text-blue-900 border-blue-200 dark:bg-blue-950/50 dark:text-blue-200 dark:border-blue-900',
@@ -204,6 +204,16 @@ const Index = () => {
 
   return (
     <div className="space-y-2 animate-fade-in">
+      {systemAlert && (
+        <Alert
+          className={`mb-4 border-l-4 animate-fade-in-down shadow-sm ${systemAlert.className}`}
+        >
+          <systemAlert.icon className="h-5 w-5" />
+          <AlertTitle className="font-semibold">{systemAlert.title}</AlertTitle>
+          <AlertDescription className="mt-1">{systemAlert.description}</AlertDescription>
+        </Alert>
+      )}
+
       <Dialog open={showLoginAlert} onOpenChange={handleCloseAlert}>
         <DialogContent className="sm:max-w-md bg-[#0b1121] border-[#1e3a8a] text-white [&>button]:text-slate-400 [&>button]:hover:text-white">
           <DialogHeader>
@@ -262,16 +272,6 @@ const Index = () => {
             </div>
           </div>
         </div>
-      )}
-
-      {systemAlert && (
-        <Alert
-          className={`mb-6 border-l-4 animate-fade-in-down shadow-sm ${systemAlert.className}`}
-        >
-          <systemAlert.icon className="h-5 w-5" />
-          <AlertTitle className="font-semibold">{systemAlert.title}</AlertTitle>
-          <AlertDescription className="mt-1">{systemAlert.description}</AlertDescription>
-        </Alert>
       )}
 
       <div className="flex flex-col gap-1 mb-8">
