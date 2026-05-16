@@ -18,7 +18,10 @@ export function useDashboard() {
   const loadData = useCallback(async () => {
     try {
       const [clientsData, configData, auditLogsData] = await Promise.all([
-        pb.collection('clients').getFullList({ expand: 'categoria,status' }),
+        pb.collection('clients').getFullList({
+          expand: 'colaborador,solicitacao,status,categoria,pgto,last_modified_by',
+          sort: '-updated',
+        }),
         pb.collection('configurations').getFullList(),
         pb
           .collection('notifications')
@@ -43,8 +46,8 @@ export function useDashboard() {
 
       setClients(clientsData)
       setAlertSettings(alertData)
-      setCategories(configData.filter((c) => c.type === 'categoria'))
-      setStatuses(configData.filter((c) => c.type === 'status'))
+      setCategories(configData.filter((c) => c.type?.toLowerCase() === 'categoria'))
+      setStatuses(configData.filter((c) => c.type?.toLowerCase() === 'status'))
 
       setPasswordResetRequests(
         auditLogsData.map((notif: any) => {
