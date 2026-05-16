@@ -134,8 +134,10 @@ const Index = () => {
     }
   }
 
-  const baixaStatusId = statuses.find((s) => s.name.toLowerCase() === 'baixa')?.id
-  const pendingClients = clients.filter((c) => c.status !== baixaStatusId)
+  const pendingClients = clients.filter((c) => {
+    const statusName = statuses.find((s) => s.id === c.status)?.name?.toUpperCase() || ''
+    return statusName !== 'BAIXA' && statusName !== 'CONCLUÍDO' && statusName !== 'CONCLUIDO'
+  })
   const totalPending = pendingClients.length
 
   const oldDaysThreshold = alertSettings?.old_days ?? 15

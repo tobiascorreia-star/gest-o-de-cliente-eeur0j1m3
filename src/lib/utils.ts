@@ -9,7 +9,7 @@ import { isWeekend, addDays, startOfDay, differenceInCalendarDays } from 'date-f
  * @returns Merged class names
  */
 export function getClientAlertState(client: any, alertSettings: any, isAdmin: boolean) {
-  if (!client || !alertSettings || !client.updated) {
+  if (!client) {
     return {
       isCritical: false,
       isModerate: false,
@@ -19,7 +19,8 @@ export function getClientAlertState(client: any, alertSettings: any, isAdmin: bo
     }
   }
 
-  const updatedDate = new Date(client.updated)
+  const targetDateStr = client.updated || client.created || new Date().toISOString()
+  const updatedDate = new Date(targetDateStr)
   const now = new Date()
   const daysSinceUpdated = differenceInCalendarDays(now, updatedDate)
   const isMonthTurnover =
@@ -48,16 +49,16 @@ export function getClientAlertState(client: any, alertSettings: any, isAdmin: bo
   let isModerate = false
   let isOldAdmin = false
 
-  if (
-    (isAguardando || isAtencao) &&
-    (daysSinceUpdated > alertSettings.critical_days || isMonthTurnover)
-  ) {
+  const criticalDays = alertSettings?.critical_days ?? 30
+  const oldDays = alertSettings?.old_days ?? 15
+
+  if ((isAguardando || isAtencao) && (daysSinceUpdated > criticalDays || isMonthTurnover)) {
     isCritical = true
-  } else if (isAguardando && daysSinceUpdated > alertSettings.old_days) {
+  } else if (isAguardando && daysSinceUpdated > oldDays) {
     isModerate = true
   }
 
-  if (isAdmin && isAberto && daysSinceUpdated > alertSettings.old_days) {
+  if (isAdmin && isAberto && daysSinceUpdated > oldDays) {
     isOldAdmin = true
   }
 
