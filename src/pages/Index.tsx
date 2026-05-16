@@ -188,7 +188,7 @@ const Index = () => {
         description: `${moderateCount} atendimento(s) com status Aguardando estão sem atualização há mais de ${alertSettings.old_days ?? 15} dias. Acompanhe de perto.`,
         icon: Info,
         className:
-          'bg-amber-50 text-amber-900 border-amber-200 dark:bg-amber-950/50 dark:text-amber-200 dark:border-amber-900',
+          'bg-emerald-50 text-emerald-900 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-200 dark:border-emerald-900',
       }
     } else if (isAdmin && oldAdminCount > 0) {
       systemAlert = {
