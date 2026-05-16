@@ -1,15 +1,15 @@
 import { Users, AlertCircle, CheckCircle2, UserPlus } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useDashboard } from '@/hooks/use-dashboard'
-import { differenceInDays, startOfMonth } from 'date-fns'
+import { startOfMonth } from 'date-fns'
 import { useAuth } from '@/hooks/use-auth'
 import { getClientAlertState } from '@/lib/utils'
 
 export function KpiCards() {
   const { user } = useAuth()
-  const { clients, statuses, alertSettings } = useDashboard()
+  const { clients, statuses, alertSettings, loading } = useDashboard()
 
-  const baixaStatusId = statuses.find((s) => s.name.toLowerCase() === 'baixa')?.id
+  const baixaStatusId = statuses.find((s) => s.name?.toLowerCase() === 'baixa')?.id
   const isAdmin = user?.role?.toLowerCase() === 'admin'
 
   const total = clients.length
@@ -19,17 +19,19 @@ export function KpiCards() {
   let monthCriticalCount = 0
   let oldAdminCount = 0
 
-  clients.forEach((c) => {
-    const { isCritical, isModerate, isOldAdmin, isMonthCritical } = getClientAlertState(
-      c,
-      alertSettings,
-      isAdmin,
-    )
-    if (isCritical) criticalCount++
-    if (isModerate) moderateCount++
-    if (isOldAdmin) oldAdminCount++
-    if (isMonthCritical) monthCriticalCount++
-  })
+  if (!loading) {
+    clients.forEach((c) => {
+      const { isCritical, isModerate, isOldAdmin, isMonthCritical } = getClientAlertState(
+        c,
+        alertSettings,
+        isAdmin,
+      )
+      if (isCritical) criticalCount++
+      if (isModerate) moderateCount++
+      if (isOldAdmin) oldAdminCount++
+      if (isMonthCritical) monthCriticalCount++
+    })
+  }
 
   const pending = criticalCount + moderateCount + monthCriticalCount + (isAdmin ? oldAdminCount : 0)
 
@@ -64,7 +66,7 @@ export function KpiCards() {
       thresholds: [
         { label: 'Moderados', count: moderateCount },
         { label: 'Críticos', count: criticalCount + monthCriticalCount },
-        ...(isAdmin ? [{ label: 'Pgto Aberto', count: oldAdminCount }] : []),
+        ...(isAdmin && oldAdminCount > 0 ? [{ label: 'Pgto Aberto', count: oldAdminCount }] : []),
       ],
     },
     {
@@ -106,7 +108,7 @@ export function KpiCards() {
               <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] font-light text-slate-500 dark:text-slate-400">
                 {card.thresholds.map((t: any, idx) => (
                   <div key={idx} className="flex items-center gap-1">
-                    <span className="font-medium">
+                    <span className={t.count > 0 ? 'text-red-500 font-medium' : ''}>
                       {t.label}: {t.count}
                     </span>
                   </div>
