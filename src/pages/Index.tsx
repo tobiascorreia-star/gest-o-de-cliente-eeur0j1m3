@@ -8,7 +8,6 @@ import { useAuth } from '@/hooks/use-auth'
 import { useDashboard } from '@/hooks/use-dashboard'
 import { useRealtime } from '@/hooks/use-realtime'
 import { toast } from '@/hooks/use-toast'
-import { differenceInCalendarDays } from 'date-fns'
 import { getClientAlertState } from '@/lib/utils'
 import {
   Dialog,
@@ -76,11 +75,7 @@ const Index = () => {
     if (currentUser?.last_clients_check && clients.length > 0) {
       const lastCheck = new Date(currentUser.last_clients_check)
       const hasNewClients = clients.some((c) => new Date(c.created) > lastCheck)
-      if (hasNewClients) {
-        setShowLoginAlert(true)
-      } else {
-        setShowLoginAlert(false)
-      }
+      setShowLoginAlert(hasNewClients)
     }
   }, [currentUser?.last_clients_check, clients])
 
@@ -98,18 +93,16 @@ const Index = () => {
         }
       } else if (e.action === 'delete') {
         setResetRequests((prev) => prev.filter((r) => r.id !== e.record.id))
-      } else if (e.action === 'update') {
-        if (e.record.type === 'password_reset') {
-          if (e.record.resolved) {
-            setResetRequests((prev) => prev.filter((r) => r.id !== e.record.id))
-          } else {
-            setResetRequests((prev) => {
-              const exists = prev.find((r) => r.id === e.record.id)
-              return exists
-                ? prev.map((r) => (r.id === e.record.id ? e.record : r))
-                : [e.record, ...prev]
-            })
-          }
+      } else if (e.action === 'update' && e.record.type === 'password_reset') {
+        if (e.record.resolved) {
+          setResetRequests((prev) => prev.filter((r) => r.id !== e.record.id))
+        } else {
+          setResetRequests((prev) => {
+            const exists = prev.find((r) => r.id === e.record.id)
+            return exists
+              ? prev.map((r) => (r.id === e.record.id ? e.record : r))
+              : [e.record, ...prev]
+          })
         }
       }
     },
@@ -141,20 +134,23 @@ const Index = () => {
   let oldAdminCount = 0
   let monthCriticalCount = 0
 
-  clients.forEach((c) => {
-    const belongsToUser = isAdmin ? true : c.expand?.colaborador?.name === currentUser?.name
-    if (!belongsToUser) return
+  if (!loading) {
+    clients.forEach((c) => {
+      const belongsToUser = isAdmin ? true : c.colaborador_id === currentUser?.id
+      if (!belongsToUser) return
 
-    const { isCritical, isModerate, isOldAdmin, isMonthCritical } = getClientAlertState(
-      c,
-      alertSettings,
-      isAdmin,
-    )
-    if (isMonthCritical) monthCriticalCount++
-    if (isCritical) criticalCount++
-    if (isModerate) moderateCount++
-    if (isOldAdmin) oldAdminCount++
-  })
+      const { isCritical, isModerate, isOldAdmin, isMonthCritical } = getClientAlertState(
+        c,
+        alertSettings,
+        isAdmin,
+      )
+
+      if (isMonthCritical) monthCriticalCount++
+      if (isCritical) criticalCount++
+      if (isModerate) moderateCount++
+      if (isOldAdmin) oldAdminCount++
+    })
+  }
 
   const getGreeting = () => {
     const hour = new Date().getHours()
@@ -166,12 +162,12 @@ const Index = () => {
   const userName = currentUser?.name?.trim()
 
   let systemAlert = null
-  if (alertSettings && !loading) {
+  if (!loading && alertSettings) {
     if (monthCriticalCount > 0) {
       systemAlert = {
         type: 'critical',
         title: 'Clientes com Virada de Mês Sem Atualização',
-        description: `${monthCriticalCount} atendimento(s) (status Aguardando ou Atenção) estão pendentes desde o mês anterior sem atualização. Ação imediata necessária.`,
+        description: `${monthCriticalCount} atendimento(s) com status Aguardando ou Atenção estão pendentes desde o mês anterior. Ação imediata necessária.`,
         icon: AlertTriangle,
         className:
           'bg-red-50 text-red-900 border-red-200 dark:bg-red-950/50 dark:text-red-200 dark:border-red-900',
@@ -180,9 +176,7 @@ const Index = () => {
       systemAlert = {
         type: 'critical',
         title: 'Alerta Crítico de Pendências',
-        description: `${criticalCount} atendimento(s) (status Aguardando ou Atenção) estão sem atualização há mais de ${
-          alertSettings.critical_days ?? 30
-        } dias.`,
+        description: `${criticalCount} atendimento(s) com status Aguardando ou Atenção estão sem atualização há mais de ${alertSettings.critical_days ?? 30} dias.`,
         icon: AlertTriangle,
         className:
           'bg-red-50 text-red-900 border-red-200 dark:bg-red-950/50 dark:text-red-200 dark:border-red-900',
@@ -191,20 +185,16 @@ const Index = () => {
       systemAlert = {
         type: 'moderate',
         title: 'Aviso de Pendências em Aberto',
-        description: `${moderateCount} atendimento(s) com status Aguardando estão sem atualização há mais de ${
-          alertSettings.old_days ?? 15
-        } dias. Acompanhe de perto.`,
+        description: `${moderateCount} atendimento(s) com status Aguardando estão sem atualização há mais de ${alertSettings.old_days ?? 15} dias. Acompanhe de perto.`,
         icon: Info,
         className:
-          'bg-emerald-50 text-emerald-900 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-200 dark:border-emerald-900',
+          'bg-amber-50 text-amber-900 border-amber-200 dark:bg-amber-950/50 dark:text-amber-200 dark:border-amber-900',
       }
     } else if (isAdmin && oldAdminCount > 0) {
       systemAlert = {
         type: 'oldAdmin',
         title: 'Pagamentos em Aberto com Pendência Antiga',
-        description: `${oldAdminCount} atendimento(s) com Pgto Aberto estão sem atualização há mais de ${
-          alertSettings.old_admin_days ?? 15
-        } dias.`,
+        description: `${oldAdminCount} atendimento(s) com Pgto Aberto estão sem atualização há mais de ${alertSettings.old_admin_days ?? alertSettings.old_days ?? 15} dias.`,
         icon: Info,
         className:
           'bg-blue-50 text-blue-900 border-blue-200 dark:bg-blue-950/50 dark:text-blue-200 dark:border-blue-900',
@@ -246,7 +236,7 @@ const Index = () => {
               <div className="space-y-3">
                 {pendingResets.map((req: any) => {
                   const userEmail = req.expand?.user?.email || 'Desconhecido'
-                  const userName = req.expand?.user?.name
+                  const reqUserName = req.expand?.user?.name
                     ? `${req.expand.user.name} (${userEmail})`
                     : userEmail
                   return (
@@ -255,7 +245,7 @@ const Index = () => {
                       className="flex items-center justify-between bg-white dark:bg-slate-900/50 p-3.5 rounded-lg border border-slate-100 dark:border-slate-800 shadow-sm transition-all"
                     >
                       <span className="text-[15px] font-medium text-slate-700 dark:text-slate-200">
-                        {userName}
+                        {reqUserName}
                       </span>
                       <Button
                         size="sm"
