@@ -3,22 +3,41 @@ cronAdd('check_client_delays', '*/15 * * * *', () => {
     const alertSettings = $app.findFirstRecordByFilter('alert_settings', "id != ''")
     const oldDays = alertSettings.getInt('old_days')
     const criticalDays = alertSettings.getInt('critical_days')
-    const thresholdDays = oldDays > 0 ? oldDays : criticalDays > 0 ? criticalDays : 0
-
-    if (thresholdDays <= 0) return
+    const oldAdminDays = alertSettings.getInt('old_admin_days')
 
     const now = new Date()
 
-    const configs = $app.findRecordsByFilter('configurations', "type='STATUS'", '', 100, 0)
+    const configs = $app.findRecordsByFilter(
+      'configurations',
+      "type='STATUS' || type='PGTO'",
+      '',
+      100,
+      0,
+    )
     let excludeStatuses = []
     let aguardandoAtencaoStatuses = []
+    let aguardandoStatuses = []
+    let abertoPgtoId = null
+
     for (let c of configs) {
+      let type = c.getString('type')
       let name = c.getString('name').toUpperCase()
-      if (name === 'BAIXA' || name === 'CONCLUÍDO' || name === 'CONCLUIDO') {
-        excludeStatuses.push(c.id)
+
+      if (type === 'STATUS') {
+        if (name === 'BAIXA' || name === 'CONCLUÍDO' || name === 'CONCLUIDO') {
+          excludeStatuses.push(c.id)
+        }
+        if (name === 'AGUARDANDO' || name === 'ATENÇÃO' || name === 'ATENCAO') {
+          aguardandoAtencaoStatuses.push(c.id)
+          if (name === 'AGUARDANDO') {
+            aguardandoStatuses.push(c.id)
+          }
+        }
       }
-      if (name === 'AGUARDANDO' || name === 'ATENÇÃO' || name === 'ATENCAO') {
-        aguardandoAtencaoStatuses.push(c.id)
+      if (type === 'PGTO') {
+        if (name === 'ABERTO') {
+          abertoPgtoId = c.id
+        }
       }
     }
 
@@ -42,7 +61,11 @@ cronAdd('check_client_delays', '*/15 * * * *', () => {
         now.getMonth() !== updatedDate.getMonth() || now.getFullYear() !== updatedDate.getFullYear()
 
       const statusId = client.getString('status')
+      const pgtoId = client.getString('pgto')
+
       const isAguardandoAtencao = aguardandoAtencaoStatuses.includes(statusId)
+      const isAguardando = aguardandoStatuses.includes(statusId)
+      const isAberto = pgtoId === abertoPgtoId
 
       let isDelayed = false
 
@@ -51,11 +74,15 @@ cronAdd('check_client_delays', '*/15 * * * *', () => {
         isDelayed = true
       }
       // Regra 02: Critical days (only for Aguardando or Atenção)
-      else if (isAguardandoAtencao && daysSince > criticalDays) {
+      else if (isAguardandoAtencao && criticalDays > 0 && daysSince > criticalDays) {
         isDelayed = true
       }
-      // Regra 01 / General old delay
-      else if (daysSince > oldDays) {
+      // Regra 01: Moderate (only for Aguardando)
+      else if (isAguardando && oldDays > 0 && daysSince > oldDays) {
+        isDelayed = true
+      }
+      // Regra 03: Old Admin (only for Pgto Aberto)
+      else if (isAberto && oldAdminDays > 0 && daysSince > oldAdminDays) {
         isDelayed = true
       }
 

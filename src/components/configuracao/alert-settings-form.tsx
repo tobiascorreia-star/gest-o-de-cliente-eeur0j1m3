@@ -34,6 +34,7 @@ export function AlertSettingsForm() {
       await updateAlertSettings(settings.id, {
         old_days: Number(settings.old_days),
         critical_days: Number(settings.critical_days),
+        old_admin_days: Number(settings.old_admin_days),
       })
       toast({ title: 'Sucesso', description: 'Configurações salvas com sucesso.' })
     } catch (err: any) {
@@ -111,7 +112,7 @@ export function AlertSettingsForm() {
             <div className="flex flex-col gap-1">
               <label className="text-sm font-medium flex items-center gap-2">
                 <span className="text-lg">⏱️</span>
-                Destacar como antiga (old_days)
+                Destacar como antiga (old_admin_days)
               </label>
               <span className="text-xs text-muted-foreground ml-7">
                 Apenas para Administradores — Pgto Aberto.
@@ -120,8 +121,8 @@ export function AlertSettingsForm() {
             <Input
               type="number"
               className="w-24 text-center font-bold text-green-600 bg-white focus-visible:ring-green-500"
-              value={settings?.old_days || 0}
-              onChange={(e) => setSettings({ ...settings, old_days: e.target.value })}
+              value={settings?.old_admin_days || 0}
+              onChange={(e) => setSettings({ ...settings, old_admin_days: e.target.value })}
             />
           </div>
 

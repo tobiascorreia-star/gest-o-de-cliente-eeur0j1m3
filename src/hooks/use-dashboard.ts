@@ -6,10 +6,9 @@ import { toast } from '@/hooks/use-toast'
 export function useDashboard() {
   const [clients, setClients] = useState<any[]>([])
   const [alertSettings, setAlertSettings] = useState<any>({
-    moderate_threshold: 10,
-    critical_threshold: 20,
     old_days: 15,
     critical_days: 30,
+    old_admin_days: 15,
   })
   const [categories, setCategories] = useState<any[]>([])
   const [statuses, setStatuses] = useState<any[]>([])
@@ -36,10 +35,9 @@ export function useDashboard() {
         alertData = await pb.collection('alert_settings').getFirstListItem('')
       } catch (_) {
         alertData = {
-          moderate_threshold: 10,
-          critical_threshold: 20,
           old_days: 15,
           critical_days: 30,
+          old_admin_days: 15,
         }
       }
 

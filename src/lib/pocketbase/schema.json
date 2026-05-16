@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-16T01:33:40.122Z",
+  "generatedAt": "2026-05-16T01:59:01.952Z",
   "collections": [
     {
       "name": "users",
@@ -370,6 +370,12 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "old_admin_days",
+          "type": "number",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": []

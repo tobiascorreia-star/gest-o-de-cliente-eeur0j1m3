@@ -172,7 +172,7 @@ export function AlertsWidget() {
           <CardContent>
             <p className="text-sm text-blue-700 dark:text-blue-400">
               Existem <strong>{oldAdminCount}</strong> pagamento(s) aberto(s) há mais de{' '}
-              {alertSettings?.old_days ?? 15} dias.
+              {alertSettings?.old_admin_days ?? 15} dias.
             </p>
           </CardContent>
         </Card>

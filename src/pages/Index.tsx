@@ -203,7 +203,7 @@ const Index = () => {
         type: 'oldAdmin',
         title: 'Pagamentos em Aberto com Pendência Antiga',
         description: `${oldAdminCount} atendimento(s) com Pgto Aberto estão sem atualização há mais de ${
-          alertSettings.old_days ?? 15
+          alertSettings.old_admin_days ?? 15
         } dias.`,
         icon: Info,
         className:
