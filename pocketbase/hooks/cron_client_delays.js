@@ -45,9 +45,17 @@ cronAdd('check_client_delays', '*/15 * * * *', () => {
       const isAguardandoAtencao = aguardandoAtencaoStatuses.includes(statusId)
 
       let isDelayed = false
-      if (isAguardandoAtencao && (daysSince > criticalDays || isMonthTurnover)) {
+
+      // Regra 04: Month turnover (only for Aguardando or Atenção)
+      if (isAguardandoAtencao && isMonthTurnover) {
         isDelayed = true
-      } else if (daysSince > oldDays) {
+      }
+      // Regra 02: Critical days (only for Aguardando or Atenção)
+      else if (isAguardandoAtencao && daysSince > criticalDays) {
+        isDelayed = true
+      }
+      // Regra 01 / General old delay
+      else if (daysSince > oldDays) {
         isDelayed = true
       }
 

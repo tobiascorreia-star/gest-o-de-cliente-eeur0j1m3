@@ -14,6 +14,7 @@ export function getClientAlertState(client: any, alertSettings: any, isAdmin: bo
       isCritical: false,
       isModerate: false,
       isOldAdmin: false,
+      isMonthCritical: false,
       daysSinceUpdated: 0,
       isMonthTurnover: false,
     }
@@ -22,7 +23,15 @@ export function getClientAlertState(client: any, alertSettings: any, isAdmin: bo
   const targetDateStr = client.updated || client.created || new Date().toISOString()
   const updatedDate = new Date(targetDateStr)
   const now = new Date()
-  const daysSinceUpdated = differenceInCalendarDays(now, updatedDate)
+
+  const updatedDateMidnight = new Date(
+    updatedDate.getFullYear(),
+    updatedDate.getMonth(),
+    updatedDate.getDate(),
+  )
+  const nowMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+
+  const daysSinceUpdated = differenceInCalendarDays(nowMidnight, updatedDateMidnight)
   const isMonthTurnover =
     now.getMonth() !== updatedDate.getMonth() || now.getFullYear() !== updatedDate.getFullYear()
 
@@ -36,6 +45,7 @@ export function getClientAlertState(client: any, alertSettings: any, isAdmin: bo
       isCritical: false,
       isModerate: false,
       isOldAdmin: false,
+      isMonthCritical: false,
       daysSinceUpdated,
       isMonthTurnover,
     }
@@ -48,13 +58,16 @@ export function getClientAlertState(client: any, alertSettings: any, isAdmin: bo
   let isCritical = false
   let isModerate = false
   let isOldAdmin = false
+  let isMonthCritical = false
 
   const criticalDays = alertSettings?.critical_days ?? 30
   const oldDays = alertSettings?.old_days ?? 15
 
-  if ((isAguardando || isAtencao) && (daysSinceUpdated > criticalDays || isMonthTurnover)) {
+  if ((isAguardando || isAtencao) && daysSinceUpdated > criticalDays) {
     isCritical = true
-  } else if (isAguardando && daysSinceUpdated > oldDays) {
+  }
+
+  if (isAguardando && daysSinceUpdated > oldDays) {
     isModerate = true
   }
 
@@ -62,7 +75,11 @@ export function getClientAlertState(client: any, alertSettings: any, isAdmin: bo
     isOldAdmin = true
   }
 
-  return { isCritical, isModerate, isOldAdmin, daysSinceUpdated, isMonthTurnover }
+  if ((isAguardando || isAtencao) && isMonthTurnover) {
+    isMonthCritical = true
+  }
+
+  return { isCritical, isModerate, isOldAdmin, isMonthCritical, daysSinceUpdated, isMonthTurnover }
 }
 
 export function cn(...inputs: ClassValue[]) {

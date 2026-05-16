@@ -315,10 +315,10 @@ export function ClienteList({
                 </TableRow>
               )}
               {clients.map((client) => {
-                const { isCritical, isModerate, isOldAdmin, daysSinceUpdated, isMonthTurnover } =
+                const { isCritical, isModerate, isOldAdmin, isMonthCritical, daysSinceUpdated } =
                   getClientAlertState(client, alertSettings, isAdmin)
 
-                const showCritical = isCritical
+                const showCritical = isCritical || isMonthCritical
                 const showModerate = isModerate
                 const showOldAdmin = isOldAdmin
                 const showAtrasado = notifications.some((n) => n.client === client.id)
@@ -332,6 +332,7 @@ export function ClienteList({
                     className={cn(
                       'group transition-colors hover:bg-muted/30 print:break-inside-avoid',
                       (showModerate || showOldAdmin) &&
+                        !showCritical &&
                         'bg-amber-50/40 hover:bg-amber-50/60 dark:bg-amber-900/10 dark:hover:bg-amber-900/20',
                       showCritical &&
                         'bg-destructive/5 hover:bg-destructive/10 dark:bg-destructive/10 dark:hover:bg-destructive/20',
@@ -354,7 +355,15 @@ export function ClienteList({
                             <AlertTriangle className="w-3 h-3" /> Atrasado
                           </Badge>
                         )}
-                        {!showAtrasado && showCritical && (
+                        {!showAtrasado && isMonthCritical && (
+                          <Badge
+                            variant="destructive"
+                            className="h-5 px-1.5 text-[10px] flex gap-1 items-center font-medium print:hidden animate-pulse shadow-sm bg-red-600 hover:bg-red-700"
+                          >
+                            <Clock className="w-3 h-3" /> Virada de mês
+                          </Badge>
+                        )}
+                        {!showAtrasado && !isMonthCritical && isCritical && (
                           <Badge
                             variant="destructive"
                             className="h-5 px-1.5 text-[10px] flex gap-1 items-center font-medium print:hidden animate-pulse shadow-sm"
@@ -436,11 +445,13 @@ export function ClienteList({
                               />
                             </TooltipTrigger>
                             <TooltipContent>
-                              {showCritical ? (
+                              {isMonthCritical ? (
                                 <p>
-                                  Atendimento crítico: pendente há {daysSinceUpdated} dias
-                                  {isMonthTurnover ? ' (Virada de mês)' : ''}
+                                  Atendimento crítico: virada de mês detectada ({daysSinceUpdated}{' '}
+                                  dias)
                                 </p>
+                              ) : isCritical ? (
+                                <p>Atendimento crítico: pendente há {daysSinceUpdated} dias</p>
                               ) : showOldAdmin ? (
                                 <p>
                                   Destacada como antiga: pagamento em aberto há {daysSinceUpdated}{' '}
@@ -496,10 +507,10 @@ export function ClienteList({
           </div>
         )}
         {clients.map((client) => {
-          const { isCritical, isModerate, isOldAdmin, daysSinceUpdated, isMonthTurnover } =
+          const { isCritical, isModerate, isOldAdmin, isMonthCritical, daysSinceUpdated } =
             getClientAlertState(client, alertSettings, isAdmin)
 
-          const showCritical = isCritical
+          const showCritical = isCritical || isMonthCritical
           const showModerate = isModerate
           const showOldAdmin = isOldAdmin
           const showAtrasado = notifications.some((n) => n.client === client.id)
@@ -513,6 +524,7 @@ export function ClienteList({
               className={cn(
                 'overflow-hidden rounded-xl shadow-sm transition-colors',
                 (showModerate || showOldAdmin) &&
+                  !showCritical &&
                   'border-amber-200/50 bg-amber-50/40 dark:bg-amber-900/10 dark:border-amber-900/50',
                 showCritical && 'border-destructive bg-destructive/5 dark:bg-destructive/10',
               )}
@@ -536,7 +548,15 @@ export function ClienteList({
                           <AlertTriangle className="w-3 h-3" /> Atrasado
                         </Badge>
                       )}
-                      {!showAtrasado && showCritical && (
+                      {!showAtrasado && isMonthCritical && (
+                        <Badge
+                          variant="destructive"
+                          className="h-5 px-1.5 text-[10px] flex gap-1 items-center font-medium animate-pulse shadow-sm bg-red-600 hover:bg-red-700"
+                        >
+                          <Clock className="w-3 h-3" /> Virada de mês
+                        </Badge>
+                      )}
+                      {!showAtrasado && !isMonthCritical && isCritical && (
                         <Badge
                           variant="destructive"
                           className="h-5 px-1.5 text-[10px] flex gap-1 items-center font-medium animate-pulse shadow-sm"
@@ -589,11 +609,12 @@ export function ClienteList({
                           />
                         </TooltipTrigger>
                         <TooltipContent>
-                          {showCritical ? (
+                          {isMonthCritical ? (
                             <p>
-                              Atendimento crítico: pendente há {daysSinceUpdated} dias
-                              {isMonthTurnover ? ' (Virada de mês)' : ''}
+                              Atendimento crítico: virada de mês detectada ({daysSinceUpdated} dias)
                             </p>
+                          ) : isCritical ? (
+                            <p>Atendimento crítico: pendente há {daysSinceUpdated} dias</p>
                           ) : showOldAdmin ? (
                             <p>
                               Destacada como antiga: pagamento em aberto há {daysSinceUpdated} dias

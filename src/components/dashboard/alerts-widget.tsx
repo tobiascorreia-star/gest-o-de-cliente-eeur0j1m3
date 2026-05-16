@@ -81,9 +81,13 @@ export function AlertsWidget() {
   const criticalClients: any[] = []
 
   pendingClients.forEach((c) => {
-    const { isCritical, isModerate, isOldAdmin } = getClientAlertState(c, alertSettings, true)
+    const { isCritical, isMonthCritical, isModerate, isOldAdmin } = getClientAlertState(
+      c,
+      alertSettings,
+      true,
+    )
 
-    if (isCritical) {
+    if (isCritical || isMonthCritical) {
       criticalClients.push(c)
     } else if (isModerate || isOldAdmin) {
       oldClients.push(c)
