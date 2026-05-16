@@ -34,18 +34,9 @@ export function AlertSettingsForm() {
     if (!settings?.id) return
     setSaving(true)
     try {
-      const validFields = ['moderate_threshold', 'critical_threshold', 'old_days', 'critical_days']
-
-      const payload: any = {}
-
-      Object.keys(settings).forEach((key) => {
-        if (validFields.includes(key)) {
-          payload[key] = Number(settings[key])
-        }
-      })
-
-      if (originalSettings && 'old_admin_days' in originalSettings) {
-        payload.old_admin_days = Number(settings.old_admin_days)
+      const payload = {
+        old_days: Number(settings.old_days),
+        critical_days: Number(settings.critical_days),
       }
 
       await updateAlertSettings(settings.id, payload)
