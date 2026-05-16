@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card'
 
 export function AlertSettingsForm() {
   const [settings, setSettings] = useState<any>(null)
+  const [originalSettings, setOriginalSettings] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
 
@@ -15,6 +16,7 @@ export function AlertSettingsForm() {
       const data = await getAlertSettings()
       if (data && data.length > 0) {
         setSettings(data[0])
+        setOriginalSettings(data[0])
       }
     } catch (err) {
       console.error(err)
@@ -31,11 +33,16 @@ export function AlertSettingsForm() {
     if (!settings?.id) return
     setSaving(true)
     try {
-      await updateAlertSettings(settings.id, {
+      const payload: any = {
         old_days: Number(settings.old_days),
         critical_days: Number(settings.critical_days),
-        old_admin_days: Number(settings.old_admin_days),
-      })
+      }
+
+      if (originalSettings && 'old_admin_days' in originalSettings) {
+        payload.old_admin_days = Number(settings.old_admin_days)
+      }
+
+      await updateAlertSettings(settings.id, payload)
       toast({ title: 'Sucesso', description: 'Configurações salvas com sucesso.' })
     } catch (err: any) {
       toast({ title: 'Erro', description: err.message, variant: 'destructive' })
