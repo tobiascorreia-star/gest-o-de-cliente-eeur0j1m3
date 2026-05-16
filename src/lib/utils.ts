@@ -40,6 +40,20 @@ export function getClientAlertState(client: any, alertSettings: any, isAdmin: bo
 
   const isConcluido =
     statusName === 'CONCLUÍDO' || statusName === 'CONCLUIDO' || statusName === 'BAIXA'
+  const isAguardando = statusName === 'AGUARDANDO'
+  const isAtencao = statusName === 'ATENÇÃO' || statusName === 'ATENCAO'
+  const isAberto = pgtoName === 'ABERTO'
+
+  console.log('DEBUG ALERT:', {
+    clientId: client.id,
+    statusName,
+    pgtoName,
+    isAguardando,
+    isAtencao,
+    daysSinceUpdated,
+    isConcluido,
+  })
+
   if (isConcluido) {
     return {
       isCritical: false,
@@ -50,10 +64,6 @@ export function getClientAlertState(client: any, alertSettings: any, isAdmin: bo
       isMonthTurnover,
     }
   }
-
-  const isAguardando = statusName === 'AGUARDANDO'
-  const isAtencao = statusName === 'ATENÇÃO' || statusName === 'ATENCAO'
-  const isAberto = pgtoName === 'ABERTO'
 
   let isCritical = false
   let isModerate = false
