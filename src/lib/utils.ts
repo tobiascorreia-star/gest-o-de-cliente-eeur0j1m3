@@ -44,16 +44,6 @@ export function getClientAlertState(client: any, alertSettings: any, isAdmin: bo
   const isAtencao = statusName === 'ATENÇÃO' || statusName === 'ATENCAO'
   const isAberto = pgtoName === 'ABERTO'
 
-  console.log('DEBUG ALERT:', {
-    clientId: client.id,
-    statusName,
-    pgtoName,
-    isAguardando,
-    isAtencao,
-    daysSinceUpdated,
-    isConcluido,
-  })
-
   if (isConcluido) {
     return {
       isCritical: false,
