@@ -134,21 +134,27 @@ const Index = () => {
     }
   }
 
-  const pendingClients = clients.filter((c) => {
-    const statusName = statuses.find((s) => s.id === c.status)?.name?.toUpperCase() || ''
-    return statusName !== 'BAIXA' && statusName !== 'CONCLUÍDO' && statusName !== 'CONCLUIDO'
-  })
-  const totalPending = pendingClients.length
+  const isAdmin = currentUser?.role?.toLowerCase() === 'admin'
 
-  const oldDaysThreshold = alertSettings?.old_days ?? 15
-  const pendingOldCount = pendingClients.filter((c) => {
-    const isAdmin = currentUser?.role?.toLowerCase() === 'admin'
+  let moderateCount = 0
+  let criticalCount = 0
+  let oldAdminCount = 0
+  let monthCriticalCount = 0
+
+  clients.forEach((c) => {
     const belongsToUser = isAdmin ? true : c.expand?.colaborador?.name === currentUser?.name
-    if (!belongsToUser) return false
+    if (!belongsToUser) return
 
-    const { isCritical, isModerate, isOldAdmin } = getClientAlertState(c, alertSettings, isAdmin)
-    return isCritical || isModerate || isOldAdmin
-  }).length
+    const { isCritical, isModerate, isOldAdmin, isMonthCritical } = getClientAlertState(
+      c,
+      alertSettings,
+      isAdmin,
+    )
+    if (isMonthCritical) monthCriticalCount++
+    if (isCritical) criticalCount++
+    if (isModerate) moderateCount++
+    if (isOldAdmin) oldAdminCount++
+  })
 
   const getGreeting = () => {
     const hour = new Date().getHours()
@@ -161,23 +167,47 @@ const Index = () => {
 
   let systemAlert = null
   if (alertSettings && !loading) {
-    if (totalPending >= alertSettings.critical_threshold) {
+    if (monthCriticalCount > 0) {
       systemAlert = {
         type: 'critical',
-        title: 'Alerta Crítico de Pendências',
-        description: `O sistema registra atualmente ${totalPending} atendimentos com pendências, excedendo o limite crítico configurado de ${alertSettings.critical_threshold}. É necessária ação imediata.`,
+        title: 'Clientes com Virada de Mês Sem Atualização',
+        description: `${monthCriticalCount} atendimento(s) (status Aguardando ou Atenção) estão pendentes desde o mês anterior sem atualização. Ação imediata necessária.`,
         icon: AlertTriangle,
         className:
           'bg-red-50 text-red-900 border-red-200 dark:bg-red-950/50 dark:text-red-200 dark:border-red-900',
       }
-    } else if (totalPending >= alertSettings.moderate_threshold) {
+    } else if (criticalCount > 0) {
+      systemAlert = {
+        type: 'critical',
+        title: 'Alerta Crítico de Pendências',
+        description: `${criticalCount} atendimento(s) (status Aguardando ou Atenção) estão sem atualização há mais de ${
+          alertSettings.critical_days ?? 30
+        } dias.`,
+        icon: AlertTriangle,
+        className:
+          'bg-red-50 text-red-900 border-red-200 dark:bg-red-950/50 dark:text-red-200 dark:border-red-900',
+      }
+    } else if (moderateCount > 0) {
       systemAlert = {
         type: 'moderate',
-        title: 'Aviso de Volume de Pendências',
-        description: `O número de atendimentos com pendências (${totalPending}) ultrapassou o limite moderado de ${alertSettings.moderate_threshold}. Acompanhe de perto para evitar acúmulos.`,
+        title: 'Aviso de Pendências em Aberto',
+        description: `${moderateCount} atendimento(s) com status Aguardando estão sem atualização há mais de ${
+          alertSettings.old_days ?? 15
+        } dias. Acompanhe de perto.`,
         icon: Info,
         className:
           'bg-emerald-50 text-emerald-900 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-200 dark:border-emerald-900',
+      }
+    } else if (isAdmin && oldAdminCount > 0) {
+      systemAlert = {
+        type: 'oldAdmin',
+        title: 'Pagamentos em Aberto com Pendência Antiga',
+        description: `${oldAdminCount} atendimento(s) com Pgto Aberto estão sem atualização há mais de ${
+          alertSettings.old_days ?? 15
+        } dias.`,
+        icon: Info,
+        className:
+          'bg-blue-50 text-blue-900 border-blue-200 dark:bg-blue-950/50 dark:text-blue-200 dark:border-blue-900',
       }
     }
   }
@@ -251,16 +281,6 @@ const Index = () => {
           <systemAlert.icon className="h-5 w-5" />
           <AlertTitle className="font-semibold">{systemAlert.title}</AlertTitle>
           <AlertDescription className="mt-1">{systemAlert.description}</AlertDescription>
-        </Alert>
-      )}
-
-      {pendingOldCount > 0 && (
-        <Alert className="mb-6 border-l-4 border-l-amber-500 bg-amber-50 text-amber-900 border-amber-200 dark:bg-amber-950/30 dark:text-amber-200 dark:border-amber-900 shadow-sm animate-fade-in-down">
-          <AlertDescription className="font-medium text-sm flex items-center">
-            <span className="mr-2">🟡</span> Atenção: Você possui {pendingOldCount}{' '}
-            {pendingOldCount === 1 ? 'atendimento pendente' : 'atendimentos pendentes'} há mais de{' '}
-            {oldDaysThreshold} dias.
-          </AlertDescription>
         </Alert>
       )}
 

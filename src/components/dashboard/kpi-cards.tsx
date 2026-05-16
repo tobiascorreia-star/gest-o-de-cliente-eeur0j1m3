@@ -15,15 +15,23 @@ export function KpiCards() {
   const total = clients.length
 
   let criticalCount = 0
-  let oldCount = 0
+  let moderateCount = 0
+  let monthCriticalCount = 0
+  let oldAdminCount = 0
 
   clients.forEach((c) => {
-    const { isCritical, isModerate, isOldAdmin } = getClientAlertState(c, alertSettings, isAdmin)
+    const { isCritical, isModerate, isOldAdmin, isMonthCritical } = getClientAlertState(
+      c,
+      alertSettings,
+      isAdmin,
+    )
     if (isCritical) criticalCount++
-    else if (isModerate || isOldAdmin) oldCount++
+    if (isModerate) moderateCount++
+    if (isOldAdmin) oldAdminCount++
+    if (isMonthCritical) monthCriticalCount++
   })
 
-  const pending = criticalCount + oldCount
+  const pending = criticalCount + moderateCount + monthCriticalCount + (isAdmin ? oldAdminCount : 0)
 
   const thisMonthStart = startOfMonth(new Date())
 
@@ -54,8 +62,9 @@ export function KpiCards() {
       color: 'text-amber-500 dark:text-amber-400',
       bg: 'bg-amber-500/10 dark:bg-amber-500/20',
       thresholds: [
-        { label: 'Antigos', count: oldCount, limit: alertSettings.moderate_threshold },
-        { label: 'Críticos', count: criticalCount, limit: alertSettings.critical_threshold },
+        { label: 'Moderados', count: moderateCount },
+        { label: 'Críticos', count: criticalCount + monthCriticalCount },
+        ...(isAdmin ? [{ label: 'Pgto Aberto', count: oldAdminCount }] : []),
       ],
     },
     {
@@ -95,10 +104,10 @@ export function KpiCards() {
             </div>
             {card.thresholds && (
               <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] font-light text-slate-500 dark:text-slate-400">
-                {card.thresholds.map((t, idx) => (
+                {card.thresholds.map((t: any, idx) => (
                   <div key={idx} className="flex items-center gap-1">
-                    <span className={t.count >= t.limit ? 'text-red-500 font-medium' : ''}>
-                      {t.label}: {t.count}/{t.limit}
+                    <span className="font-medium">
+                      {t.label}: {t.count}
                     </span>
                   </div>
                 ))}

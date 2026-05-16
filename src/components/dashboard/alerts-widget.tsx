@@ -69,23 +69,26 @@ export function AlertsWidget() {
     return null
   }
 
-  const pendingClients = clients.filter((c) => {
-    const statusName = statuses.find((s) => s.id === c.status)?.name?.toUpperCase() || ''
-    return statusName !== 'BAIXA' && statusName !== 'CONCLUÍDO' && statusName !== 'CONCLUIDO'
-  })
-
-  const pendingCount = pendingClients.length
-
   const now = new Date()
+  let moderateCount = 0
+  let criticalCount = 0
+  let oldAdminCount = 0
+  let monthCriticalCount = 0
+
   const oldClients: any[] = []
   const criticalClients: any[] = []
 
-  pendingClients.forEach((c) => {
-    const { isCritical, isMonthCritical, isModerate, isOldAdmin } = getClientAlertState(
+  clients.forEach((c) => {
+    const { isCritical, isModerate, isOldAdmin, isMonthCritical } = getClientAlertState(
       c,
       alertSettings,
       true,
     )
+
+    if (isMonthCritical) monthCriticalCount++
+    if (isCritical) criticalCount++
+    if (isModerate) moderateCount++
+    if (isOldAdmin) oldAdminCount++
 
     if (isCritical || isMonthCritical) {
       criticalClients.push(c)
@@ -105,7 +108,7 @@ export function AlertsWidget() {
 
   return (
     <div className="space-y-4 mt-4">
-      {pendingCount >= (alertSettings?.critical_threshold ?? 20) ? (
+      {monthCriticalCount > 0 && (
         <Card className="border-border/50 shadow-sm border-l-4 border-l-destructive bg-destructive/10">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-light flex items-center gap-2 text-destructive">
@@ -114,36 +117,66 @@ export function AlertsWidget() {
                 <span className="relative inline-flex rounded-full h-3 w-3 bg-destructive"></span>
               </span>
               <AlertTriangle className="w-4 h-4" strokeWidth={1.5} />
-              Volume Crítico de Atendimentos
+              Virada de Mês — Ação Necessária
             </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-sm">
-              Existem <strong>{pendingCount}</strong> atendimentos pendentes no total, excedendo o
-              limite crítico ({alertSettings?.critical_threshold ?? 20}).
+              Existem <strong>{monthCriticalCount}</strong> atendimento(s) aguardando ou em atenção
+              com virada de mês.
             </p>
           </CardContent>
         </Card>
-      ) : pendingCount >= (alertSettings?.moderate_threshold ?? 10) ? (
+      )}
+
+      {criticalCount > 0 && (
+        <Card className="border-border/50 shadow-sm border-l-4 border-l-destructive bg-destructive/10">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-light flex items-center gap-2 text-destructive">
+              <AlertTriangle className="w-4 h-4" strokeWidth={1.5} />
+              Atendimentos Críticos — Acima de {alertSettings?.critical_days ?? 30} dias
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-destructive/80 dark:text-red-400">
+              Existem <strong>{criticalCount}</strong> atendimento(s) em estado crítico.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {moderateCount > 0 && (
         <Card className="border-border/50 shadow-sm border-l-4 border-l-amber-500 bg-amber-50 dark:bg-amber-950/20">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-light flex items-center gap-2 text-amber-600 dark:text-amber-500">
-              <span className="relative flex h-3 w-3">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span>
-              </span>
               <AlertTriangle className="w-4 h-4" strokeWidth={1.5} />
-              Volume Moderado de Atendimentos
+              Atendimentos Aguardando — Acima de {alertSettings?.old_days ?? 15} dias
             </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-amber-700 dark:text-amber-400">
-              Existem <strong>{pendingCount}</strong> atendimentos pendentes no total, excedendo o
-              limite moderado ({alertSettings?.moderate_threshold ?? 10}).
+              Existem <strong>{moderateCount}</strong> atendimento(s) em estado moderado.
             </p>
           </CardContent>
         </Card>
-      ) : null}
+      )}
+
+      {oldAdminCount > 0 && (
+        <Card className="border-border/50 shadow-sm border-l-4 border-l-blue-500 bg-blue-50 dark:bg-blue-950/20">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-light flex items-center gap-2 text-blue-600 dark:text-blue-500">
+              <Clock className="w-4 h-4" strokeWidth={1.5} />
+              Pagamentos Abertos Antigos
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-blue-700 dark:text-blue-400">
+              Existem <strong>{oldAdminCount}</strong> pagamento(s) aberto(s) há mais de{' '}
+              {alertSettings?.old_days ?? 15} dias.
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       {delayedClients.length > 0 && (
         <Card className="border-border/50 shadow-sm border-l-4 border-l-red-500 bg-red-50/50 dark:bg-red-950/20">
