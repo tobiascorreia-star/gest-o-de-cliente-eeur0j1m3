@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-16T18:28:44.884Z",
+  "generatedAt": "2026-05-16T18:41:05.112Z",
   "collections": [
     {
       "name": "users",
@@ -348,13 +348,13 @@
         {
           "name": "old_days",
           "type": "number",
-          "required": true,
+          "required": false,
           "system": false
         },
         {
           "name": "critical_days",
           "type": "number",
-          "required": true,
+          "required": false,
           "system": false
         },
         {

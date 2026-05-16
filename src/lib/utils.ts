@@ -74,15 +74,15 @@ export function getClientAlertState(client: any, alertSettings: any, isAdmin: bo
   const oldDays = alertSettings?.old_days ?? 15
   const oldAdminDays = alertSettings?.old_admin_days ?? 15
 
-  if ((isAguardando || isAtencao) && daysSinceUpdated > criticalDays) {
+  if ((isAguardando || isAtencao) && daysSinceUpdated >= criticalDays) {
     isCritical = true
   }
 
-  if (isAguardando && daysSinceUpdated > oldDays) {
+  if (isAguardando && daysSinceUpdated >= oldDays) {
     isModerate = true
   }
 
-  if (isAdmin && isAberto && daysSinceUpdated > oldAdminDays) {
+  if (isAdmin && isAberto && daysSinceUpdated >= oldAdminDays) {
     isOldAdmin = true
   }
 
