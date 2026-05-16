@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { toast } from '@/hooks/use-toast'
 import { getAlertSettings, updateAlertSettings } from '@/services/alert_settings'
 import { Card, CardContent } from '@/components/ui/card'
+import { extractFieldErrors, getErrorMessage } from '@/lib/pocketbase/errors'
 
 export function AlertSettingsForm() {
   const [settings, setSettings] = useState<any>(null)
@@ -33,10 +34,15 @@ export function AlertSettingsForm() {
     if (!settings?.id) return
     setSaving(true)
     try {
-      const payload: any = {
-        old_days: Number(settings.old_days),
-        critical_days: Number(settings.critical_days),
-      }
+      const validFields = ['moderate_threshold', 'critical_threshold', 'old_days', 'critical_days']
+
+      const payload: any = {}
+
+      Object.keys(settings).forEach((key) => {
+        if (validFields.includes(key)) {
+          payload[key] = Number(settings[key])
+        }
+      })
 
       if (originalSettings && 'old_admin_days' in originalSettings) {
         payload.old_admin_days = Number(settings.old_admin_days)
@@ -45,7 +51,21 @@ export function AlertSettingsForm() {
       await updateAlertSettings(settings.id, payload)
       toast({ title: 'Sucesso', description: 'Configurações salvas com sucesso.' })
     } catch (err: any) {
-      toast({ title: 'Erro', description: err.message, variant: 'destructive' })
+      console.error('Save error:', err)
+      const fieldErrors = extractFieldErrors(err)
+      const hasFieldErrors = Object.keys(fieldErrors).length > 0
+
+      const description = hasFieldErrors
+        ? Object.entries(fieldErrors)
+            .map(([k, v]) => `${k}: ${v}`)
+            .join('\n')
+        : getErrorMessage(err)
+
+      toast({
+        title: 'Erro ao salvar',
+        description: description,
+        variant: 'destructive',
+      })
     } finally {
       setSaving(false)
     }
