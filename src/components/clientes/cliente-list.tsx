@@ -55,7 +55,7 @@ const ObservationBlock = ({
   if (!client.observacoes) return null
 
   return (
-    <div className="flex flex-col gap-1 w-full min-w-[140px] print:min-w-0 p-1.5 border rounded-md bg-card shadow-sm print:shadow-none print:border-none print:p-0 print:bg-transparent overflow-hidden">
+    <div className="flex flex-col gap-1.5 w-full min-w-0 print:min-w-0 p-2 sm:p-1.5 border rounded-lg bg-card shadow-sm print:shadow-none print:border-none print:p-0 print:bg-transparent overflow-hidden">
       {!client.observacao_lida ? (
         <>
           <div className="flex items-center justify-between gap-2 flex-wrap print:hidden">
@@ -82,7 +82,6 @@ const ObservationBlock = ({
           <Tooltip>
             <TooltipTrigger asChild>
               <div className="text-xs text-foreground truncate cursor-help text-left font-medium opacity-90 hover:opacity-100 transition-opacity w-full block print:whitespace-normal print:break-words print:text-[8px] print:leading-tight">
-                {' '}
                 {client.observacoes}
               </div>
             </TooltipTrigger>
@@ -115,7 +114,6 @@ const ObservationBlock = ({
           <Tooltip>
             <TooltipTrigger asChild>
               <div className="text-xs text-foreground truncate cursor-help text-left font-medium opacity-80 hover:opacity-100 transition-opacity w-full block print:whitespace-normal print:break-words print:text-[8px] print:leading-tight">
-                {' '}
                 {client.observacoes}
               </div>
             </TooltipTrigger>
@@ -522,7 +520,7 @@ export function ClienteList({
             <Card
               key={client.id}
               className={cn(
-                'overflow-hidden rounded-xl shadow-sm transition-colors',
+                'w-full overflow-hidden rounded-xl shadow-sm transition-colors',
                 (showModerate || showOldAdmin) &&
                   !showCritical &&
                   'border-amber-200/50 bg-amber-50/40 dark:bg-amber-900/10 dark:border-amber-900/50',
@@ -530,8 +528,8 @@ export function ClienteList({
               )}
             >
               <CardContent className="p-5 flex flex-col gap-4">
-                <div className="flex justify-between items-start">
-                  <div>
+                <div className="flex justify-between items-start gap-2">
+                  <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
                       {hasActiveAlert && (
                         <div
@@ -539,7 +537,9 @@ export function ClienteList({
                           title="Alerta Ativo"
                         />
                       )}
-                      <h4 className="font-semibold text-foreground">{client.razao_social}</h4>
+                      <h4 className="font-semibold text-foreground break-words w-full sm:w-auto min-w-0">
+                        {client.razao_social}
+                      </h4>
                       {showAtrasado && (
                         <Badge
                           variant="destructive"
@@ -581,14 +581,16 @@ export function ClienteList({
                         </Badge>
                       )}
                     </div>
-                    <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1.5">
+                    <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1.5 truncate">
                       {client.cnpj}
                     </p>
-                    <p className="text-sm font-medium mt-2">Cliente: {client.nome_cliente}</p>
+                    <p className="text-sm font-medium mt-2 break-words">
+                      Cliente: {client.nome_cliente}
+                    </p>
                   </div>
-                  {renderActions(client)}
+                  <div className="shrink-0 ml-2">{renderActions(client)}</div>
                 </div>
-                <div className="flex flex-wrap gap-x-4 gap-y-2 mt-2">
+                <div className="flex flex-wrap gap-x-4 gap-y-2 mt-3">
                   <div className="flex items-center gap-2">
                     <ConfigBadge
                       name={client.expand?.status?.name}
