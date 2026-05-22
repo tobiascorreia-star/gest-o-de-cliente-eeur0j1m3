@@ -45,11 +45,11 @@ export function ActiveMonthsView({ months, onEditItem, onAddForOwner }: Props) {
   }
 
   return (
-    <div className="flex h-full gap-4 overflow-x-auto pb-4 snap-x pr-8 scrollbar-thin w-full scroll-smooth">
+    <div className="flex flex-col md:flex-row h-full gap-4 overflow-y-auto md:overflow-y-visible overflow-x-hidden md:overflow-x-auto pb-4 md:snap-x pr-0 md:pr-8 scrollbar-thin w-full scroll-smooth">
       {months.map((m) => (
         <div
           key={`${m.ano}-${m.mes}`}
-          className="w-[300px] shrink-0 snap-start flex flex-col min-h-0"
+          className="w-full md:w-[300px] shrink-0 md:snap-start flex flex-col min-h-0"
         >
           <MonthGroup
             mes={m.mes}

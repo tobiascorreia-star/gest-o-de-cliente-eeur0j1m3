@@ -171,7 +171,7 @@ export function MonthGroup({ mes, ano, items, onEditItem, onAddForOwner }: Props
   const isPaid = total > 0 && paid === total
 
   return (
-    <div className="flex flex-col bg-slate-100/50 dark:bg-slate-900/30 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm max-h-full h-full w-full">
+    <div className="flex flex-col bg-slate-100/50 dark:bg-slate-900/30 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm max-h-full md:h-full w-full">
       <div
         className={cn(
           'flex items-center justify-between p-3 border-b border-slate-200 dark:border-slate-800 shrink-0 transition-colors gap-2',
