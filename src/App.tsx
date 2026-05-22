@@ -11,13 +11,10 @@ import { useEffect } from 'react'
 function MobileTypographyFix() {
   useEffect(() => {
     const applyFix = () => {
-      if (window.innerWidth >= 768) return
-
-      // Encontra elementos que contêm o título do Card 1
+      // Aplica utilitários responsivos do tailwind ao invés de atrelar unicamente ao JS width
       const allElements = document.querySelectorAll('*')
       allElements.forEach((el) => {
         if (el.textContent?.trim().toUpperCase() === 'TOTAL A RECEBER') {
-          // Sobe na árvore para encontrar o container do card
           let card = el.parentElement
           while (
             card &&
@@ -29,24 +26,50 @@ function MobileTypographyFix() {
           }
 
           if (card) {
-            // Encontra o elemento com o valor monetário dentro deste card específico
+            const container = card.parentElement
+            if (container && container.tagName === 'DIV') {
+              // Garante que todos os cards (1, 2, 3, 4, e 5) mantenham alinhamento vertical no mobile, w-full, flex-col
+              container.classList.add(
+                'max-md:flex',
+                'max-md:flex-col',
+                'max-md:w-full',
+                'max-md:overflow-hidden',
+              )
+
+              Array.from(container.children).forEach((child) => {
+                const childEl = child as HTMLElement
+                childEl.classList.add(
+                  'max-md:w-full',
+                  'max-md:flex',
+                  'max-md:flex-col',
+                  'max-md:overflow-hidden',
+                )
+              })
+            }
+
             const children = card.querySelectorAll('*')
             children.forEach((child) => {
               if (child.textContent?.includes('R$') && child.classList) {
                 const classes = Array.from(child.classList)
                 const hasLargeText = classes.some((c) =>
-                  c.match(/text-(5xl|6xl|7xl|8xl|9xl|\[.*?\])/),
+                  c.match(/text-(3xl|4xl|5xl|6xl|7xl|8xl|9xl|\[.*?\])/),
                 )
 
                 if (hasLargeText) {
-                  // Substitui classes muito grandes por um tamanho mobile balanceado (e.g., text-4xl)
+                  // Reduz a tipografia do Card 1 para evitar overflow (text-3xl ao invés de text-4xl+)
                   child.className = child.className.replace(
-                    /text-(5xl|6xl|7xl|8xl|9xl|\[.*?\])/g,
+                    /text-(3xl|4xl|5xl|6xl|7xl|8xl|9xl|\[.*?\])/g,
                     '',
                   )
-                  child.classList.add('text-4xl', 'md:text-5xl', 'font-extrabold')
+                  child.classList.add(
+                    'text-3xl',
+                    'md:text-4xl',
+                    'lg:text-5xl',
+                    'font-extrabold',
+                    'max-md:truncate',
+                    'max-md:max-w-full',
+                  )
 
-                  // Previne a quebra de linha indesejada (ex: quebrar no meio dos centavos)
                   const htmlEl = child as HTMLElement
                   htmlEl.style.whiteSpace = 'nowrap'
                   htmlEl.style.overflow = 'hidden'
