@@ -291,10 +291,16 @@ export default function Clientes() {
           />
         </div>
       ) : (
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-4">
-          <TabsList>
-            <TabsTrigger value="ativos">Atendimentos Ativos ({activeClients.length})</TabsTrigger>
-            <TabsTrigger value="concluidos">
+        <Tabs
+          value={activeTab}
+          onValueChange={setActiveTab}
+          className="w-full max-w-full space-y-4 overflow-hidden"
+        >
+          <TabsList className="w-full justify-start overflow-x-auto [&::-webkit-scrollbar]:hidden h-11 bg-muted/50 p-1 mb-2">
+            <TabsTrigger value="ativos" className="flex-shrink-0">
+              Atendimentos Ativos ({activeClients.length})
+            </TabsTrigger>
+            <TabsTrigger value="concluidos" className="flex-shrink-0">
               Concluídos do Mês ({completedClients.length})
             </TabsTrigger>
           </TabsList>
