@@ -174,18 +174,23 @@ export function MonthGroup({ mes, ano, items, onEditItem, onAddForOwner }: Props
     <div className="flex flex-col bg-slate-100/50 dark:bg-slate-900/30 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm max-h-full h-full w-full">
       <div
         className={cn(
-          'flex items-center justify-between p-3 border-b border-slate-200 dark:border-slate-800 shrink-0 transition-colors',
+          'flex items-center justify-between p-3 border-b border-slate-200 dark:border-slate-800 shrink-0 transition-colors gap-2',
           headerBgClass,
         )}
       >
-        <div className="flex flex-col">
-          <h2 className={cn('text-sm font-bold flex items-center gap-2', titleClass)}>
-            {MONTH_NAMES[mes - 1]} {ano}
+        <div className="flex flex-col min-w-0">
+          <h2 className={cn('text-sm font-bold flex items-center gap-2 truncate', titleClass)}>
+            <span className="truncate">
+              {MONTH_NAMES[mes - 1]} {ano}
+            </span>
             {isPaid && (
-              <span className="w-2 h-2 rounded-full bg-emerald-500" title="Mês concluído" />
+              <span
+                className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"
+                title="Mês concluído"
+              />
             )}
           </h2>
-          <span className={cn('text-[10px] font-medium mt-0.5', subtitleClass)}>
+          <span className={cn('text-[10px] font-medium mt-0.5 truncate', subtitleClass)}>
             {paid}/{total} pagos
           </span>
         </div>
@@ -236,14 +241,14 @@ export function MonthGroup({ mes, ano, items, onEditItem, onAddForOwner }: Props
                   className="flex flex-col rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 shadow-sm shrink-0 overflow-hidden border-b-0"
                 >
                   <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 relative">
-                    <AccordionTrigger className="hover:no-underline px-3 py-2 flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-slate-700 dark:text-slate-200 text-xs tracking-wide uppercase">
+                    <AccordionTrigger className="hover:no-underline px-3 py-2 flex-1 min-w-0 pr-14">
+                      <div className="flex items-center gap-2 min-w-0 w-full">
+                        <span className="font-bold text-slate-700 dark:text-slate-200 text-xs tracking-wide uppercase truncate">
                           {owner}
                         </span>
                         <span
                           className={cn(
-                            'text-[10px] px-1.5 py-0.5 rounded-md font-bold',
+                            'text-[10px] px-1.5 py-0.5 rounded-md font-bold shrink-0',
                             ownerPaid === ownerItems.length
                               ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400'
                               : 'bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-400',

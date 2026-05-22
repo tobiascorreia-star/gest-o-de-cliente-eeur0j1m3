@@ -363,11 +363,11 @@ export default function PagamentosAdmin() {
               setBulkMonthYear(monthYearFilter !== 'all' ? monthYearFilter : '')
               setBulkAction('unarchive')
             }}
-            className="bg-slate-50 hover:bg-slate-100 dark:bg-slate-900 dark:hover:bg-slate-800 flex-1 sm:flex-none justify-center"
+            className="bg-slate-50 hover:bg-slate-100 dark:bg-slate-900 dark:hover:bg-slate-800 flex-1 min-w-[140px] sm:flex-none justify-center px-2"
           >
-            <RotateCcw className="w-4 h-4 mr-2 text-slate-500" />
+            <RotateCcw className="w-4 h-4 sm:mr-2 mr-1 shrink-0 text-slate-500" />
             <span className="hidden sm:inline">Voltar para Ativo</span>
-            <span className="sm:hidden">Restaurar</span>
+            <span className="sm:hidden truncate">Restaurar</span>
           </Button>
           <Button
             variant="outline"
@@ -375,11 +375,11 @@ export default function PagamentosAdmin() {
               setBulkMonthYear(monthYearFilter !== 'all' ? monthYearFilter : '')
               setBulkAction('archive')
             }}
-            className="bg-slate-50 hover:bg-slate-100 dark:bg-slate-900 dark:hover:bg-slate-800 flex-1 sm:flex-none justify-center"
+            className="bg-slate-50 hover:bg-slate-100 dark:bg-slate-900 dark:hover:bg-slate-800 flex-1 min-w-[140px] sm:flex-none justify-center px-2"
           >
-            <Archive className="w-4 h-4 mr-2 text-slate-500" />
+            <Archive className="w-4 h-4 sm:mr-2 mr-1 shrink-0 text-slate-500" />
             <span className="hidden sm:inline">Arquivar no Histórico</span>
-            <span className="sm:hidden">Arquivar</span>
+            <span className="sm:hidden truncate">Arquivar</span>
           </Button>
           <Button
             variant="destructive"
@@ -387,19 +387,19 @@ export default function PagamentosAdmin() {
               setBulkMonthYear(monthYearFilter !== 'all' ? monthYearFilter : '')
               setBulkAction('delete')
             }}
-            className="flex-1 sm:flex-none justify-center"
+            className="flex-1 min-w-[140px] sm:flex-none justify-center px-2"
           >
-            <Trash2 className="w-4 h-4 mr-2" />
+            <Trash2 className="w-4 h-4 sm:mr-2 mr-1 shrink-0" />
             <span className="hidden sm:inline">Excluir Tudo</span>
-            <span className="sm:hidden">Excluir</span>
+            <span className="sm:hidden truncate">Excluir</span>
           </Button>
           <Button
             onClick={() => setIsModalOpen(true)}
-            className="gap-2 flex-1 sm:flex-none justify-center"
+            className="gap-1 sm:gap-2 flex-1 min-w-[140px] sm:flex-none justify-center px-2"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-4 h-4 shrink-0" />
             <span className="hidden sm:inline">Novo Pagamento</span>
-            <span className="sm:hidden">Novo</span>
+            <span className="sm:hidden truncate">Novo</span>
           </Button>
         </div>
       </div>
@@ -504,7 +504,7 @@ export default function PagamentosAdmin() {
             <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
               <div className="flex items-center gap-2 w-full sm:w-auto flex-1">
                 <Select value={monthYearFilter} onValueChange={setMonthYearFilter}>
-                  <SelectTrigger className="w-[140px] sm:w-[150px] bg-white dark:bg-slate-950 h-9">
+                  <SelectTrigger className="w-[130px] shrink-0 sm:w-[150px] bg-white dark:bg-slate-950 h-9">
                     <SelectValue placeholder="Mês/Ano" />
                   </SelectTrigger>
                   <SelectContent>
@@ -517,7 +517,7 @@ export default function PagamentosAdmin() {
                   </SelectContent>
                 </Select>
 
-                <div className="relative flex-1 min-w-[150px]">
+                <div className="relative flex-1 min-w-[100px] sm:min-w-[150px]">
                   <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
                   <Input
                     ref={searchInputRef}

@@ -209,7 +209,7 @@ export function PaymentItem({ item, onEdit }: Props) {
               <p
                 onClick={() => setIsEditing(true)}
                 className={cn(
-                  'text-sm font-medium text-slate-900 dark:text-slate-100 cursor-text hover:bg-slate-100 dark:hover:bg-slate-800 px-1 -ml-1 rounded transition-colors',
+                  'text-sm font-medium text-slate-900 dark:text-slate-100 cursor-text hover:bg-slate-100 dark:hover:bg-slate-800 px-1 -ml-1 rounded transition-colors break-words line-clamp-2 md:line-clamp-none',
                   item.status && 'line-through text-slate-500',
                   isOverdue && 'text-red-600 dark:text-red-400 font-bold',
                 )}
@@ -305,7 +305,7 @@ export function PaymentItem({ item, onEdit }: Props) {
         )}
       </div>
 
-      <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity self-start -mt-1 -mr-1">
+      <div className="flex items-center opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity self-start -mt-1 -mr-1 shrink-0 bg-white/50 dark:bg-slate-950/50 md:bg-transparent rounded-md ml-1">
         <Button
           variant="ghost"
           size="icon"
