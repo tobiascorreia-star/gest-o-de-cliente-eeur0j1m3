@@ -812,33 +812,38 @@ export default function FolhaPagamento() {
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-4 bg-white/50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800 flex-wrap items-end">
+        <div className="flex flex-col sm:flex-row gap-4 bg-white/50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800 flex-wrap sm:items-end">
           {loading && draftPayrolls.length === 0 ? (
             <>
-              <div className="flex-1 min-w-[150px] space-y-2">
+              <div className="w-full sm:flex-1 sm:min-w-[150px] space-y-2">
                 <div className="h-4 w-24 bg-slate-200 dark:bg-slate-800 rounded animate-pulse"></div>
                 <div className="h-10 w-full bg-slate-200 dark:bg-slate-800 rounded animate-pulse"></div>
               </div>
-              <div className="flex-1 min-w-[150px] space-y-2">
+              <div className="w-full sm:flex-1 sm:min-w-[150px] space-y-2">
                 <div className="h-4 w-24 bg-slate-200 dark:bg-slate-800 rounded animate-pulse"></div>
                 <div className="h-10 w-full bg-slate-200 dark:bg-slate-800 rounded animate-pulse"></div>
               </div>
-              <div className="flex-1 min-w-[200px] space-y-2">
+              <div className="w-full sm:flex-1 sm:min-w-[200px] space-y-2">
                 <div className="h-4 w-24 bg-slate-200 dark:bg-slate-800 rounded animate-pulse"></div>
                 <div className="h-10 w-full bg-slate-200 dark:bg-slate-800 rounded animate-pulse"></div>
               </div>
-              <div className="flex-1 min-w-[150px] space-y-2">
+              <div className="w-full sm:flex-1 sm:min-w-[150px] space-y-2">
                 <div className="h-4 w-24 bg-slate-200 dark:bg-slate-800 rounded animate-pulse"></div>
                 <div className="h-10 w-full bg-slate-200 dark:bg-slate-800 rounded animate-pulse"></div>
               </div>
             </>
           ) : (
             <>
-              <div className="flex-1 min-w-[150px] space-y-2">
+              <div className="w-full sm:flex-1 sm:min-w-[150px] space-y-2">
                 <Label>Mês/Ano de Competência</Label>
-                <Input type="month" value={filterMonth} onChange={handleMonthChange} />
+                <Input
+                  type="month"
+                  value={filterMonth}
+                  onChange={handleMonthChange}
+                  className="w-full"
+                />
               </div>
-              <div className="flex-1 min-w-[150px] space-y-2">
+              <div className="w-full sm:flex-1 sm:min-w-[150px] space-y-2">
                 <Label className="flex items-center">
                   Qtde Install
                   <InfoTooltip text="Quantidade geral multiplicada pelo Valor do Install de cada colaborador para calcular o Incentivo." />
@@ -848,10 +853,10 @@ export default function FolhaPagamento() {
                   placeholder="Ex: 10"
                   value={globalQty}
                   onChange={(e) => handleGlobalQtyChange(e.target.value)}
-                  className="appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none [-moz-appearance:textfield]"
+                  className="w-full appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none [-moz-appearance:textfield]"
                 />
               </div>
-              <div className="flex-1 min-w-[200px] space-y-2">
+              <div className="w-full sm:flex-1 sm:min-w-[200px] space-y-2">
                 <Label>Colaborador</Label>
                 <Select
                   value={filterUser}
@@ -864,7 +869,7 @@ export default function FolhaPagamento() {
                     }
                   }}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue placeholder="Todos" />
                   </SelectTrigger>
                   <SelectContent>
@@ -877,10 +882,10 @@ export default function FolhaPagamento() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="flex-1 min-w-[150px] space-y-2">
+              <div className="w-full sm:flex-1 sm:min-w-[150px] space-y-2">
                 <Label>Status</Label>
                 <Select value={filterStatus} onValueChange={setFilterStatus}>
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue placeholder="Todos" />
                   </SelectTrigger>
                   <SelectContent>
@@ -1026,26 +1031,27 @@ export default function FolhaPagamento() {
           </Table>
         </div>
 
-        <div className="bg-white/50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 p-4 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-4 shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] print:hidden">
-          <div className="flex items-center gap-3">
-            <div className="bg-primary/10 p-2 rounded-lg">
+        <div className="bg-white/50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 p-4 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] print:hidden">
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <div className="bg-primary/10 p-2 rounded-lg shrink-0">
               <Banknote className="w-5 h-5 text-primary" />
             </div>
-            <div>
-              <p className="text-sm font-medium text-slate-500 flex items-center">
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium text-slate-500 flex items-center whitespace-normal">
                 Total de Proventos
                 <InfoTooltip text="Soma de todos os pagamentos consolidados na tela atual." />
               </p>
-              <p className="text-2xl font-bold text-slate-800 dark:text-slate-100">
+              <p className="text-2xl font-bold text-slate-800 dark:text-slate-100 truncate">
                 {fmtC(totalProventos)}
               </p>
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 w-full sm:w-auto">
             <Button
               variant="default"
               onClick={handleCloseMonth}
               disabled={isClosingMonth || draftPayrolls.length === 0}
+              className="w-full sm:w-auto"
             >
               {isClosingMonth ? (
                 <>
@@ -1095,7 +1101,7 @@ export default function FolhaPagamento() {
                 </Select>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Status *</Label>
                   <Select value={status} onValueChange={setStatus} disabled={editingRecord?.closed}>
@@ -1110,7 +1116,7 @@ export default function FolhaPagamento() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 border-t border-slate-100 dark:border-slate-800 pt-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-slate-100 dark:border-slate-800 pt-4">
                 <div className="space-y-2">
                   <Label className="flex items-center">
                     Salário Base
@@ -1227,7 +1233,7 @@ export default function FolhaPagamento() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 border-t border-slate-100 dark:border-slate-800 pt-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-slate-100 dark:border-slate-800 pt-4">
                 <div className="space-y-2">
                   <Label className="flex items-center">
                     Extra 1
