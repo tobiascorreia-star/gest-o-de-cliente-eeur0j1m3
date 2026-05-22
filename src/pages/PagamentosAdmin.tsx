@@ -341,7 +341,7 @@ export default function PagamentosAdmin() {
 
   return (
     <div className="flex-1 flex flex-col p-4 md:p-8 overflow-hidden h-full max-w-[1200px] mx-auto w-full">
-      <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 shrink-0 gap-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4 w-full max-w-full">
         <div className="flex items-center gap-3">
           <div className="p-3 bg-primary/10 rounded-xl shrink-0">
             <Wallet className="w-6 h-6 text-primary" />
@@ -363,7 +363,7 @@ export default function PagamentosAdmin() {
               setBulkMonthYear(monthYearFilter !== 'all' ? monthYearFilter : '')
               setBulkAction('unarchive')
             }}
-            className="bg-slate-50 hover:bg-slate-100 dark:bg-slate-900 dark:hover:bg-slate-800 flex-1 min-w-[140px] sm:flex-none justify-center px-2"
+            className="bg-slate-50 hover:bg-slate-100 dark:bg-slate-900 dark:hover:bg-slate-800 flex-1 min-w-[120px] sm:min-w-[140px] sm:flex-none justify-center px-2"
           >
             <RotateCcw className="w-4 h-4 sm:mr-2 mr-1 shrink-0 text-slate-500" />
             <span className="hidden sm:inline">Voltar para Ativo</span>
@@ -375,7 +375,7 @@ export default function PagamentosAdmin() {
               setBulkMonthYear(monthYearFilter !== 'all' ? monthYearFilter : '')
               setBulkAction('archive')
             }}
-            className="bg-slate-50 hover:bg-slate-100 dark:bg-slate-900 dark:hover:bg-slate-800 flex-1 min-w-[140px] sm:flex-none justify-center px-2"
+            className="bg-slate-50 hover:bg-slate-100 dark:bg-slate-900 dark:hover:bg-slate-800 flex-1 min-w-[120px] sm:min-w-[140px] sm:flex-none justify-center px-2"
           >
             <Archive className="w-4 h-4 sm:mr-2 mr-1 shrink-0 text-slate-500" />
             <span className="hidden sm:inline">Arquivar no Histórico</span>
@@ -387,7 +387,7 @@ export default function PagamentosAdmin() {
               setBulkMonthYear(monthYearFilter !== 'all' ? monthYearFilter : '')
               setBulkAction('delete')
             }}
-            className="flex-1 min-w-[140px] sm:flex-none justify-center px-2"
+            className="flex-1 min-w-[120px] sm:min-w-[140px] sm:flex-none justify-center px-2"
           >
             <Trash2 className="w-4 h-4 sm:mr-2 mr-1 shrink-0" />
             <span className="hidden sm:inline">Excluir Tudo</span>
@@ -395,7 +395,7 @@ export default function PagamentosAdmin() {
           </Button>
           <Button
             onClick={() => setIsModalOpen(true)}
-            className="gap-1 sm:gap-2 flex-1 min-w-[140px] sm:flex-none justify-center px-2"
+            className="gap-1 sm:gap-2 flex-1 min-w-[120px] sm:min-w-[140px] sm:flex-none justify-center px-2"
           >
             <Plus className="w-4 h-4 shrink-0" />
             <span className="hidden sm:inline">Novo Pagamento</span>
@@ -407,7 +407,7 @@ export default function PagamentosAdmin() {
       <AdminPaymentsFilterContext.Provider
         value={{ status: statusFilter, search: searchTerm, dueDateFilter, monthYearFilter }}
       >
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6 shrink-0">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6 w-full max-w-full">
           <Card
             className={cn(
               'cursor-pointer transition-all border-l-4 overflow-hidden shadow-sm',
@@ -418,15 +418,17 @@ export default function PagamentosAdmin() {
             onClick={() => setDueDateFilter((f) => (f === 'today' ? 'all' : 'today'))}
           >
             <div className="p-4 flex items-center justify-between">
-              <div>
-                <p className="text-sm font-semibold text-slate-500 dark:text-slate-400 mb-1">
+              <div className="min-w-0 flex-1 pr-2">
+                <p className="text-sm font-semibold text-slate-500 dark:text-slate-400 mb-1 truncate whitespace-normal leading-tight">
                   Vencendo Hoje / Atrasado
                 </p>
-                <div className="flex items-end gap-2">
-                  <span className="text-3xl font-bold text-red-600 dark:text-red-500">
+                <div className="flex items-baseline gap-2 flex-wrap">
+                  <span className="text-3xl font-bold text-red-600 dark:text-red-500 leading-none">
                     {todayCount}
                   </span>
-                  <span className="text-sm text-slate-400 mb-1 font-medium">pagamentos</span>
+                  <span className="text-sm text-slate-400 font-medium leading-none">
+                    pagamentos
+                  </span>
                 </div>
               </div>
               <div
@@ -452,15 +454,17 @@ export default function PagamentosAdmin() {
             onClick={() => setDueDateFilter((f) => (f === 'tomorrow' ? 'all' : 'tomorrow'))}
           >
             <div className="p-4 flex items-center justify-between">
-              <div>
-                <p className="text-sm font-semibold text-slate-500 dark:text-slate-400 mb-1">
+              <div className="min-w-0 flex-1 pr-2">
+                <p className="text-sm font-semibold text-slate-500 dark:text-slate-400 mb-1 truncate whitespace-normal leading-tight">
                   Vencendo em 1 dia
                 </p>
-                <div className="flex items-end gap-2">
-                  <span className="text-3xl font-bold text-amber-600 dark:text-amber-500">
+                <div className="flex items-baseline gap-2 flex-wrap">
+                  <span className="text-3xl font-bold text-amber-600 dark:text-amber-500 leading-none">
                     {tomorrowCount}
                   </span>
-                  <span className="text-sm text-slate-400 mb-1 font-medium">pagamentos</span>
+                  <span className="text-sm text-slate-400 font-medium leading-none">
+                    pagamentos
+                  </span>
                 </div>
               </div>
               <div

@@ -787,8 +787,8 @@ export default function FolhaPagamento() {
 
   return (
     <>
-      <div className="space-y-4 print:hidden">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+      <div className="space-y-4 print:hidden w-full max-w-full overflow-x-hidden">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 w-full">
           <div>
             <h2 className="text-2xl font-medium tracking-tight text-slate-800 dark:text-slate-100 flex items-center gap-2">
               <Banknote className="w-6 h-6 text-primary" />
@@ -812,7 +812,7 @@ export default function FolhaPagamento() {
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-4 bg-white/50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800 flex-wrap sm:items-end">
+        <div className="flex flex-col sm:flex-row gap-4 bg-white/50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800 flex-wrap sm:items-end w-full">
           {loading && draftPayrolls.length === 0 ? (
             <>
               <div className="w-full sm:flex-1 sm:min-w-[150px] space-y-2">
@@ -899,7 +899,7 @@ export default function FolhaPagamento() {
           )}
         </div>
 
-        <div className="border border-slate-100 rounded-2xl bg-white/50 backdrop-blur-sm shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] dark:bg-slate-900/50 dark:border-slate-800 overflow-hidden">
+        <div className="border border-slate-100 rounded-2xl bg-white/50 backdrop-blur-sm shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] dark:bg-slate-900/50 dark:border-slate-800 overflow-hidden w-full max-w-full overflow-x-auto">
           <Table>
             <TableHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b-slate-100 dark:border-b-slate-800">
               <TableRow>
@@ -1031,7 +1031,7 @@ export default function FolhaPagamento() {
           </Table>
         </div>
 
-        <div className="bg-white/50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 p-4 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] print:hidden">
+        <div className="w-full max-w-full bg-white/50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 p-4 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] print:hidden">
           <div className="flex items-center gap-3 w-full sm:w-auto">
             <div className="bg-primary/10 p-2 rounded-lg shrink-0">
               <Banknote className="w-5 h-5 text-primary" />
