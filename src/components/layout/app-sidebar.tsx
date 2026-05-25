@@ -18,6 +18,7 @@ import {
   Wallet,
   HeartHandshake,
   BookOpen,
+  CircleDollarSign,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -46,6 +47,12 @@ const navigation = [
   { name: 'Usuários', href: '/usuarios', icon: UserCog, adminOnly: true },
   { name: 'Folha de Pagamento', href: '/folha-pagamento', icon: Banknote, adminOnly: true },
   { name: 'Pag. Admin', href: '/pagamentos-admin', icon: Wallet, adminOnly: true },
+  {
+    name: 'Finanças Fácil',
+    href: 'https://megafllexfinancas.com.br/',
+    icon: CircleDollarSign,
+    external: true,
+  },
   { name: 'Arquivo', href: '/arquivo', icon: Archive, adminOnly: true },
   { name: 'Relatório', href: '/relatorio', icon: FileBarChart },
   { name: 'Saúde Financeira', href: '/saude-financeira', icon: HeartHandshake },
@@ -180,25 +187,37 @@ export function AppSidebar() {
                       onClick={() => isMobile && setOpenMobile(false)}
                       className="data-[active=true]:bg-primary/10 data-[active=true]:text-primary data-[active=true]:font-medium transition-all text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-800"
                     >
-                      <Link to={item.href} className="flex items-center w-full">
-                        <item.icon className="w-4 h-4 mr-2" />
-                        <span>{item.name}</span>
-                        {item.name === 'Pag. Admin' && pendingAdminPaymentsCount > 0 && (
-                          <span
-                            className={cn(
-                              'ml-auto flex items-center justify-center text-white text-[10px] font-bold min-w-[20px] h-5 px-1 rounded-full shadow-sm animate-pulse',
-                              hasOverdueAdminPayments ? 'bg-orange-500' : 'bg-amber-500',
-                            )}
-                          >
-                            {pendingAdminPaymentsCount > 99 ? '99+' : pendingAdminPaymentsCount}
-                          </span>
-                        )}
-                        {item.name === 'Clientes' && clientAlertsCount > 0 && (
-                          <span className="ml-auto flex items-center justify-center bg-orange-500 text-white text-[10px] font-bold min-w-5 px-1 h-5 rounded-full shadow-sm">
-                            {clientAlertsCount > 99 ? '99+' : clientAlertsCount}
-                          </span>
-                        )}
-                      </Link>
+                      {item.external ? (
+                        <a
+                          href={item.href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center w-full"
+                        >
+                          <item.icon className="w-4 h-4 mr-2" />
+                          <span>{item.name}</span>
+                        </a>
+                      ) : (
+                        <Link to={item.href} className="flex items-center w-full">
+                          <item.icon className="w-4 h-4 mr-2" />
+                          <span>{item.name}</span>
+                          {item.name === 'Pag. Admin' && pendingAdminPaymentsCount > 0 && (
+                            <span
+                              className={cn(
+                                'ml-auto flex items-center justify-center text-white text-[10px] font-bold min-w-[20px] h-5 px-1 rounded-full shadow-sm animate-pulse',
+                                hasOverdueAdminPayments ? 'bg-orange-500' : 'bg-amber-500',
+                              )}
+                            >
+                              {pendingAdminPaymentsCount > 99 ? '99+' : pendingAdminPaymentsCount}
+                            </span>
+                          )}
+                          {item.name === 'Clientes' && clientAlertsCount > 0 && (
+                            <span className="ml-auto flex items-center justify-center bg-orange-500 text-white text-[10px] font-bold min-w-5 px-1 h-5 rounded-full shadow-sm">
+                              {clientAlertsCount > 99 ? '99+' : clientAlertsCount}
+                            </span>
+                          )}
+                        </Link>
+                      )}
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 )
