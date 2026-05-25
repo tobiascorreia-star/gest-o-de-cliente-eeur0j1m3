@@ -10,6 +10,7 @@ import logoUrl from '@/assets/generatedimage_1777858728629-bed4a.png'
 import { toast } from '@/hooks/use-toast'
 import { ModeToggle } from '@/components/mode-toggle'
 import pb from '@/lib/pocketbase/client'
+import { APP_VERSION } from '@/constants/version'
 
 export default function Login() {
   const { signIn } = useAuth()
@@ -142,8 +143,11 @@ export default function Login() {
         </form>
       </div>
 
-      <div className="absolute bottom-6 left-0 right-0 text-center z-10">
+      <div className="absolute bottom-6 left-0 right-0 text-center z-10 flex flex-col items-center gap-1">
         <p className="text-xs text-slate-400 dark:text-slate-500">© 2026 - MegaFllex Soluções</p>
+        <p className="text-[10px] text-slate-300 dark:text-slate-600 font-mono tracking-widest">
+          {APP_VERSION}
+        </p>
       </div>
     </div>
   )
