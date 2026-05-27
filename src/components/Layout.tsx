@@ -18,7 +18,7 @@ export default function Layout() {
               </div>
             </div>
             <footer className="w-full py-4 text-center text-xs text-muted-foreground mt-auto font-medium">
-              © 2026 - MegaFllex Soluções • Versão {APP_VERSION}
+              © 2026 - MegaFllex Soluções • {APP_VERSION}
             </footer>
           </main>
         </div>
