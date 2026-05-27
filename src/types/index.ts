@@ -100,6 +100,7 @@ export interface User {
   phone?: string
   active?: boolean
   last_clients_check?: string
+  access_auditoria?: boolean
 }
 
 export interface PasswordResetRequest {

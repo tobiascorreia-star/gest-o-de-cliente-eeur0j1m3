@@ -19,6 +19,7 @@ import {
   HeartHandshake,
   BookOpen,
   CircleDollarSign,
+  FileSearch,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -52,6 +53,13 @@ const navigation = [
     href: 'https://megafllexfinancas.com.br/',
     icon: CircleDollarSign,
     external: true,
+  },
+  {
+    name: 'MegaFllex Auditoria',
+    href: 'https://tobiascorreia-star.github.io/megafllex-auditoria/megafllex_auditoria.html',
+    icon: FileSearch,
+    external: true,
+    requireAuditoria: true,
   },
   { name: 'Arquivo', href: '/arquivo', icon: Archive, adminOnly: true },
   { name: 'Relatório', href: '/relatorio', icon: FileBarChart },
@@ -146,6 +154,7 @@ export function AppSidebar() {
 
   const filteredNavigation = navigation.filter((item) => {
     if (item.adminOnly && user?.role?.toLowerCase() !== 'admin') return false
+    if ((item as any).requireAuditoria && user?.access_auditoria !== true) return false
     return true
   })
 

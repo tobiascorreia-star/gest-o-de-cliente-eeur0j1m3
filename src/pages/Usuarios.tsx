@@ -108,6 +108,7 @@ export default function Usuarios() {
   const [passwordConfirm, setPasswordConfirm] = useState('')
   const [phone, setPhone] = useState('')
   const [active, setActive] = useState(true)
+  const [accessAuditoria, setAccessAuditoria] = useState(false)
   const [role, setRole] = useState<'admin' | 'operator'>('operator')
   const [showPassword, setShowPassword] = useState(false)
   const [showPasswordConfirm, setShowPasswordConfirm] = useState(false)
@@ -130,6 +131,7 @@ export default function Usuarios() {
       setPassword('')
       setPasswordConfirm('')
       setRole((u.role || 'operator').toLowerCase() as 'admin' | 'operator')
+      setAccessAuditoria(u.access_auditoria === true)
       setAvatarPreview(u.avatarUrl || (u.avatar ? pb.files.getURL(u, u.avatar) : null))
       setAvatarFile(null)
       setRemoveAvatar(false)
@@ -143,6 +145,7 @@ export default function Usuarios() {
           setPhone(formatPhone(freshUser.phone || u.phone || ''))
           setActive(freshUser.active !== false)
           setRole((freshUser.role || u.role || 'operator').toLowerCase() as 'admin' | 'operator')
+          setAccessAuditoria(freshUser.access_auditoria === true)
           setAvatarPreview(
             freshUser.avatarUrl ||
               (freshUser.avatar ? pb.files.getURL(freshUser, freshUser.avatar) : null),
@@ -161,6 +164,7 @@ export default function Usuarios() {
       setPassword('')
       setPasswordConfirm('')
       setRole('operator')
+      setAccessAuditoria(false)
       setAvatarPreview(null)
       setAvatarFile(null)
       setRemoveAvatar(false)
@@ -232,6 +236,7 @@ export default function Usuarios() {
       formData.append('role', role)
       formData.append('phone', phone)
       formData.append('active', String(active))
+      formData.append('access_auditoria', String(accessAuditoria))
 
       if (!editingUser) {
         formData.append('setup_completed', 'false')
@@ -645,6 +650,16 @@ export default function Usuarios() {
                   Usuário Ativo
                 </Label>
               </div>
+              <div className="flex items-center space-x-2 pt-2">
+                <Switch
+                  id="access-auditoria"
+                  checked={accessAuditoria}
+                  onCheckedChange={setAccessAuditoria}
+                />
+                <Label htmlFor="access-auditoria" className="cursor-pointer">
+                  Acesso MegaFllex Auditoria
+                </Label>
+              </div>
             </div>
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="outline" onClick={() => setIsOpen(false)} disabled={isSaving}>
@@ -689,9 +704,24 @@ export default function Usuarios() {
                     </Badge>
                   )}
                 </div>
-                <div className="flex justify-between items-center">
+                <div className="flex justify-between items-center border-b border-border/50 pb-2 mb-2">
                   <span className="text-muted-foreground">Perfil</span>
                   <span className="font-medium capitalize">{accessUser?.role || '-'}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">MegaFllex Auditoria</span>
+                  {accessUser?.access_auditoria === true ? (
+                    <Badge
+                      variant="default"
+                      className="bg-emerald-500 hover:bg-emerald-600 border-none"
+                    >
+                      Permitido
+                    </Badge>
+                  ) : (
+                    <Badge variant="secondary" className="border-none">
+                      Bloqueado
+                    </Badge>
+                  )}
                 </div>
               </div>
             </div>

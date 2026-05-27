@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-27T05:11:30.869Z",
+  "generatedAt": "2026-05-27T21:25:20.378Z",
   "collections": [
     {
       "name": "users",
@@ -66,6 +66,12 @@
         {
           "name": "last_clients_check",
           "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "access_auditoria",
+          "type": "bool",
           "required": false,
           "system": false
         }
