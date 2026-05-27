@@ -153,8 +153,9 @@ export function AppSidebar() {
   })
 
   const filteredNavigation = navigation.filter((item) => {
-    if (item.adminOnly && user?.role?.toLowerCase() !== 'admin') return false
-    if ((item as any).requireAuditoria && user?.access_auditoria !== true) return false
+    const isAdmin = user?.role?.toLowerCase() === 'admin'
+    if (item.adminOnly && !isAdmin) return false
+    if ((item as any).requireAuditoria && !isAdmin && user?.access_auditoria !== true) return false
     return true
   })
 
