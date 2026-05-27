@@ -8,6 +8,15 @@ import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import {
   Select,
   SelectContent,
@@ -25,6 +34,9 @@ import {
   HeartHandshake,
   Loader2,
   Info,
+  Eye,
+  EyeOff,
+  Lock,
 } from 'lucide-react'
 
 const rules = [
@@ -61,13 +73,19 @@ const rules = [
 ]
 
 export default function SaudeFinanceira() {
-  const { user } = useAuth()
+  const { user, signIn } = useAuth()
   const [filterMonth, setFilterMonth] = useState('')
   const [availableMonths, setAvailableMonths] = useState<{ year: number; month: number }[]>([])
   const [record, setRecord] = useState<any>(null)
   const [loading, setLoading] = useState(false)
 
   const [payrollRecord, setPayrollRecord] = useState<any>(null)
+
+  const [isVisible, setIsVisible] = useState(false)
+  const [showPasswordModal, setShowPasswordModal] = useState(false)
+  const [password, setPassword] = useState('')
+  const [passwordError, setPasswordError] = useState('')
+  const [isVerifying, setIsVerifying] = useState(false)
 
   useEffect(() => {
     if (!user) return
@@ -218,6 +236,38 @@ export default function SaudeFinanceira() {
   const fmtC = (val: number) =>
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val)
 
+  const displayValue = (val: number) => (isVisible ? fmtC(val) : 'R$ ••••')
+
+  const handleToggleVisibility = () => {
+    if (isVisible) {
+      setIsVisible(false)
+    } else {
+      setPassword('')
+      setPasswordError('')
+      setShowPasswordModal(true)
+    }
+  }
+
+  const handleVerifyPassword = async (e?: React.FormEvent) => {
+    e?.preventDefault()
+    if (!password.trim()) {
+      setPasswordError('Digite sua senha')
+      return
+    }
+    setIsVerifying(true)
+    setPasswordError('')
+
+    const res = await signIn(user?.email || '', password)
+    if (res.error) {
+      setPasswordError('Senha incorreta. Tente novamente.')
+    } else {
+      setIsVisible(true)
+      setShowPasswordModal(false)
+    }
+
+    setIsVerifying(false)
+  }
+
   let isClosed = payrollRecord?.closed || payrollRecord?.status === 'pago'
 
   if (filterMonth) {
@@ -235,6 +285,43 @@ export default function SaudeFinanceira() {
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
+      <Dialog open={showPasswordModal} onOpenChange={setShowPasswordModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmar Senha</DialogTitle>
+            <DialogDescription>
+              Para visualizar os valores, por favor, insira sua senha de acesso.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleVerifyPassword} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="password">Senha</Label>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => {
+                  setPassword(e.target.value)
+                  setPasswordError('')
+                }}
+                placeholder="Sua senha..."
+                autoFocus
+              />
+              {passwordError && <p className="text-sm font-medium text-red-500">{passwordError}</p>}
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setShowPasswordModal(false)}>
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={isVerifying}>
+                {isVerifying && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Confirmar
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
       <Alert className="bg-primary/5 border-primary/20 text-primary-foreground dark:bg-primary/10 dark:text-primary-foreground">
         <HeartHandshake className="w-5 h-5 text-primary" />
         <AlertTitle className="text-lg font-semibold text-primary">
@@ -245,7 +332,7 @@ export default function SaudeFinanceira() {
         </AlertDescription>
       </Alert>
 
-      <div className="flex flex-col sm:flex-row sm:items-center gap-4 bg-white/50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white/50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
         <div className="space-y-2">
           <Label>Selecione o Mês</Label>
           <div className="flex items-center gap-4">
@@ -303,6 +390,24 @@ export default function SaudeFinanceira() {
             ) : null}
           </div>
         </div>
+
+        <Button
+          variant={isVisible ? 'secondary' : 'default'}
+          onClick={handleToggleVisibility}
+          className="gap-2 shrink-0 sm:ml-auto w-full sm:w-auto"
+        >
+          {isVisible ? (
+            <>
+              <EyeOff className="w-4 h-4" />
+              Ocultar Valores
+            </>
+          ) : (
+            <>
+              <Eye className="w-4 h-4" />
+              Mostrar Valores
+            </>
+          )}
+        </Button>
       </div>
 
       {loading ? (
@@ -339,7 +444,7 @@ export default function SaudeFinanceira() {
                   Total a Receber
                 </p>
                 <p className="text-5xl md:text-6xl font-black text-primary">
-                  {fmtC(record.net_value)}
+                  {displayValue(record.net_value)}
                 </p>
                 <p className="text-sm text-slate-500 mt-4">
                   Sugerimos a seguinte divisão para manter sua saúde financeira em dia.
@@ -391,7 +496,9 @@ export default function SaudeFinanceira() {
                       <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 mb-3">
                         {rule.desc}
                       </p>
-                      <p className={`text-2xl font-bold ${rule.color}`}>{fmtC(calculated)}</p>
+                      <p className={`text-2xl font-bold ${rule.color}`}>
+                        {displayValue(calculated)}
+                      </p>
                     </div>
                   </CardContent>
                 </Card>
