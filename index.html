@@ -9,22 +9,13 @@
     <meta name="theme-color" content="#0f172a" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <link rel="icon" type="image/png" href="/src/assets/logo-transparent-04707.png" />
-    <link
-      rel="icon"
-      type="image/png"
-      sizes="192x192"
-      href="/src/assets/logo-transparent-04707.png"
-    />
-    <link
-      rel="icon"
-      type="image/png"
-      sizes="512x512"
-      href="/src/assets/logo-transparent-04707.png"
-    />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/svg+xml" sizes="16x16" href="/favicon.svg" />
+    <link rel="icon" type="image/svg+xml" sizes="32x32" href="/favicon.svg" />
+    <link rel="icon" type="image/svg+xml" sizes="192x192" href="/favicon.svg" />
+    <link rel="icon" type="image/svg+xml" sizes="512x512" href="/favicon.svg" />
     <link rel="manifest" id="manifest-link" />
-    <link rel="apple-touch-icon" sizes="192x192" href="/src/assets/logo-transparent-04707.png" />
-    <link rel="apple-touch-icon" sizes="512x512" href="/src/assets/logo-transparent-04707.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/favicon.svg" />
     <meta property="og:image" content="/og-image.png" />
     <meta property="og:title" content="GestãoFllex - MegaFllex" />
     <meta property="og:description" content="GestãoFllex - MegaFllex" />
@@ -36,7 +27,6 @@
     <script src="https://goskip.dev/skip.js"></script>
 
     <script type="module">
-      import logoUrl from "/src/assets/logo-transparent-04707.png";
       const manifest = {
         name: "GestãoFllex",
         short_name: "GestãoFllex",
@@ -46,15 +36,21 @@
         theme_color: "#0f172a",
         icons: [
           {
-            src: logoUrl,
-            sizes: "192x192",
-            type: "image/png",
+            src: "/favicon.svg",
+            sizes: "any",
+            type: "image/svg+xml",
             purpose: "any maskable",
           },
           {
-            src: logoUrl,
+            src: "/favicon.svg",
+            sizes: "192x192",
+            type: "image/svg+xml",
+            purpose: "any maskable",
+          },
+          {
+            src: "/favicon.svg",
             sizes: "512x512",
-            type: "image/png",
+            type: "image/svg+xml",
             purpose: "any maskable",
           },
         ],
