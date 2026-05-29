@@ -183,17 +183,30 @@ export default function PagamentosAdmin() {
       if (dueDateFilter === 'today') {
         matchesDueDate = false
         if (!p.status && p.data_notificacao) {
-          const notifDateStr = p.data_notificacao.replace(' ', 'T')
-          if (isTodayBusiness(notifDateStr) || isOverdueBusiness(notifDateStr)) {
-            matchesDueDate = true
+          try {
+            const notifDateStr = p.data_notificacao.replace(' ', 'T')
+            const d = new Date(notifDateStr)
+            if (
+              !isNaN(d.getTime()) &&
+              (isTodayBusiness(notifDateStr) || isOverdueBusiness(notifDateStr))
+            ) {
+              matchesDueDate = true
+            }
+          } catch {
+            // Ignore invalid date
           }
         }
       } else if (dueDateFilter === 'tomorrow') {
         matchesDueDate = false
         if (!p.status && p.data_notificacao) {
-          const notifDateStr = p.data_notificacao.replace(' ', 'T')
-          if (isTomorrowBusiness(notifDateStr)) {
-            matchesDueDate = true
+          try {
+            const notifDateStr = p.data_notificacao.replace(' ', 'T')
+            const d = new Date(notifDateStr)
+            if (!isNaN(d.getTime()) && isTomorrowBusiness(notifDateStr)) {
+              matchesDueDate = true
+            }
+          } catch {
+            // Ignore invalid date
           }
         }
       }
@@ -241,18 +254,24 @@ export default function PagamentosAdmin() {
     })
 
     active.sort((a, b) => {
-      const aHasOverdue = a.items.some(
-        (i) =>
-          !i.status &&
-          i.data_notificacao &&
-          isOverdueBusiness(new Date(i.data_notificacao.split(' ')[0] + 'T00:00:00')),
-      )
-      const bHasOverdue = b.items.some(
-        (i) =>
-          !i.status &&
-          i.data_notificacao &&
-          isOverdueBusiness(new Date(i.data_notificacao.split(' ')[0] + 'T00:00:00')),
-      )
+      const aHasOverdue = a.items.some((i) => {
+        if (i.status || !i.data_notificacao) return false
+        try {
+          const d = new Date(i.data_notificacao.split(' ')[0] + 'T00:00:00')
+          return !isNaN(d.getTime()) && isOverdueBusiness(d)
+        } catch {
+          return false
+        }
+      })
+      const bHasOverdue = b.items.some((i) => {
+        if (i.status || !i.data_notificacao) return false
+        try {
+          const d = new Date(i.data_notificacao.split(' ')[0] + 'T00:00:00')
+          return !isNaN(d.getTime()) && isOverdueBusiness(d)
+        } catch {
+          return false
+        }
+      })
 
       if (aHasOverdue && !bHasOverdue) return -1
       if (!aHasOverdue && bHasOverdue) return 1
@@ -273,9 +292,16 @@ export default function PagamentosAdmin() {
 
     payments.forEach((p) => {
       if (!p.archived && !p.status && p.data_notificacao) {
-        const notifDateStr = p.data_notificacao.replace(' ', 'T')
-        if (isTodayBusiness(notifDateStr) || isOverdueBusiness(notifDateStr)) today++
-        else if (isTomorrowBusiness(notifDateStr)) tomorrow++
+        try {
+          const notifDateStr = p.data_notificacao.replace(' ', 'T')
+          const d = new Date(notifDateStr)
+          if (!isNaN(d.getTime())) {
+            if (isTodayBusiness(notifDateStr) || isOverdueBusiness(notifDateStr)) today++
+            else if (isTomorrowBusiness(notifDateStr)) tomorrow++
+          }
+        } catch {
+          // Ignore invalid dates
+        }
       }
     })
 

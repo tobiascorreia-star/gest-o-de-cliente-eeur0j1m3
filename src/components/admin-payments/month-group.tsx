@@ -101,11 +101,16 @@ export function MonthGroup({ mes, ano, items, onEditItem, onAddForOwner }: Props
         const getPriority = (item: AdminPayment) => {
           if (item.status) return 4 // Paid
           if (item.data_notificacao) {
-            const notifDate = startOfDay(
-              new Date(item.data_notificacao.replace(' ', 'T')),
-            ).getTime()
-            if (notifDate <= todayTime) return 1 // Overdue
-            if (notifDate === tomorrowTime) return 2 // Upcoming alert (exactly 1 day)
+            try {
+              const d = new Date(item.data_notificacao.replace(' ', 'T'))
+              if (!isNaN(d.getTime())) {
+                const notifDate = startOfDay(d).getTime()
+                if (notifDate <= todayTime) return 1 // Overdue
+                if (notifDate === tomorrowTime) return 2 // Upcoming alert (exactly 1 day)
+              }
+            } catch {
+              // Ignore invalid dates for priority
+            }
           }
           return 3 // Future/Other
         }
@@ -126,18 +131,24 @@ export function MonthGroup({ mes, ano, items, onEditItem, onAddForOwner }: Props
       if (!aAllPaid && bAllPaid) return -1
 
       const todayTime = startOfDay(new Date()).getTime()
-      const aHasOverdue = itemsA.some(
-        (i) =>
-          !i.status &&
-          !!i.data_notificacao &&
-          startOfDay(new Date(i.data_notificacao.replace(' ', 'T'))).getTime() <= todayTime,
-      )
-      const bHasOverdue = itemsB.some(
-        (i) =>
-          !i.status &&
-          !!i.data_notificacao &&
-          startOfDay(new Date(i.data_notificacao.replace(' ', 'T'))).getTime() <= todayTime,
-      )
+      const aHasOverdue = itemsA.some((i) => {
+        if (i.status || !i.data_notificacao) return false
+        try {
+          const d = new Date(i.data_notificacao.replace(' ', 'T'))
+          return !isNaN(d.getTime()) && startOfDay(d).getTime() <= todayTime
+        } catch {
+          return false
+        }
+      })
+      const bHasOverdue = itemsB.some((i) => {
+        if (i.status || !i.data_notificacao) return false
+        try {
+          const d = new Date(i.data_notificacao.replace(' ', 'T'))
+          return !isNaN(d.getTime()) && startOfDay(d).getTime() <= todayTime
+        } catch {
+          return false
+        }
+      })
 
       if (aHasOverdue && !bHasOverdue) return -1
       if (!aHasOverdue && bHasOverdue) return 1

@@ -157,12 +157,21 @@ export function PaymentItem({ item, onEdit }: Props) {
     ? new Date(item.data_notificacao.split(' ')[0] + 'T00:00:00')
     : null
 
-  const isOverdue = !item.status && isOverdueBusiness(notifDate)
-  const isNearDeadline = !item.status && isTomorrowBusiness(notifDate)
-  const isToday =
-    !item.status &&
-    notifDate &&
-    getEffectiveDueDate(notifDate).getTime() === startOfDay(new Date()).getTime()
+  const validNotifDate = notifDate && !isNaN(notifDate.getTime()) ? notifDate : null
+
+  let isOverdue = false
+  let isNearDeadline = false
+  let isToday = false
+
+  if (!item.status && validNotifDate) {
+    try {
+      isOverdue = isOverdueBusiness(validNotifDate)
+      isNearDeadline = isTomorrowBusiness(validNotifDate)
+      isToday = getEffectiveDueDate(validNotifDate).getTime() === startOfDay(new Date()).getTime()
+    } catch {
+      // Ignore calculation errors for invalid dates
+    }
+  }
 
   return (
     <div
@@ -263,10 +272,14 @@ export function PaymentItem({ item, onEdit }: Props) {
                 <span className="inline-flex items-center gap-1 text-[10px] text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10 px-1.5 py-0.5 rounded-full font-medium whitespace-nowrap">
                   <Clock className="w-3 h-3" />
                   Pago em:{' '}
-                  {format(
-                    new Date(item.data_pagamento_realizado.replace(' ', 'T')),
-                    'dd/MM/yyyy HH:mm',
-                  )}
+                  {(() => {
+                    try {
+                      const d = new Date(item.data_pagamento_realizado.replace(' ', 'T'))
+                      return isNaN(d.getTime()) ? 'Data inválida' : format(d, 'dd/MM/yyyy HH:mm')
+                    } catch {
+                      return 'Data inválida'
+                    }
+                  })()}
                 </span>
               )}
             </div>
@@ -289,7 +302,17 @@ export function PaymentItem({ item, onEdit }: Props) {
                   />
                 )}{' '}
                 {item.data_notificacao
-                  ? `Vence: ${format(getEffectiveDueDate(notifDate!), 'dd/MM/yyyy')}`
+                  ? `Vence: ${
+                      validNotifDate
+                        ? (() => {
+                            try {
+                              return format(getEffectiveDueDate(validNotifDate), 'dd/MM/yyyy')
+                            } catch {
+                              return 'Data inválida'
+                            }
+                          })()
+                        : 'Data inválida'
+                    }`
                   : 'Sem vencimento'}
               </span>
               {item.observacao && (
@@ -298,7 +321,8 @@ export function PaymentItem({ item, onEdit }: Props) {
                 </span>
               )}
               <span className="text-slate-500 whitespace-nowrap">
-                • Ref: {item.mes_referencia.toString().padStart(2, '0')}/{item.ano_referencia}
+                • Ref: {item.mes_referencia?.toString().padStart(2, '0') || '00'}/
+                {item.ano_referencia || '0000'}
               </span>
             </div>
           </>
