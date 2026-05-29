@@ -15,6 +15,7 @@ import pb from '@/lib/pocketbase/client'
 import { ProfileDialog } from '../profile-dialog'
 import { ModeToggle } from '@/components/mode-toggle'
 import { NewClientsAlert } from '@/components/new-clients-alert'
+import { PayrollEducationAlert } from '@/components/payroll-education-alert'
 
 export function AppHeader() {
   const { user, signOut } = useAuth()
@@ -32,6 +33,7 @@ export function AppHeader() {
 
       <div className="flex flex-1 items-center justify-end gap-2">
         <ModeToggle />
+        <PayrollEducationAlert />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button className="flex items-center gap-2 outline-none hover:opacity-80 transition-opacity">
