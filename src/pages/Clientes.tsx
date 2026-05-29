@@ -30,13 +30,14 @@ export default function Clientes() {
 
   const loadData = async () => {
     try {
+      const isAdmin = typeof user?.role === 'string' && user.role.toLowerCase() === 'admin'
       const [clientsData, alertData, notificationsData] = await Promise.all([
         getClients(),
         pb
           .collection('alert_settings')
           .getFirstListItem('')
           .catch(() => null),
-        user?.role?.toLowerCase() === 'admin'
+        isAdmin
           ? pb
               .collection('notifications')
               .getFullList({ filter: "type='atraso_cliente' && resolved=false" })
@@ -68,7 +69,8 @@ export default function Clientes() {
   useRealtime(
     'notifications',
     (e) => {
-      if (e.record.type === 'atraso_cliente' && user?.role?.toLowerCase() === 'admin') {
+      const isAdmin = typeof user?.role === 'string' && user.role.toLowerCase() === 'admin'
+      if (e.record.type === 'atraso_cliente' && isAdmin) {
         if (e.action === 'create' || e.action === 'update') {
           if (e.record.resolved) {
             setNotifications((prev) => prev.filter((n) => n.id !== e.record.id))
@@ -84,7 +86,7 @@ export default function Clientes() {
         }
       }
     },
-    user?.role?.toLowerCase() === 'admin',
+    typeof user?.role === 'string' && user.role.toLowerCase() === 'admin',
   )
 
   const filteredClients = useMemo(() => {
@@ -106,7 +108,7 @@ export default function Clientes() {
     }
     if (showOnlyPendingOld) {
       result = result.filter((c) => {
-        const isAdmin = user?.role?.toLowerCase() === 'admin'
+        const isAdmin = typeof user?.role === 'string' && user.role.toLowerCase() === 'admin'
         const { isCritical, isModerate, isOldAdmin } = getClientAlertState(
           c,
           alertSettings,

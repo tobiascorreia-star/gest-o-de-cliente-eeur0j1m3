@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 import { Client } from '@/types'
@@ -53,20 +53,27 @@ const applyCnpjMask = (value: string) => {
     .substring(0, 18)
 }
 
+const getSingleValue = (val: any) => {
+  if (Array.isArray(val)) return val[0] || ''
+  return val || ''
+}
+
 export function ClienteForm({ initialData, onSuccess, onCancel }: ClienteFormProps) {
   const { user } = useAuth()
   const [isFetchingCnpj, setIsFetchingCnpj] = useState(false)
   const [configs, setConfigs] = useState<any[]>([])
   const [isLoadingConfigs, setIsLoadingConfigs] = useState(true)
   const [configsError, setConfigsError] = useState<string | null>(null)
-  const isAdmin = user?.role?.toLowerCase() === 'admin'
+
+  const isAdmin = typeof user?.role === 'string' && user.role.toLowerCase() === 'admin'
+  const userFirstName = typeof user?.name === 'string' ? user.name.split(' ')[0] : ''
 
   const fetchConfigs = async () => {
     try {
       setIsLoadingConfigs(true)
       setConfigsError(null)
       const data = await getConfigurations()
-      setConfigs(data)
+      setConfigs(data || [])
     } catch (error: any) {
       console.error(error)
       setConfigsError(
@@ -90,29 +97,32 @@ export function ClienteForm({ initialData, onSuccess, onCancel }: ClienteFormPro
     fetchConfigs()
   })
 
-  const colaboradores = configs.filter((c) => c.type === 'Colaborador' && c.active !== false)
-  const solicitacoes = configs.filter((c) => c.type === 'Solicitação' && c.active !== false)
-  const statusList = configs.filter((c) => c.type === 'Status' && c.active !== false)
-  const categorias = configs.filter((c) => c.type === 'Categoria' && c.active !== false)
-  const pgtoTipos = configs.filter((c) => c.type === 'Pgto' && c.active !== false)
-
-  const userFirstName = user?.name?.split(' ')[0] || ''
+  const colaboradores = configs.filter((c) => c?.type === 'Colaborador' && c?.active !== false)
+  const solicitacoes = configs.filter((c) => c?.type === 'Solicitação' && c?.active !== false)
+  const statusList = configs.filter((c) => c?.type === 'Status' && c?.active !== false)
+  const categorias = configs.filter((c) => c?.type === 'Categoria' && c?.active !== false)
+  const pgtoTipos = configs.filter((c) => c?.type === 'Pgto' && c?.active !== false)
 
   const {
     register,
     handleSubmit,
     setValue,
-    setError,
     watch,
+    control,
     formState: { errors },
   } = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: initialData
       ? {
           ...initialData,
-          colaborador: initialData.colaborador || '',
+          colaborador: getSingleValue(initialData.colaborador),
           colaborador_responsavel: initialData.colaborador_responsavel || '',
-          colaborador_id: initialData.colaborador_id || '',
+          colaborador_id: getSingleValue(initialData.colaborador_id),
+          solicitacao: getSingleValue(initialData.solicitacao),
+          status: getSingleValue(initialData.status),
+          categoria: getSingleValue(initialData.categoria),
+          pgto: getSingleValue(initialData.pgto),
+          observacoes: initialData.observacoes || '',
         }
       : {
           cnpj: '',
@@ -130,13 +140,8 @@ export function ClienteForm({ initialData, onSuccess, onCancel }: ClienteFormPro
   })
 
   useEffect(() => {
-    register('colaborador')
     register('colaborador_responsavel')
     register('colaborador_id')
-    register('solicitacao')
-    register('status')
-    register('categoria')
-    register('pgto')
   }, [register])
 
   useEffect(() => {
@@ -184,14 +189,17 @@ export function ClienteForm({ initialData, onSuccess, onCancel }: ClienteFormPro
   }
 
   const onSubmit = async (data: FormData) => {
-    const baixaStatus = statusList.find((s) => s.name.toUpperCase() === 'BAIXA')
+    const baixaStatus = statusList.find(
+      (s) => typeof s?.name === 'string' && s.name.toUpperCase() === 'BAIXA',
+    )
     const isBaixa = baixaStatus && data.status === baixaStatus.id
 
     let colaboradorId = data.colaborador || ''
     if (!isAdmin) {
       if (!initialData && userFirstName) {
         const match = colaboradores.find(
-          (c) => c.name.toLowerCase() === userFirstName.toLowerCase(),
+          (c) =>
+            typeof c?.name === 'string' && c.name.toLowerCase() === userFirstName.toLowerCase(),
         )
         if (match) {
           colaboradorId = match.id
@@ -214,7 +222,7 @@ export function ClienteForm({ initialData, onSuccess, onCancel }: ClienteFormPro
           }
         }
       } else if (initialData) {
-        colaboradorId = initialData.colaborador || ''
+        colaboradorId = getSingleValue(initialData.colaborador)
       }
     }
 
@@ -229,7 +237,7 @@ export function ClienteForm({ initialData, onSuccess, onCancel }: ClienteFormPro
       colaborador_id: isAdmin
         ? data.colaborador_id
         : initialData
-          ? initialData.colaborador_id
+          ? getSingleValue(initialData.colaborador_id)
           : user?.id,
       last_modified_by: user?.id,
       pgto: data.pgto || '',
@@ -318,25 +326,31 @@ export function ClienteForm({ initialData, onSuccess, onCancel }: ClienteFormPro
         <div className="space-y-2">
           <Label htmlFor="colaborador_responsavel">Colaborador Responsável *</Label>
           {isAdmin ? (
-            <Select
-              onValueChange={(v) => {
-                setValue('colaborador', v, { shouldValidate: true })
-                const cName = colaboradores.find((c) => c.id === v)?.name || ''
-                setValue('colaborador_responsavel', cName, { shouldValidate: true })
-              }}
-              defaultValue={initialData?.colaborador}
-            >
-              <SelectTrigger className={errors.colaborador ? 'border-destructive' : ''}>
-                <SelectValue placeholder="Selecione um colaborador" />
-              </SelectTrigger>
-              <SelectContent>
-                {colaboradores.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Controller
+              control={control}
+              name="colaborador"
+              render={({ field }) => (
+                <Select
+                  onValueChange={(v) => {
+                    field.onChange(v)
+                    const cName = colaboradores.find((c) => c.id === v)?.name || ''
+                    setValue('colaborador_responsavel', cName, { shouldValidate: true })
+                  }}
+                  value={field.value || undefined}
+                >
+                  <SelectTrigger className={errors.colaborador ? 'border-destructive' : ''}>
+                    <SelectValue placeholder="Selecione um colaborador" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {colaboradores.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.name || 'Sem nome'}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
           ) : (
             <Input
               id="colaborador_responsavel"
@@ -344,7 +358,7 @@ export function ClienteForm({ initialData, onSuccess, onCancel }: ClienteFormPro
                 initialData
                   ? initialData.expand?.colaborador?.name ||
                     initialData.colaborador_responsavel ||
-                    initialData.colaborador ||
+                    getSingleValue(initialData.colaborador) ||
                     ''
                   : userFirstName
               }
@@ -359,21 +373,24 @@ export function ClienteForm({ initialData, onSuccess, onCancel }: ClienteFormPro
 
         <div className="space-y-2">
           <Label>Solicitação *</Label>
-          <Select
-            onValueChange={(v) => setValue('solicitacao', v, { shouldValidate: true })}
-            defaultValue={initialData?.solicitacao}
-          >
-            <SelectTrigger className={errors.solicitacao ? 'border-destructive' : ''}>
-              <SelectValue placeholder="Selecione" />
-            </SelectTrigger>
-            <SelectContent>
-              {solicitacoes.map((s) => (
-                <SelectItem key={s.id} value={s.id}>
-                  {s.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Controller
+            control={control}
+            name="solicitacao"
+            render={({ field }) => (
+              <Select onValueChange={field.onChange} value={field.value || undefined}>
+                <SelectTrigger className={errors.solicitacao ? 'border-destructive' : ''}>
+                  <SelectValue placeholder="Selecione" />
+                </SelectTrigger>
+                <SelectContent>
+                  {solicitacoes.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>
+                      {s.name || 'Sem nome'}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          />
           {errors.solicitacao && (
             <p className="text-xs text-destructive">{errors.solicitacao.message}</p>
           )}
@@ -381,43 +398,53 @@ export function ClienteForm({ initialData, onSuccess, onCancel }: ClienteFormPro
 
         <div className="space-y-2">
           <Label>Status *</Label>
-          <Select
-            onValueChange={(v) => setValue('status', v, { shouldValidate: true })}
-            defaultValue={initialData?.status}
-          >
-            <SelectTrigger className={errors.status ? 'border-destructive' : ''}>
-              <SelectValue placeholder="Selecione" />
-            </SelectTrigger>
-            <SelectContent>
-              {statusList
-                .filter((s) => isAdmin || s.name.toUpperCase() !== 'BAIXA')
-                .map((s) => (
-                  <SelectItem key={s.id} value={s.id}>
-                    {s.name}
-                  </SelectItem>
-                ))}
-            </SelectContent>
-          </Select>
+          <Controller
+            control={control}
+            name="status"
+            render={({ field }) => (
+              <Select onValueChange={field.onChange} value={field.value || undefined}>
+                <SelectTrigger className={errors.status ? 'border-destructive' : ''}>
+                  <SelectValue placeholder="Selecione" />
+                </SelectTrigger>
+                <SelectContent>
+                  {statusList
+                    .filter(
+                      (s) =>
+                        isAdmin ||
+                        (typeof s?.name === 'string' && s.name.toUpperCase() !== 'BAIXA'),
+                    )
+                    .map((s) => (
+                      <SelectItem key={s.id} value={s.id}>
+                        {s.name || 'Sem nome'}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            )}
+          />
           {errors.status && <p className="text-xs text-destructive">{errors.status.message}</p>}
         </div>
 
         <div className={isAdmin ? 'space-y-2' : 'space-y-2 md:col-span-2'}>
           <Label>Categoria *</Label>
-          <Select
-            onValueChange={(v) => setValue('categoria', v, { shouldValidate: true })}
-            defaultValue={initialData?.categoria}
-          >
-            <SelectTrigger className={errors.categoria ? 'border-destructive' : ''}>
-              <SelectValue placeholder="Selecione" />
-            </SelectTrigger>
-            <SelectContent>
-              {categorias.map((c) => (
-                <SelectItem key={c.id} value={c.id}>
-                  {c.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Controller
+            control={control}
+            name="categoria"
+            render={({ field }) => (
+              <Select onValueChange={field.onChange} value={field.value || undefined}>
+                <SelectTrigger className={errors.categoria ? 'border-destructive' : ''}>
+                  <SelectValue placeholder="Selecione" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categorias.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name || 'Sem nome'}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          />
           {errors.categoria && (
             <p className="text-xs text-destructive">{errors.categoria.message}</p>
           )}
@@ -426,21 +453,24 @@ export function ClienteForm({ initialData, onSuccess, onCancel }: ClienteFormPro
         {isAdmin && (
           <div className="space-y-2">
             <Label>Pgto</Label>
-            <Select
-              onValueChange={(v) => setValue('pgto', v, { shouldValidate: true })}
-              defaultValue={initialData?.pgto}
-            >
-              <SelectTrigger className={errors.pgto ? 'border-destructive' : ''}>
-                <SelectValue placeholder="Selecione o tipo de pagamento" />
-              </SelectTrigger>
-              <SelectContent>
-                {pgtoTipos.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>
-                    {p.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Controller
+              control={control}
+              name="pgto"
+              render={({ field }) => (
+                <Select onValueChange={field.onChange} value={field.value || undefined}>
+                  <SelectTrigger className={errors.pgto ? 'border-destructive' : ''}>
+                    <SelectValue placeholder="Selecione o tipo de pagamento" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {pgtoTipos.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.name || 'Sem nome'}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
             {errors.pgto && <p className="text-xs text-destructive">{errors.pgto.message}</p>}
           </div>
         )}
@@ -461,7 +491,7 @@ export function ClienteForm({ initialData, onSuccess, onCancel }: ClienteFormPro
           <div className="text-xs text-muted-foreground">
             Última modificação por:{' '}
             <span className="font-medium text-foreground">
-              {initialData.expand.last_modified_by.name}
+              {initialData.expand.last_modified_by.name || 'Usuário'}
             </span>{' '}
             em{' '}
             <span className="font-medium text-foreground">
