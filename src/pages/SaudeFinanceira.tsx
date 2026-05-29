@@ -441,7 +441,7 @@ export default function SaudeFinanceira() {
             <Card className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border-primary/20 md:col-span-3">
               <CardContent className="p-8 flex flex-col justify-center h-full">
                 <p className="text-sm font-semibold uppercase tracking-wider text-primary/80 mb-2">
-                  Total a Receber
+                  {record.status === 'Fechado' ? 'Proventos Pagos' : 'Proventos À Pagar'}
                 </p>
                 <p className="text-5xl md:text-6xl font-black text-primary">
                   {displayValue(record.net_value)}

@@ -14,7 +14,12 @@ function MobileTypographyFix() {
       // Aplica utilitários responsivos do tailwind ao invés de atrelar unicamente ao JS width
       const allElements = document.querySelectorAll('*')
       allElements.forEach((el) => {
-        if (el.textContent?.trim().toUpperCase() === 'TOTAL A RECEBER') {
+        const text = el.textContent?.trim().toUpperCase()
+        if (
+          text === 'TOTAL A RECEBER' ||
+          text === 'PROVENTOS PAGOS' ||
+          text === 'PROVENTOS À PAGAR'
+        ) {
           let card = el.parentElement
           while (
             card &&
