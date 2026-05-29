@@ -18,6 +18,7 @@ cronAdd('check_client_delays', '*/15 * * * *', () => {
     let aguardandoAtencaoStatuses = []
     let aguardandoStatuses = []
     let abertoPgtoId = null
+    let aPagarPgtoId = null
 
     for (let c of configs) {
       let type = c.getString('type')
@@ -38,6 +39,9 @@ cronAdd('check_client_delays', '*/15 * * * *', () => {
         if (name === 'ABERTO') {
           abertoPgtoId = c.id
         }
+        if (name === 'A PAGAR') {
+          aPagarPgtoId = c.id
+        }
       }
     }
 
@@ -57,8 +61,12 @@ cronAdd('check_client_delays', '*/15 * * * *', () => {
       const nowMs = now.getTime()
       const updatedMs = updatedDate.getTime()
       const daysSince = Math.floor((nowMs - updatedMs) / (1000 * 60 * 60 * 24))
-      const isMonthTurnover =
-        now.getMonth() !== updatedDate.getMonth() || now.getFullYear() !== updatedDate.getFullYear()
+
+      const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+      const endOfMonthDate = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+      const daysToMonthEnd = Math.round(
+        (endOfMonthDate.getTime() - todayDate.getTime()) / (1000 * 60 * 60 * 24),
+      )
 
       const statusId = client.getString('status')
       const pgtoId = client.getString('pgto')
@@ -66,11 +74,12 @@ cronAdd('check_client_delays', '*/15 * * * *', () => {
       const isAguardandoAtencao = aguardandoAtencaoStatuses.includes(statusId)
       const isAguardando = aguardandoStatuses.includes(statusId)
       const isAberto = pgtoId === abertoPgtoId
+      const isAPagar = pgtoId === aPagarPgtoId
 
       let isDelayed = false
 
-      // Regra 04: Month turnover (only for Aguardando or Atenção)
-      if (isAguardandoAtencao && isMonthTurnover) {
+      // Regra 04: End of month (only for A Pagar) - last 3 days
+      if (isAPagar && daysToMonthEnd <= 3) {
         isDelayed = true
       }
       // Regra 02: Critical days (only for Aguardando or Atenção)

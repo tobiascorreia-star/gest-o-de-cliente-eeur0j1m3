@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import React, { Component, ReactNode, useState, useEffect } from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
@@ -20,6 +20,40 @@ import {
 import { toast } from '@/hooks/use-toast'
 import { Loader2, Search } from 'lucide-react'
 import { format } from 'date-fns'
+
+class FieldErrorBoundary extends Component<
+  { children: ReactNode; fieldName: string },
+  { hasError: boolean }
+> {
+  state = { hasError: false }
+
+  static getDerivedStateFromError() {
+    return { hasError: true }
+  }
+
+  componentDidCatch(error: Error) {
+    console.error(`Field rendering error (${this.props.fieldName}):`, error)
+    import('@/services/audit')
+      .then(({ logAudit }) => {
+        logAudit(
+          'Erro Renderização Campo',
+          `Falha no campo ${this.props.fieldName}: ${error?.message}`,
+        )
+      })
+      .catch(() => {})
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-md text-destructive text-sm mt-1">
+          Erro ao carregar o campo {this.props.fieldName}.
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
 
 const formSchema = z.object({
   cnpj: z.string().min(18, 'CNPJ incompleto').max(18, 'CNPJ incompleto'),
@@ -44,6 +78,7 @@ interface ClienteFormProps {
 }
 
 const applyCnpjMask = (value: string) => {
+  if (!value) return ''
   return value
     .replace(/\D/g, '')
     .replace(/^(\d{2})(\d)/, '$1.$2')
@@ -54,8 +89,8 @@ const applyCnpjMask = (value: string) => {
 }
 
 const getSingleValue = (val: any) => {
-  if (Array.isArray(val)) return val[0] || ''
-  return val || ''
+  if (Array.isArray(val)) return val[0] ?? ''
+  return val ?? ''
 }
 
 export function ClienteForm({ initialData, onSuccess, onCancel }: ClienteFormProps) {
@@ -65,7 +100,7 @@ export function ClienteForm({ initialData, onSuccess, onCancel }: ClienteFormPro
   const [isLoadingConfigs, setIsLoadingConfigs] = useState(true)
   const [configsError, setConfigsError] = useState<string | null>(null)
 
-  const isAdmin = typeof user?.role === 'string' && user.role.toLowerCase() === 'admin'
+  const isAdmin = typeof user?.role === 'string' && user?.role?.toLowerCase() === 'admin'
   const userFirstName = typeof user?.name === 'string' ? user.name.split(' ')[0] : ''
 
   const fetchConfigs = async () => {
@@ -73,7 +108,7 @@ export function ClienteForm({ initialData, onSuccess, onCancel }: ClienteFormPro
       setIsLoadingConfigs(true)
       setConfigsError(null)
       const data = await getConfigurations()
-      setConfigs(data || [])
+      setConfigs(Array.isArray(data) ? data : [])
     } catch (error: any) {
       console.error(error)
       setConfigsError(
@@ -97,11 +132,18 @@ export function ClienteForm({ initialData, onSuccess, onCancel }: ClienteFormPro
     fetchConfigs()
   })
 
-  const colaboradores = configs.filter((c) => c?.type === 'Colaborador' && c?.active !== false)
-  const solicitacoes = configs.filter((c) => c?.type === 'Solicitação' && c?.active !== false)
-  const statusList = configs.filter((c) => c?.type === 'Status' && c?.active !== false)
-  const categorias = configs.filter((c) => c?.type === 'Categoria' && c?.active !== false)
-  const pgtoTipos = configs.filter((c) => c?.type === 'Pgto' && c?.active !== false)
+  const safeConfigs = Array.isArray(configs) ? configs : []
+  const colaboradores = safeConfigs.filter(
+    (c) => c?.id && c?.type === 'Colaborador' && c?.active !== false,
+  )
+  const solicitacoes = safeConfigs.filter(
+    (c) => c?.id && c?.type === 'Solicitação' && c?.active !== false,
+  )
+  const statusList = safeConfigs.filter((c) => c?.id && c?.type === 'Status' && c?.active !== false)
+  const categorias = safeConfigs.filter(
+    (c) => c?.id && c?.type === 'Categoria' && c?.active !== false,
+  )
+  const pgtoTipos = safeConfigs.filter((c) => c?.id && c?.type === 'Pgto' && c?.active !== false)
 
   const {
     register,
@@ -115,14 +157,14 @@ export function ClienteForm({ initialData, onSuccess, onCancel }: ClienteFormPro
     defaultValues: initialData
       ? {
           ...initialData,
-          colaborador: getSingleValue(initialData.colaborador),
-          colaborador_responsavel: initialData.colaborador_responsavel || '',
-          colaborador_id: getSingleValue(initialData.colaborador_id),
-          solicitacao: getSingleValue(initialData.solicitacao),
-          status: getSingleValue(initialData.status),
-          categoria: getSingleValue(initialData.categoria),
-          pgto: getSingleValue(initialData.pgto),
-          observacoes: initialData.observacoes || '',
+          colaborador: getSingleValue(initialData?.colaborador),
+          colaborador_responsavel: initialData?.colaborador_responsavel ?? '',
+          colaborador_id: getSingleValue(initialData?.colaborador_id),
+          solicitacao: getSingleValue(initialData?.solicitacao),
+          status: getSingleValue(initialData?.status),
+          categoria: getSingleValue(initialData?.categoria),
+          pgto: getSingleValue(initialData?.pgto),
+          observacoes: initialData?.observacoes ?? '',
         }
       : {
           cnpj: '',
@@ -130,7 +172,7 @@ export function ClienteForm({ initialData, onSuccess, onCancel }: ClienteFormPro
           nome_cliente: '',
           colaborador: isAdmin ? '' : userFirstName,
           colaborador_responsavel: isAdmin ? '' : userFirstName,
-          colaborador_id: isAdmin ? '' : user?.id || '',
+          colaborador_id: isAdmin ? '' : (user?.id ?? ''),
           solicitacao: '',
           status: '',
           categoria: '',
@@ -222,25 +264,25 @@ export function ClienteForm({ initialData, onSuccess, onCancel }: ClienteFormPro
           }
         }
       } else if (initialData) {
-        colaboradorId = getSingleValue(initialData.colaborador)
+        colaboradorId = getSingleValue(initialData?.colaborador)
       }
     }
 
     const clientData = {
       ...data,
-      colaborador: colaboradorId,
+      colaborador: colaboradorId ?? '',
       colaborador_responsavel: isAdmin
-        ? data.colaborador_responsavel
+        ? (data.colaborador_responsavel ?? '')
         : initialData
-          ? initialData.colaborador_responsavel
+          ? (initialData.colaborador_responsavel ?? userFirstName)
           : userFirstName,
       colaborador_id: isAdmin
-        ? data.colaborador_id
+        ? (data.colaborador_id ?? '')
         : initialData
           ? getSingleValue(initialData.colaborador_id)
-          : user?.id,
-      last_modified_by: user?.id,
-      pgto: data.pgto || '',
+          : (user?.id ?? ''),
+      last_modified_by: user?.id ?? '',
+      pgto: data.pgto ?? '',
       ...(initialData ? {} : { observacao_lida: false, data_leitura_observacao: '' }),
       ...(isBaixa && (!initialData || initialData.status !== baixaStatus.id)
         ? { data_baixa: new Date().toISOString() }
@@ -326,31 +368,47 @@ export function ClienteForm({ initialData, onSuccess, onCancel }: ClienteFormPro
         <div className="space-y-2">
           <Label htmlFor="colaborador_responsavel">Colaborador Responsável *</Label>
           {isAdmin ? (
-            <Controller
-              control={control}
-              name="colaborador"
-              render={({ field }) => (
-                <Select
-                  onValueChange={(v) => {
-                    field.onChange(v)
-                    const cName = colaboradores.find((c) => c.id === v)?.name || ''
-                    setValue('colaborador_responsavel', cName, { shouldValidate: true })
-                  }}
-                  value={field.value || undefined}
-                >
-                  <SelectTrigger className={errors.colaborador ? 'border-destructive' : ''}>
-                    <SelectValue placeholder="Selecione um colaborador" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {colaboradores.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.name || 'Sem nome'}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            />
+            <FieldErrorBoundary fieldName="Colaborador">
+              <Controller
+                control={control}
+                name="colaborador"
+                render={({ field }) => (
+                  <Select
+                    onValueChange={(v) => {
+                      try {
+                        field.onChange(v)
+                        const cName = colaboradores.find((c) => c.id === v)?.name || ''
+                        setValue('colaborador_responsavel', cName, { shouldValidate: true })
+                      } catch (e: any) {
+                        import('@/services/audit')
+                          .then(({ logAudit }) => {
+                            logAudit('Erro onChange', `Falha em Colaborador: ${e?.message}`)
+                          })
+                          .catch(() => {})
+                      }
+                    }}
+                    value={field.value || undefined}
+                  >
+                    <SelectTrigger className={errors.colaborador ? 'border-destructive' : ''}>
+                      <SelectValue placeholder="Selecione um colaborador" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {colaboradores?.length > 0 ? (
+                        colaboradores.map((c) => (
+                          <SelectItem key={c.id} value={c.id}>
+                            {c.name || 'Sem nome'}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem value="empty" disabled>
+                          Nenhum colaborador encontrado
+                        </SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+            </FieldErrorBoundary>
           ) : (
             <Input
               id="colaborador_responsavel"
@@ -373,24 +431,45 @@ export function ClienteForm({ initialData, onSuccess, onCancel }: ClienteFormPro
 
         <div className="space-y-2">
           <Label>Solicitação *</Label>
-          <Controller
-            control={control}
-            name="solicitacao"
-            render={({ field }) => (
-              <Select onValueChange={field.onChange} value={field.value || undefined}>
-                <SelectTrigger className={errors.solicitacao ? 'border-destructive' : ''}>
-                  <SelectValue placeholder="Selecione" />
-                </SelectTrigger>
-                <SelectContent>
-                  {solicitacoes.map((s) => (
-                    <SelectItem key={s.id} value={s.id}>
-                      {s.name || 'Sem nome'}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          />
+          <FieldErrorBoundary fieldName="Solicitação">
+            <Controller
+              control={control}
+              name="solicitacao"
+              render={({ field }) => (
+                <Select
+                  onValueChange={(v) => {
+                    try {
+                      field.onChange(v)
+                    } catch (e: any) {
+                      import('@/services/audit')
+                        .then(({ logAudit }) => {
+                          logAudit('Erro onChange', `Falha em Solicitação: ${e?.message}`)
+                        })
+                        .catch(() => {})
+                    }
+                  }}
+                  value={field.value || undefined}
+                >
+                  <SelectTrigger className={errors.solicitacao ? 'border-destructive' : ''}>
+                    <SelectValue placeholder={isLoadingConfigs ? 'Carregando...' : 'Selecione'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {solicitacoes?.length > 0 ? (
+                      solicitacoes.map((s) => (
+                        <SelectItem key={s.id} value={s.id}>
+                          {s.name || 'Sem nome'}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="empty" disabled>
+                        Nenhuma solicitação encontrada
+                      </SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+          </FieldErrorBoundary>
           {errors.solicitacao && (
             <p className="text-xs text-destructive">{errors.solicitacao.message}</p>
           )}
@@ -398,53 +477,95 @@ export function ClienteForm({ initialData, onSuccess, onCancel }: ClienteFormPro
 
         <div className="space-y-2">
           <Label>Status *</Label>
-          <Controller
-            control={control}
-            name="status"
-            render={({ field }) => (
-              <Select onValueChange={field.onChange} value={field.value || undefined}>
-                <SelectTrigger className={errors.status ? 'border-destructive' : ''}>
-                  <SelectValue placeholder="Selecione" />
-                </SelectTrigger>
-                <SelectContent>
-                  {statusList
-                    .filter(
-                      (s) =>
-                        isAdmin ||
-                        (typeof s?.name === 'string' && s.name.toUpperCase() !== 'BAIXA'),
-                    )
-                    .map((s) => (
-                      <SelectItem key={s.id} value={s.id}>
-                        {s.name || 'Sem nome'}
+          <FieldErrorBoundary fieldName="Status">
+            <Controller
+              control={control}
+              name="status"
+              render={({ field }) => (
+                <Select
+                  onValueChange={(v) => {
+                    try {
+                      field.onChange(v)
+                    } catch (e: any) {
+                      import('@/services/audit')
+                        .then(({ logAudit }) => {
+                          logAudit('Erro onChange', `Falha em Status: ${e?.message}`)
+                        })
+                        .catch(() => {})
+                    }
+                  }}
+                  value={field.value || undefined}
+                >
+                  <SelectTrigger className={errors.status ? 'border-destructive' : ''}>
+                    <SelectValue placeholder={isLoadingConfigs ? 'Carregando...' : 'Selecione'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {statusList?.length > 0 ? (
+                      statusList
+                        .filter(
+                          (s) =>
+                            isAdmin ||
+                            (typeof s?.name === 'string' && s.name.toUpperCase() !== 'BAIXA'),
+                        )
+                        .map((s) => (
+                          <SelectItem key={s.id} value={s.id}>
+                            {s.name || 'Sem nome'}
+                          </SelectItem>
+                        ))
+                    ) : (
+                      <SelectItem value="empty" disabled>
+                        Nenhum status encontrado
                       </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-            )}
-          />
+                    )}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+          </FieldErrorBoundary>
           {errors.status && <p className="text-xs text-destructive">{errors.status.message}</p>}
         </div>
 
         <div className={isAdmin ? 'space-y-2' : 'space-y-2 md:col-span-2'}>
           <Label>Categoria *</Label>
-          <Controller
-            control={control}
-            name="categoria"
-            render={({ field }) => (
-              <Select onValueChange={field.onChange} value={field.value || undefined}>
-                <SelectTrigger className={errors.categoria ? 'border-destructive' : ''}>
-                  <SelectValue placeholder="Selecione" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categorias.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.name || 'Sem nome'}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          />
+          <FieldErrorBoundary fieldName="Categoria">
+            <Controller
+              control={control}
+              name="categoria"
+              render={({ field }) => (
+                <Select
+                  onValueChange={(v) => {
+                    try {
+                      field.onChange(v)
+                    } catch (e: any) {
+                      import('@/services/audit')
+                        .then(({ logAudit }) => {
+                          logAudit('Erro onChange', `Falha em Categoria: ${e?.message}`)
+                        })
+                        .catch(() => {})
+                    }
+                  }}
+                  value={field.value || undefined}
+                >
+                  <SelectTrigger className={errors.categoria ? 'border-destructive' : ''}>
+                    <SelectValue placeholder={isLoadingConfigs ? 'Carregando...' : 'Selecione'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categorias?.length > 0 ? (
+                      categorias.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.name || 'Sem nome'}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="empty" disabled>
+                        Nenhuma categoria encontrada
+                      </SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+          </FieldErrorBoundary>
           {errors.categoria && (
             <p className="text-xs text-destructive">{errors.categoria.message}</p>
           )}
@@ -453,24 +574,49 @@ export function ClienteForm({ initialData, onSuccess, onCancel }: ClienteFormPro
         {isAdmin && (
           <div className="space-y-2">
             <Label>Pgto</Label>
-            <Controller
-              control={control}
-              name="pgto"
-              render={({ field }) => (
-                <Select onValueChange={field.onChange} value={field.value || undefined}>
-                  <SelectTrigger className={errors.pgto ? 'border-destructive' : ''}>
-                    <SelectValue placeholder="Selecione o tipo de pagamento" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {pgtoTipos.map((p) => (
-                      <SelectItem key={p.id} value={p.id}>
-                        {p.name || 'Sem nome'}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            />
+            <FieldErrorBoundary fieldName="Pgto">
+              <Controller
+                control={control}
+                name="pgto"
+                render={({ field }) => (
+                  <Select
+                    onValueChange={(v) => {
+                      try {
+                        field.onChange(v)
+                      } catch (e: any) {
+                        import('@/services/audit')
+                          .then(({ logAudit }) => {
+                            logAudit('Erro onChange', `Falha em Pgto: ${e?.message}`)
+                          })
+                          .catch(() => {})
+                      }
+                    }}
+                    value={field.value || undefined}
+                  >
+                    <SelectTrigger className={errors.pgto ? 'border-destructive' : ''}>
+                      <SelectValue
+                        placeholder={
+                          isLoadingConfigs ? 'Carregando...' : 'Selecione o tipo de pagamento'
+                        }
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {pgtoTipos?.length > 0 ? (
+                        pgtoTipos.map((p) => (
+                          <SelectItem key={p.id} value={p.id}>
+                            {p.name || 'Sem nome'}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem value="empty" disabled>
+                          Nenhum tipo de pagamento encontrado
+                        </SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+            </FieldErrorBoundary>
             {errors.pgto && <p className="text-xs text-destructive">{errors.pgto.message}</p>}
           </div>
         )}
@@ -495,7 +641,7 @@ export function ClienteForm({ initialData, onSuccess, onCancel }: ClienteFormPro
             </span>{' '}
             em{' '}
             <span className="font-medium text-foreground">
-              {format(new Date(initialData.updated), 'dd/MM/yyyy HH:mm')}
+              {format(new Date(initialData.updated || new Date()), 'dd/MM/yyyy HH:mm')}
             </span>
           </div>
         ) : (

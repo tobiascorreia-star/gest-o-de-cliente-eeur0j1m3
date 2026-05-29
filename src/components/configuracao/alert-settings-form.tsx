@@ -151,12 +151,12 @@ export function AlertSettingsForm() {
                 Destacar como crítica (Regra 04)
               </label>
               <span className="text-xs text-muted-foreground ml-7">
-                Aplica alerta Crítico (para status "Aguardando" ou "Atenção").
+                Aplicar alerta Crítico 3 dias antes do fim do mês para itens com status 'a pagar'.
               </span>
             </div>
             <div className="w-24 flex justify-center">
               <span className="bg-slate-100 text-slate-500 font-bold py-1 px-3 rounded-md border text-sm">
-                Mês
+                Fim do Mês
               </span>
             </div>
           </div>

@@ -357,7 +357,7 @@ export function ClienteList({
                             variant="destructive"
                             className="h-5 px-1.5 text-[10px] flex gap-1 items-center font-medium print:hidden animate-pulse shadow-sm bg-red-600 hover:bg-red-700"
                           >
-                            <Clock className="w-3 h-3" /> Virada de mês
+                            <AlertTriangle className="w-3 h-3" /> Crítico
                           </Badge>
                         )}
                         {!showAtrasado && !isMonthCritical && isCritical && (
@@ -443,10 +443,7 @@ export function ClienteList({
                             </TooltipTrigger>
                             <TooltipContent>
                               {isMonthCritical ? (
-                                <p>
-                                  Atendimento crítico: virada de mês detectada ({daysSinceUpdated}{' '}
-                                  dias)
-                                </p>
+                                <p>Atendimento crítico: vencimento fim de mês</p>
                               ) : isCritical ? (
                                 <p>Atendimento crítico: pendente há {daysSinceUpdated} dias</p>
                               ) : showOldAdmin ? (
@@ -573,9 +570,7 @@ export function ClienteList({
                         </TooltipTrigger>
                         <TooltipContent>
                           {isMonthCritical ? (
-                            <p>
-                              Atendimento crítico: virada de mês detectada ({daysSinceUpdated} dias)
-                            </p>
+                            <p>Atendimento crítico: vencimento fim de mês</p>
                           ) : isCritical ? (
                             <p>Atendimento crítico: pendente há {daysSinceUpdated} dias</p>
                           ) : showOldAdmin ? (
@@ -609,7 +604,7 @@ export function ClienteList({
                       variant="destructive"
                       className="h-5 px-1.5 text-[10px] flex gap-1 items-center font-medium shadow-sm bg-red-600 hover:bg-red-700"
                     >
-                      <Clock className="w-2.5 h-2.5" /> Virada
+                      <AlertTriangle className="w-2.5 h-2.5" /> Crítico
                     </Badge>
                   )}
                   {!showAtrasado && !isMonthCritical && isCritical && (

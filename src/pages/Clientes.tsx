@@ -30,9 +30,12 @@ export default function Clientes() {
 
   const loadData = async () => {
     try {
-      const isAdmin = typeof user?.role === 'string' && user.role.toLowerCase() === 'admin'
+      const isAdmin = typeof user?.role === 'string' && user?.role?.toLowerCase() === 'admin'
       const [clientsData, alertData, notificationsData] = await Promise.all([
-        getClients(),
+        getClients().catch((err) => {
+          console.error('Error fetching clients', err)
+          return []
+        }),
         pb
           .collection('alert_settings')
           .getFirstListItem('')
@@ -44,9 +47,9 @@ export default function Clientes() {
               .catch(() => [])
           : Promise.resolve([]),
       ])
-      setClients(clientsData)
+      setClients(Array.isArray(clientsData) ? clientsData : [])
       setAlertSettings(alertData)
-      setNotifications(notificationsData)
+      setNotifications(Array.isArray(notificationsData) ? notificationsData : [])
     } catch (error) {
       console.error(error)
     }
@@ -109,12 +112,12 @@ export default function Clientes() {
     if (showOnlyPendingOld) {
       result = result.filter((c) => {
         const isAdmin = typeof user?.role === 'string' && user.role.toLowerCase() === 'admin'
-        const { isCritical, isModerate, isOldAdmin } = getClientAlertState(
+        const { isCritical, isModerate, isOldAdmin, isMonthCritical } = getClientAlertState(
           c,
           alertSettings,
           isAdmin,
         )
-        return isCritical || isModerate || isOldAdmin
+        return isCritical || isModerate || isOldAdmin || isMonthCritical
       })
     }
     return result
@@ -124,7 +127,7 @@ export default function Clientes() {
 
   const activeClients = useMemo(() => {
     return filteredClients.filter((c) => {
-      const statusName = c.expand?.status?.name?.toUpperCase() || ''
+      const statusName = c?.expand?.status?.name?.toUpperCase() ?? ''
       return statusName !== 'BAIXA'
     })
   }, [filteredClients])
@@ -132,14 +135,16 @@ export default function Clientes() {
   const completedClients = useMemo(() => {
     return filteredClients
       .filter((c) => {
-        const statusName = c.expand?.status?.name?.toUpperCase() || ''
+        const statusName = c?.expand?.status?.name?.toUpperCase() ?? ''
         if (statusName !== 'BAIXA') return false
-        const baixaDate = c.data_baixa ? new Date(c.data_baixa) : new Date(c.updated)
+        const baixaDate = c?.data_baixa
+          ? new Date(c.data_baixa)
+          : new Date(c?.updated || new Date())
         return baixaDate >= thisMonthStart
       })
       .sort((a, b) => {
-        const dateA = a.data_baixa ? new Date(a.data_baixa) : new Date(a.updated)
-        const dateB = b.data_baixa ? new Date(b.data_baixa) : new Date(b.updated)
+        const dateA = a?.data_baixa ? new Date(a.data_baixa) : new Date(a?.updated || new Date())
+        const dateB = b?.data_baixa ? new Date(b.data_baixa) : new Date(b?.updated || new Date())
         return dateB.getTime() - dateA.getTime()
       })
   }, [filteredClients, thisMonthStart])

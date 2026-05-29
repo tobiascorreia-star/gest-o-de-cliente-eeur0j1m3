@@ -117,13 +117,13 @@ export function AlertsWidget() {
                 <span className="relative inline-flex rounded-full h-3 w-3 bg-destructive"></span>
               </span>
               <AlertTriangle className="w-4 h-4" strokeWidth={1.5} />
-              Virada de Mês — Ação Necessária
+              Fim de Mês — Ação Necessária
             </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-sm">
-              Existem <strong>{monthCriticalCount}</strong> atendimento(s) aguardando ou em atenção
-              com virada de mês.
+              Existem <strong>{monthCriticalCount}</strong> pagamento(s) com status 'a pagar'
+              próximos do vencimento (fim do mês).
             </p>
           </CardContent>
         </Card>
