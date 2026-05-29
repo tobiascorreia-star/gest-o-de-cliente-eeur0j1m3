@@ -19,7 +19,8 @@ export function AlertsWidget() {
     if (currentUser?.role?.toLowerCase() === 'admin') {
       pb.collection('notifications')
         .getFullList({
-          filter: "(type = 'password_reset' || type = 'atraso_cliente') && resolved = false",
+          filter:
+            "(type = 'password_reset' || type = 'atraso_cliente' || type ~ 'payroll_education_reminder') && resolved = false",
           sort: '-created',
           expand: 'user,client',
         })
@@ -33,14 +34,20 @@ export function AlertsWidget() {
     (e) => {
       if (
         e.action === 'create' &&
-        (e.record.type === 'password_reset' || e.record.type === 'atraso_cliente') &&
+        (e.record.type === 'password_reset' ||
+          e.record.type === 'atraso_cliente' ||
+          e.record.type.includes('payroll_education_reminder')) &&
         !e.record.resolved
       ) {
         setNotificationsList((prev) => [e.record, ...prev])
       } else if (e.action === 'delete') {
         setNotificationsList((prev) => prev.filter((r) => r.id !== e.record.id))
       } else if (e.action === 'update') {
-        if (e.record.type === 'password_reset' || e.record.type === 'atraso_cliente') {
+        if (
+          e.record.type === 'password_reset' ||
+          e.record.type === 'atraso_cliente' ||
+          e.record.type.includes('payroll_education_reminder')
+        ) {
           if (e.record.resolved) {
             setNotificationsList((prev) => prev.filter((r) => r.id !== e.record.id))
           } else {
@@ -104,6 +111,9 @@ export function AlertsWidget() {
 
   const pendingResets = notificationsList.filter((n) => n.type === 'password_reset')
   const delayedClients = notificationsList.filter((n) => n.type === 'atraso_cliente')
+  const payrollEducationReminders = notificationsList.filter((n) =>
+    n.type.includes('payroll_education_reminder'),
+  )
 
   return (
     <div className="space-y-4 mt-4">
@@ -233,6 +243,57 @@ export function AlertsWidget() {
               {delayedClients.length > 5 && (
                 <p className="text-xs text-center text-muted-foreground pt-2">
                   + {delayedClients.length - 5} outros atrasos não resolvidos.
+                </p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {payrollEducationReminders.length > 0 && (
+        <Card className="border-border/50 shadow-sm border-l-4 border-l-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/20">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-light flex items-center gap-2 text-emerald-700 dark:text-emerald-400">
+              <AlertTriangle className="w-4 h-4" strokeWidth={1.25} />
+              Alertas de Educação Financeira ({payrollEducationReminders.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {payrollEducationReminders.slice(0, 5).map((req) => {
+                const parts = req.type.split('|')
+                const mes = parts[1] || ''
+                const ano = parts[2] || ''
+                const nome = parts[3] || ''
+                return (
+                  <div
+                    key={req.id}
+                    className="flex items-center justify-between bg-background p-3 rounded-lg border shadow-sm"
+                  >
+                    <div>
+                      <p className="font-light text-sm">
+                        Atualizar folha de{' '}
+                        {nome ? <span className="font-medium">{nome}</span> : 'colaborador'}
+                      </p>
+                      <p className="text-[11px] font-light text-muted-foreground mt-0.5">
+                        Referência: {mes}/{ano}
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleResolveNotification(req.id)}
+                      className="gap-2 font-light text-xs hover:bg-emerald-50 hover:text-emerald-600 dark:hover:bg-emerald-950"
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5" strokeWidth={1.25} />
+                      Resolvido
+                    </Button>
+                  </div>
+                )
+              })}
+              {payrollEducationReminders.length > 5 && (
+                <p className="text-xs text-center text-muted-foreground pt-2">
+                  + {payrollEducationReminders.length - 5} outros alertas não resolvidos.
                 </p>
               )}
             </div>

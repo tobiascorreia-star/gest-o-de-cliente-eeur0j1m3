@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label'
 import { Eye, EyeOff, Loader2 } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
 import pb from '@/lib/pocketbase/client'
-import logoUrl from '@/assets/generatedimage_1777858728629-f0591.png'
+import logoUrl from '@/assets/logo-transparent-c2c01.png'
 import { extractFieldErrors } from '@/lib/pocketbase/errors'
 
 export default function Setup() {

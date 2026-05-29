@@ -37,7 +37,7 @@ import { useIsMobile } from '@/hooks/use-mobile'
 import { useSidebar } from '@/components/ui/sidebar'
 import { useAuth } from '@/hooks/use-auth'
 import { APP_VERSION } from '@/constants/version'
-import logoUrl from '@/assets/generatedimage_1777858728629-bed4a.png'
+import logoUrl from '@/assets/logo-transparent-04707.png'
 import { cn, isOverdueBusiness, isTodayBusiness, isTomorrowBusiness } from '@/lib/utils'
 
 const navigation = [
@@ -166,16 +166,16 @@ export function AppSidebar() {
       className="border-r border-slate-100 shadow-sm dark:border-slate-800"
     >
       <SidebarHeader className="border-b border-slate-100 h-14 flex items-center justify-center px-4 bg-slate-50/50 dark:bg-slate-900/50 dark:border-slate-800">
-        <div className="flex items-center gap-2 w-full overflow-hidden">
+        <div className="flex items-center gap-3 w-full overflow-hidden">
           <div className="shrink-0 flex items-center justify-center">
             <img
               src={logoUrl}
               alt="Logo"
-              className="w-7 h-7 object-contain rounded-lg shadow-sm border border-slate-200 dark:border-slate-700"
+              className="w-9 h-9 object-contain drop-shadow-lg transition-transform hover:scale-105"
             />
           </div>
-          <span className="font-medium tracking-wide text-sm truncate group-data-[collapsible=icon]:hidden text-sidebar-foreground">
-            Gestão Cliente
+          <span className="font-semibold tracking-wide text-[15px] truncate group-data-[collapsible=icon]:hidden text-sidebar-foreground">
+            GestãoFllex
           </span>
         </div>
       </SidebarHeader>

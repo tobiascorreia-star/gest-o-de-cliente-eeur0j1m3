@@ -26,6 +26,7 @@ const Index = () => {
   const { clients, statuses, alertSettings, loading } = useDashboard()
   const [showLoginAlert, setShowLoginAlert] = useState(false)
   const [resetRequests, setResetRequests] = useState<any[]>([])
+  const [operatorNotifications, setOperatorNotifications] = useState<any[]>([])
 
   useEffect(() => {
     if (currentUser?.role?.toLowerCase() === 'admin') {
@@ -36,6 +37,14 @@ const Index = () => {
           expand: 'user',
         })
         .then(setResetRequests)
+        .catch(console.error)
+    } else if (currentUser) {
+      pb.collection('notifications')
+        .getFullList({
+          filter: `user = "${currentUser.id}" && resolved = false && (type ~ 'payroll_education' || type ~ 'financial_education')`,
+          sort: '-created',
+        })
+        .then(setOperatorNotifications)
         .catch(console.error)
     }
   }, [currentUser])
@@ -103,6 +112,34 @@ const Index = () => {
               ? prev.map((r) => (r.id === e.record.id ? e.record : r))
               : [e.record, ...prev]
           })
+        }
+      }
+
+      if (currentUser?.role?.toLowerCase() !== 'admin' && e.record.user === currentUser?.id) {
+        if (
+          e.action === 'create' &&
+          !e.record.resolved &&
+          (e.record.type.includes('payroll_education') ||
+            e.record.type.includes('financial_education'))
+        ) {
+          setOperatorNotifications((prev) => [e.record, ...prev])
+        } else if (e.action === 'delete') {
+          setOperatorNotifications((prev) => prev.filter((n) => n.id !== e.record.id))
+        } else if (
+          e.action === 'update' &&
+          (e.record.type.includes('payroll_education') ||
+            e.record.type.includes('financial_education'))
+        ) {
+          if (e.record.resolved) {
+            setOperatorNotifications((prev) => prev.filter((n) => n.id !== e.record.id))
+          } else {
+            setOperatorNotifications((prev) => {
+              const exists = prev.find((n) => n.id === e.record.id)
+              return exists
+                ? prev.map((n) => (n.id === e.record.id ? e.record : n))
+                : [e.record, ...prev]
+            })
+          }
         }
       }
     },
@@ -228,6 +265,36 @@ const Index = () => {
           </DialogHeader>
         </DialogContent>
       </Dialog>
+
+      {currentUser?.role?.toLowerCase() !== 'admin' && operatorNotifications.length > 0 && (
+        <div className="mb-6 space-y-3 animate-fade-in-down">
+          {operatorNotifications.map((notif) => (
+            <Alert
+              key={notif.id}
+              className="bg-emerald-50 text-emerald-900 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-200 dark:border-emerald-900 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+            >
+              <div className="flex items-start gap-3">
+                <BookOpen className="h-5 w-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                <div>
+                  <AlertTitle className="font-semibold m-0 text-emerald-800 dark:text-emerald-300">
+                    Nova Educação Financeira
+                  </AlertTitle>
+                  <AlertDescription className="mt-1 text-emerald-700 dark:text-emerald-400/90 text-sm">
+                    Sua nova folha de pagamento e saúde financeira já estão disponíveis.
+                  </AlertDescription>
+                </div>
+              </div>
+              <Button
+                size="sm"
+                asChild
+                className="shrink-0 bg-emerald-600 hover:bg-emerald-700 text-white dark:bg-emerald-600 dark:hover:bg-emerald-700"
+              >
+                <Link to="/saude-financeira">Acessar Saúde Financeira</Link>
+              </Button>
+            </Alert>
+          ))}
+        </div>
+      )}
 
       {currentUser?.role?.toLowerCase() === 'admin' && pendingResets.length > 0 && (
         <div className="mb-6 bg-[#fdfaf3] border border-amber-200/60 dark:bg-amber-950/20 dark:border-amber-900/50 rounded-xl p-5 animate-fade-in-down shadow-sm">

@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Eye, EyeOff, KeyRound, Mail } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import logoUrl from '@/assets/generatedimage_1777858728629-bed4a.png'
+import logoUrl from '@/assets/logo-transparent-04707.png'
 import { toast } from '@/hooks/use-toast'
 import { ModeToggle } from '@/components/mode-toggle'
 import pb from '@/lib/pocketbase/client'
@@ -52,18 +52,28 @@ export default function Login() {
       <div className="absolute bottom-[-10%] right-[-10%] w-[30rem] h-[30rem] bg-sky-100/50 dark:bg-sky-900/20 rounded-full blur-[100px]" />
 
       <div className="w-full max-w-md bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl border border-slate-100 dark:border-slate-800 p-10 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] z-10 animate-fade-in-up transition-colors">
-        <div className="flex flex-col items-center mb-10">
-          <div className="w-24 h-24 mb-5 flex items-center justify-center">
+        <div className="flex flex-col items-center mb-10 relative">
+          <div className="w-48 h-48 sm:w-56 sm:h-56 mb-4 flex items-center justify-center transition-transform hover:scale-105 duration-700 relative group">
+            {/* Ambient lighting effect behind the logo */}
+            <div className="absolute inset-0 bg-gradient-to-tr from-cyan-400/30 to-purple-500/30 rounded-full blur-[60px] opacity-60 group-hover:opacity-100 transition-opacity duration-700" />
+
+            {/* 3D projection logo */}
             <img
               src={logoUrl}
-              alt="System Logo"
-              className="w-full h-full object-contain rounded-2xl shadow-md border border-slate-200 dark:border-slate-700"
+              alt="GestãoFllex Logo"
+              className="w-full h-full object-contain relative z-10 transform-gpu group-hover:-translate-y-2 transition-transform duration-700"
+              style={{
+                filter:
+                  'drop-shadow(0 35px 35px rgba(0,0,0,0.45)) drop-shadow(0 15px 15px rgba(0,0,0,0.3)) drop-shadow(0 -5px 25px rgba(255,255,255,0.1))',
+              }}
             />
           </div>
-          <h1 className="text-2xl font-medium text-slate-800 dark:text-slate-100 tracking-tight">
-            Gestão Cliente
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent tracking-tight mt-2">
+            GestãoFllex
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Acesso ao sistema</p>
+          <p className="text-slate-500 dark:text-slate-400 text-sm mt-2 font-medium">
+            Acesso ao sistema
+          </p>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-6">

@@ -1,7 +1,6 @@
 import { Users, AlertCircle, CheckCircle2, UserPlus } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useDashboard } from '@/hooks/use-dashboard'
-import { startOfMonth } from 'date-fns'
 import { useAuth } from '@/hooks/use-auth'
 import { getClientAlertState } from '@/lib/utils'
 
@@ -9,7 +8,13 @@ export function KpiCards() {
   const { user } = useAuth()
   const { clients, statuses, alertSettings, loading } = useDashboard()
 
-  const baixaStatusId = statuses.find((s) => s.name?.toLowerCase() === 'baixa')?.id
+  const concludedStatusIds = statuses
+    .filter((s) => {
+      const n = s.name?.toLowerCase()
+      return n === 'baixa' || n === 'concluído' || n === 'concluido'
+    })
+    .map((s) => s.id)
+
   const isAdmin = user?.role?.toLowerCase() === 'admin'
 
   const total = clients.length
@@ -35,18 +40,24 @@ export function KpiCards() {
 
   const pending = criticalCount + moderateCount + monthCriticalCount + (isAdmin ? oldAdminCount : 0)
 
-  const thisMonthStart = startOfMonth(new Date())
+  const now = new Date()
+  const currentMonth = now.getMonth()
+  const currentYear = now.getFullYear()
 
-  const completedThisMonth = clients.filter(
-    (c) => c.status === baixaStatusId && new Date(c.updated) >= thisMonthStart,
-  ).length
+  const completedThisMonth = clients.filter((c) => {
+    if (!concludedStatusIds.includes(c.status)) return false
+    const dateStr = c.data_baixa || c.updated
+    if (!dateStr) return false
+
+    const dateToCheck = new Date(dateStr)
+    return dateToCheck.getMonth() === currentMonth && dateToCheck.getFullYear() === currentYear
+  }).length
 
   const novosCount = clients.filter((c) => {
     const cat = Array.isArray(c.expand?.categoria) ? c.expand.categoria[0] : c.expand?.categoria
     const isNovo = cat?.name?.toLowerCase() === 'novo'
     const created = new Date(c.created)
-    const isThisMonth = created >= thisMonthStart && created <= new Date()
-    return isNovo && isThisMonth
+    return isNovo && created.getMonth() === currentMonth && created.getFullYear() === currentYear
   }).length
 
   const cards = [

@@ -148,7 +148,49 @@ export default function EducacaoFinanceiraAdmin() {
         await pb.collection('financial_education').create(data)
       }
 
-      toast({ title: 'Sucesso', description: 'Dados atualizados com sucesso.' })
+      try {
+        // Resolve operator alerts
+        const alerts = await pb.collection('notifications').getFullList({
+          filter: `user = "${editingUser.id}" && resolved = false && (type ~ "payroll_education" || type ~ "financial_education")`,
+        })
+        for (const alert of alerts) {
+          await pb.collection('notifications').update(alert.id, { resolved: true })
+        }
+
+        // Resolve admin alerts
+        const adminAlerts = await pb.collection('notifications').getFullList({
+          filter: `resolved = false && type ~ "payroll_education_reminder"`,
+        })
+        for (const alert of adminAlerts) {
+          const parts = alert.type.split('|')
+          const alertMonth = parseInt(parts[1] || '0', 10)
+          const alertYear = parseInt(parts[2] || '0', 10)
+          const alertName = parts[3] || ''
+
+          const isSamePeriod = alertMonth === m && alertYear === y
+
+          const normalize = (str: string) => str.trim().toLowerCase()
+          const safeName = editingUser.name ? normalize(editingUser.name) : null
+          const safeEmail = editingUser.email ? normalize(editingUser.email) : null
+          const normalizedAlertName = alertName ? normalize(alertName) : null
+
+          const isSameUser =
+            (normalizedAlertName && safeName && normalizedAlertName === safeName) ||
+            (normalizedAlertName && safeEmail && normalizedAlertName === safeEmail) ||
+            alert.type.includes(editingUser.id)
+
+          if (isSamePeriod && isSameUser) {
+            await pb.collection('notifications').update(alert.id, { resolved: true })
+          }
+        }
+      } catch (err) {
+        console.error('Erro ao resolver alertas:', err)
+      }
+
+      toast({
+        title: 'Sucesso',
+        description: 'Dados atualizados com sucesso e alertas associados resolvidos.',
+      })
       setIsModalOpen(false)
       loadData()
     } catch (err) {
