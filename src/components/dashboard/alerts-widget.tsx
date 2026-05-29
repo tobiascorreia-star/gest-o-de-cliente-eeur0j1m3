@@ -132,7 +132,7 @@ export function AlertsWidget() {
         <Card className="border-border/50 shadow-sm border-l-4 border-l-yellow-500 bg-yellow-50 dark:bg-yellow-950/20">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-light flex items-center gap-2 text-yellow-600 dark:text-yellow-500">
-              <AlertTriangle className="w-4 h-4" strokeWidth={1.5} />À Pagar — Fim de Mês
+              <AlertTriangle className="w-4 h-4" strokeWidth={1.5} />A Pagar — Fim de Mês
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -362,7 +362,7 @@ export function AlertsWidget() {
                               variant="outline"
                               className="font-light text-[10px] border-yellow-500 text-yellow-600 bg-yellow-50 dark:bg-yellow-950 dark:text-yellow-500"
                             >
-                              À Pagar
+                              A Pagar
                             </Badge>
                           )
                         }

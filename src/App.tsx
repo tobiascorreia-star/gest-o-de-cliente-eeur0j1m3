@@ -18,7 +18,7 @@ function MobileTypographyFix() {
         if (
           text === 'TOTAL A RECEBER' ||
           text === 'PROVENTOS PAGOS' ||
-          text === 'PROVENTOS À PAGAR'
+          text === 'PROVENTOS A PAGAR'
         ) {
           let card = el.parentElement
           while (

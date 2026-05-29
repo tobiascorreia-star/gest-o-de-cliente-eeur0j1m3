@@ -377,7 +377,7 @@ export function ClienteList({
                             variant="outline"
                             className="h-5 px-1.5 text-[10px] flex gap-1 items-center font-medium border-yellow-500 text-yellow-600 bg-yellow-50 dark:bg-yellow-950 dark:text-yellow-500 print:hidden animate-pulse shadow-sm"
                           >
-                            <AlertTriangle className="w-3 h-3" /> À Pagar
+                            <AlertTriangle className="w-3 h-3" /> A Pagar
                           </Badge>
                         )}
                         {!showAtrasado && !isMonthCritical && !showWarning && isCritical && (
@@ -652,7 +652,7 @@ export function ClienteList({
                       variant="outline"
                       className="h-5 px-1.5 text-[10px] flex gap-1 items-center font-medium border-yellow-500 text-yellow-600 bg-yellow-50 dark:bg-yellow-950 dark:text-yellow-500 shadow-sm"
                     >
-                      <AlertTriangle className="w-2.5 h-2.5" /> À Pagar
+                      <AlertTriangle className="w-2.5 h-2.5" /> A Pagar
                     </Badge>
                   )}
                   {!showAtrasado && !isMonthCritical && !showWarning && isCritical && (
