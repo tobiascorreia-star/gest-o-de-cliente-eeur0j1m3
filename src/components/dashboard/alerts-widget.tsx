@@ -74,25 +74,24 @@ export function AlertsWidget() {
   let criticalCount = 0
   let oldAdminCount = 0
   let monthCriticalCount = 0
+  let monthWarningCount = 0
 
   const oldClients: any[] = []
   const criticalClients: any[] = []
 
   clients.forEach((c) => {
-    const { isCritical, isModerate, isOldAdmin, isMonthCritical } = getClientAlertState(
-      c,
-      alertSettings,
-      true,
-    )
+    const { isCritical, isModerate, isOldAdmin, isMonthCritical, isMonthWarning } =
+      getClientAlertState(c, alertSettings, true)
 
     if (isMonthCritical) monthCriticalCount++
+    if (isMonthWarning) monthWarningCount++
     if (isCritical) criticalCount++
     if (isModerate) moderateCount++
     if (isOldAdmin) oldAdminCount++
 
     if (isCritical || isMonthCritical) {
       criticalClients.push(c)
-    } else if (isModerate || isOldAdmin) {
+    } else if (isModerate || isOldAdmin || isMonthWarning) {
       oldClients.push(c)
     }
   })
@@ -117,13 +116,29 @@ export function AlertsWidget() {
                 <span className="relative inline-flex rounded-full h-3 w-3 bg-destructive"></span>
               </span>
               <AlertTriangle className="w-4 h-4" strokeWidth={1.5} />
-              Fim de Mês — Ação Necessária
+              Crítico — Pagamento Atrasado do Mês Anterior
             </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-sm">
-              Existem <strong>{monthCriticalCount}</strong> pagamento(s) com status 'a pagar'
-              próximos do vencimento (fim do mês).
+              Existem <strong>{monthCriticalCount}</strong> pagamento(s) com status 'aberto' de
+              meses anteriores.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {monthWarningCount > 0 && (
+        <Card className="border-border/50 shadow-sm border-l-4 border-l-yellow-500 bg-yellow-50 dark:bg-yellow-950/20">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-light flex items-center gap-2 text-yellow-600 dark:text-yellow-500">
+              <AlertTriangle className="w-4 h-4" strokeWidth={1.5} />À Pagar — Fim de Mês
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-yellow-700 dark:text-yellow-400">
+              Existem <strong>{monthWarningCount}</strong> pagamento(s) com status 'aberto' próximos
+              do vencimento (fim do mês).
             </p>
           </CardContent>
         </Card>
@@ -332,16 +347,34 @@ export function AlertsWidget() {
                       </p>
                     </div>
                     <div className="flex items-center gap-3">
-                      <Badge
-                        variant={isCritical ? 'destructive' : 'outline'}
-                        className={cn(
-                          'font-light text-[10px]',
-                          !isCritical &&
-                            'border-amber-500 text-amber-600 bg-amber-50 dark:bg-amber-950 dark:text-amber-500',
-                        )}
-                      >
-                        {isCritical ? 'Crítica' : 'Antiga'}
-                      </Badge>
+                      {(() => {
+                        const state = getClientAlertState(alert, alertSettings, true)
+                        if (state.isMonthCritical || state.isCritical) {
+                          return (
+                            <Badge variant="destructive" className="font-light text-[10px]">
+                              Crítica
+                            </Badge>
+                          )
+                        }
+                        if (state.isMonthWarning) {
+                          return (
+                            <Badge
+                              variant="outline"
+                              className="font-light text-[10px] border-yellow-500 text-yellow-600 bg-yellow-50 dark:bg-yellow-950 dark:text-yellow-500"
+                            >
+                              À Pagar
+                            </Badge>
+                          )
+                        }
+                        return (
+                          <Badge
+                            variant="outline"
+                            className="font-light text-[10px] border-amber-500 text-amber-600 bg-amber-50 dark:bg-amber-950 dark:text-amber-500"
+                          >
+                            Antiga
+                          </Badge>
+                        )
+                      })()}
                     </div>
                   </div>
                 )

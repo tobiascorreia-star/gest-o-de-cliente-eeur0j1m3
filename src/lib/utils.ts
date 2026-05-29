@@ -86,8 +86,14 @@ export function getClientAlertState(client: any, alertSettings: any, isAdmin: bo
     (endOfMonthDate.getTime() - todayDate.getTime()) / (1000 * 60 * 60 * 24),
   )
 
-  // Rule 04: End of month, last 4 days (daysToMonthEnd <= 3 means 0, 1, 2, or 3 days remaining)
-  const isMonthCritical = isAberto && daysToMonthEnd <= 3
+  // Rule 04: End of month and Past month for ABERTO payments
+  const recordDate = updatedStr ? new Date(updatedStr) : new Date()
+  const isPastMonth =
+    now.getFullYear() > recordDate.getFullYear() ||
+    (now.getFullYear() === recordDate.getFullYear() && now.getMonth() > recordDate.getMonth())
+
+  const isMonthCritical = isAberto && isPastMonth
+  const isMonthWarning = isAberto && !isPastMonth && daysToMonthEnd <= 3
 
   // Rule 02: Critical
   const isCritical =
@@ -104,6 +110,7 @@ export function getClientAlertState(client: any, alertSettings: any, isAdmin: bo
     isModerate,
     isOldAdmin,
     isMonthCritical,
+    isMonthWarning,
     daysSinceUpdated,
     daysToMonthEnd,
   }

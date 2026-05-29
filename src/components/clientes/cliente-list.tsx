@@ -312,23 +312,35 @@ export function ClienteList({
                 </TableRow>
               )}
               {clients.map((client) => {
-                const { isCritical, isModerate, isOldAdmin, isMonthCritical, daysSinceUpdated } =
-                  getClientAlertState(client, alertSettings, isAdmin)
+                const {
+                  isCritical,
+                  isModerate,
+                  isOldAdmin,
+                  isMonthCritical,
+                  isMonthWarning,
+                  daysSinceUpdated,
+                } = getClientAlertState(client, alertSettings, isAdmin)
 
                 const showCritical = isCritical || isMonthCritical
+                const showWarning = isMonthWarning
                 const showModerate = isModerate
                 const showOldAdmin = isOldAdmin
                 const showAtrasado = notifications.some((n) => n.client === client.id)
                 const hasUnreadObs = Boolean(client.observacoes && !client.observacao_lida)
                 const hasActiveAlert =
-                  showCritical || showModerate || showOldAdmin || hasUnreadObs || showAtrasado
+                  showCritical ||
+                  showWarning ||
+                  showModerate ||
+                  showOldAdmin ||
+                  hasUnreadObs ||
+                  showAtrasado
 
                 return (
                   <TableRow
                     key={client.id}
                     className={cn(
                       'group transition-colors hover:bg-muted/30 print:break-inside-avoid',
-                      (showModerate || showOldAdmin) &&
+                      (showModerate || showOldAdmin || showWarning) &&
                         !showCritical &&
                         'bg-amber-50/40 hover:bg-amber-50/60 dark:bg-amber-900/10 dark:hover:bg-amber-900/20',
                       showCritical &&
@@ -360,7 +372,15 @@ export function ClienteList({
                             <AlertTriangle className="w-3 h-3" /> Crítico
                           </Badge>
                         )}
-                        {!showAtrasado && !isMonthCritical && isCritical && (
+                        {!showAtrasado && !isMonthCritical && showWarning && (
+                          <Badge
+                            variant="outline"
+                            className="h-5 px-1.5 text-[10px] flex gap-1 items-center font-medium border-yellow-500 text-yellow-600 bg-yellow-50 dark:bg-yellow-950 dark:text-yellow-500 print:hidden animate-pulse shadow-sm"
+                          >
+                            <AlertTriangle className="w-3 h-3" /> À Pagar
+                          </Badge>
+                        )}
+                        {!showAtrasado && !isMonthCritical && !showWarning && isCritical && (
                           <Badge
                             variant="destructive"
                             className="h-5 px-1.5 text-[10px] flex gap-1 items-center font-medium print:hidden animate-pulse shadow-sm"
@@ -427,7 +447,7 @@ export function ClienteList({
                           name={client.expand?.status?.name}
                           color={client.expand?.status?.color}
                         />
-                        {(showModerate || showCritical || showOldAdmin) && (
+                        {(showModerate || showCritical || showOldAdmin || showWarning) && (
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <AlertTriangle
@@ -437,13 +457,17 @@ export function ClienteList({
                                     ? 'text-destructive'
                                     : showOldAdmin
                                       ? 'text-purple-500'
-                                      : 'text-amber-500',
+                                      : showWarning
+                                        ? 'text-yellow-500'
+                                        : 'text-amber-500',
                                 )}
                               />
                             </TooltipTrigger>
                             <TooltipContent>
                               {isMonthCritical ? (
-                                <p>Atendimento crítico: vencimento fim de mês</p>
+                                <p>Atendimento crítico: pagamento em aberto do mês anterior</p>
+                              ) : showWarning ? (
+                                <p>Atenção: pagamento em aberto próximo ao fim do mês</p>
                               ) : isCritical ? (
                                 <p>Atendimento crítico: pendente há {daysSinceUpdated} dias</p>
                               ) : showOldAdmin ? (
@@ -501,23 +525,35 @@ export function ClienteList({
           </div>
         )}
         {clients.map((client) => {
-          const { isCritical, isModerate, isOldAdmin, isMonthCritical, daysSinceUpdated } =
-            getClientAlertState(client, alertSettings, isAdmin)
+          const {
+            isCritical,
+            isModerate,
+            isOldAdmin,
+            isMonthCritical,
+            isMonthWarning,
+            daysSinceUpdated,
+          } = getClientAlertState(client, alertSettings, isAdmin)
 
           const showCritical = isCritical || isMonthCritical
+          const showWarning = isMonthWarning
           const showModerate = isModerate
           const showOldAdmin = isOldAdmin
           const showAtrasado = notifications.some((n) => n.client === client.id)
           const hasUnreadObs = Boolean(client.observacoes && !client.observacao_lida)
           const hasActiveAlert =
-            showCritical || showModerate || showOldAdmin || hasUnreadObs || showAtrasado
+            showCritical ||
+            showWarning ||
+            showModerate ||
+            showOldAdmin ||
+            hasUnreadObs ||
+            showAtrasado
 
           return (
             <Card
               key={client.id}
               className={cn(
                 'w-full max-w-full overflow-hidden rounded-xl shadow-sm transition-colors border',
-                (showModerate || showOldAdmin) &&
+                (showModerate || showOldAdmin || showWarning) &&
                   !showCritical &&
                   'border-amber-200/50 bg-amber-50/40 dark:bg-amber-900/10 dark:border-amber-900/50',
                 showCritical && 'border-destructive/30 bg-destructive/5 dark:bg-destructive/10',
@@ -554,7 +590,7 @@ export function ClienteList({
                       name={client.expand?.status?.name}
                       color={client.expand?.status?.color}
                     />
-                    {(showModerate || showCritical || showOldAdmin) && (
+                    {(showModerate || showCritical || showOldAdmin || showWarning) && (
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <AlertTriangle
@@ -564,13 +600,17 @@ export function ClienteList({
                                 ? 'text-destructive'
                                 : showOldAdmin
                                   ? 'text-purple-500'
-                                  : 'text-amber-500',
+                                  : showWarning
+                                    ? 'text-yellow-500'
+                                    : 'text-amber-500',
                             )}
                           />
                         </TooltipTrigger>
                         <TooltipContent>
                           {isMonthCritical ? (
-                            <p>Atendimento crítico: vencimento fim de mês</p>
+                            <p>Atendimento crítico: pagamento em aberto do mês anterior</p>
+                          ) : showWarning ? (
+                            <p>Atenção: pagamento em aberto próximo ao fim do mês</p>
                           ) : isCritical ? (
                             <p>Atendimento crítico: pendente há {daysSinceUpdated} dias</p>
                           ) : showOldAdmin ? (
@@ -607,7 +647,15 @@ export function ClienteList({
                       <AlertTriangle className="w-2.5 h-2.5" /> Crítico
                     </Badge>
                   )}
-                  {!showAtrasado && !isMonthCritical && isCritical && (
+                  {!showAtrasado && !isMonthCritical && showWarning && (
+                    <Badge
+                      variant="outline"
+                      className="h-5 px-1.5 text-[10px] flex gap-1 items-center font-medium border-yellow-500 text-yellow-600 bg-yellow-50 dark:bg-yellow-950 dark:text-yellow-500 shadow-sm"
+                    >
+                      <AlertTriangle className="w-2.5 h-2.5" /> À Pagar
+                    </Badge>
+                  )}
+                  {!showAtrasado && !isMonthCritical && !showWarning && isCritical && (
                     <Badge
                       variant="destructive"
                       className="h-5 px-1.5 text-[10px] flex gap-1 items-center font-medium shadow-sm"
