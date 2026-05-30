@@ -1,14 +1,13 @@
 onRecordAfterCreateSuccess((e) => {
   try {
-    const adminId = e.requestInfo()?.auth?.id || 'system'
-    const employeeId = e.record.getString('employee')
-    const total = e.record.getFloat('total')
+    const employeeId = e.record.getString('colaborador')
+    const total = e.record.getFloat('total_a_pagar')
     const isManual = e.record.getBool('manual_install_qty')
 
     const auditCol = $app.findCollectionByNameOrId('audit_logs')
     const log = new Record(auditCol)
     log.set('action', 'PAYROLL_CREATED')
-    log.set('user', adminId === 'system' ? '' : adminId)
+    log.set('user', '')
     log.set(
       'details',
       `Folha de pagamento criada. Colaborador: ${employeeId}. Total: R$ ${total}${isManual ? ' (Incentivo Manual)' : ''}`,
@@ -22,9 +21,8 @@ onRecordAfterCreateSuccess((e) => {
 
 onRecordAfterUpdateSuccess((e) => {
   try {
-    const adminId = e.requestInfo()?.auth?.id || 'system'
-    const employeeId = e.record.getString('employee')
-    const total = e.record.getFloat('total')
+    const employeeId = e.record.getString('colaborador')
+    const total = e.record.getFloat('total_a_pagar')
     const isManual = e.record.getBool('manual_install_qty')
 
     const oldClosed = e.record.original().getBool('closed')
@@ -35,14 +33,14 @@ onRecordAfterUpdateSuccess((e) => {
 
     if (!oldClosed && newClosed) {
       log.set('action', 'PAYROLL_CLOSED')
-      log.set('user', adminId === 'system' ? '' : adminId)
+      log.set('user', '')
       log.set(
         'details',
         `Folha de pagamento fechada. Colaborador: ${employeeId}. Total: R$ ${total}${isManual ? ' (Incentivo Manual)' : ''}`,
       )
     } else {
       log.set('action', 'PAYROLL_UPDATED')
-      log.set('user', adminId === 'system' ? '' : adminId)
+      log.set('user', '')
       log.set(
         'details',
         `Folha de pagamento atualizada. Colaborador: ${employeeId}. Novo Total: R$ ${total}${isManual ? ' (Incentivo Manual)' : ''}`,
@@ -57,13 +55,12 @@ onRecordAfterUpdateSuccess((e) => {
 
 onRecordAfterDeleteSuccess((e) => {
   try {
-    const adminId = e.requestInfo()?.auth?.id || 'system'
-    const employeeId = e.record.getString('employee')
+    const employeeId = e.record.getString('colaborador')
 
     const auditCol = $app.findCollectionByNameOrId('audit_logs')
     const log = new Record(auditCol)
     log.set('action', 'PAYROLL_DELETED')
-    log.set('user', adminId === 'system' ? '' : adminId)
+    log.set('user', '')
     log.set('details', `Folha de pagamento excluída. Colaborador: ${employeeId}.`)
     $app.save(log)
   } catch (err) {

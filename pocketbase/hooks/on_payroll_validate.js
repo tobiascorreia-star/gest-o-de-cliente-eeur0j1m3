@@ -1,44 +1,46 @@
 onRecordCreateRequest((e) => {
-  const employee = e.record.getString('employee')
-  const refDate = e.record.getString('reference_date')
+  const colaborador = e.record.getString('colaborador')
+  const mes = e.record.getInt('mes_referencia')
+  const ano = e.record.getInt('ano_referencia')
 
-  if (employee && refDate) {
-    try {
-      const d = new Date(refDate)
-      const y = d.getUTCFullYear()
-      const m = d.getUTCMonth()
-      const startOfMo = new Date(Date.UTC(y, m, 1, 0, 0, 0)).toISOString()
-      const endOfMo = new Date(Date.UTC(y, m + 1, 1, 0, 0, 0)).toISOString()
-
-      const existing = $app.findFirstRecordByFilter(
-        'payroll',
-        `employee = '${employee}' && reference_date >= '${startOfMo}' && reference_date < '${endOfMo}'`,
-      )
-      if (existing) {
-        return e.badRequestError('Já existe um lançamento para este colaborador neste mês.')
-      }
-    } catch (err) {
-      // not found, safe to create
-    }
+  if (!colaborador || !mes || !ano) {
+    throw new BadRequestError('Os campos Colaborador, Mês e Ano são obrigatórios.')
   }
+
+  try {
+    const existing = $app.findFirstRecordByFilter(
+      'payroll',
+      `colaborador = '${colaborador}' && mes_referencia = ${mes} && ano_referencia = ${ano}`,
+    )
+    if (existing) {
+      throw new BadRequestError('Já existe um lançamento para este colaborador neste mês.')
+    }
+  } catch (err) {
+    if (err.name === 'BadRequestError') throw err
+    // If it's a "sql: no rows in result set" error, it's safe to proceed.
+  }
+
   e.next()
 }, 'payroll')
 
 onRecordUpdateRequest((e) => {
   const original = e.record.original()
-  const wasClosed = original.get('closed') === true || original.get('status') === 'Pago'
-  const isClosed = e.record.get('closed') === true || e.record.get('status') === 'Pago'
+  if (original) {
+    const wasClosed = original.getBool('closed') || original.getString('status') === 'pago'
+    const isClosed = e.record.getBool('closed') || e.record.getString('status') === 'pago'
 
-  if (wasClosed && isClosed) {
-    return e.badRequestError('Cannot edit a closed payroll record.')
+    if (wasClosed && isClosed) {
+      throw new BadRequestError('Não é possível editar um lançamento de folha já fechado.')
+    }
   }
+
   e.next()
 }, 'payroll')
 
 onRecordDeleteRequest((e) => {
-  const isClosed = e.record.get('closed') === true || e.record.get('status') === 'Pago'
+  const isClosed = e.record.getBool('closed') || e.record.getString('status') === 'pago'
   if (isClosed) {
-    return e.badRequestError('Cannot delete a closed payroll record.')
+    throw new BadRequestError('Não é possível excluir um lançamento de folha já fechado.')
   }
   e.next()
 }, 'payroll')

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import pb from '@/lib/pocketbase/client'
 import { useAuth } from '@/hooks/use-auth'
 import { useRealtime } from '@/hooks/use-realtime'
@@ -7,6 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import {
@@ -37,7 +39,40 @@ import {
   Eye,
   EyeOff,
   Lock,
+  Edit,
 } from 'lucide-react'
+
+const ObservationText = ({ text, isVisible }: { text?: string; isVisible: boolean }) => {
+  const [expanded, setExpanded] = useState(false)
+
+  if (!isVisible) {
+    return <p className="text-sm text-slate-500 mt-4">••••••••••••••••••••••••</p>
+  }
+
+  if (!text) {
+    return <p className="text-sm text-slate-500 mt-4">Sem observações para este mês</p>
+  }
+
+  const limit = 100
+  const shouldTruncate = text.length > limit
+  const displayText = shouldTruncate && !expanded ? text.slice(0, limit) + '...' : text
+
+  return (
+    <div className="mt-4">
+      <p className="text-sm text-slate-600 dark:text-slate-300 whitespace-pre-wrap">
+        {displayText}
+      </p>
+      {shouldTruncate && (
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="text-xs text-primary font-medium mt-1 hover:underline cursor-pointer transition-colors"
+        >
+          {expanded ? 'Mostrar menos' : 'Leia mais'}
+        </button>
+      )}{' '}
+    </div>
+  )
+}
 
 const rules = [
   {
@@ -74,6 +109,7 @@ const rules = [
 
 export default function SaudeFinanceira() {
   const { user, signIn } = useAuth()
+  const navigate = useNavigate()
   const [filterMonth, setFilterMonth] = useState('')
   const [availableMonths, setAvailableMonths] = useState<{ year: number; month: number }[]>([])
   const [record, setRecord] = useState<any>(null)
@@ -146,13 +182,15 @@ export default function SaudeFinanceira() {
         const [edData, prData] = await Promise.all([
           pb
             .collection('financial_education')
-            .getFirstListItem(`user = "${user.id}" && year = ${y} && month = ${m}`)
+            .getList(1, 1, { filter: `user = "${user.id}" && year = ${y} && month = ${m}` })
+            .then((res) => res.items[0] || null)
             .catch(() => null),
           pb
             .collection('payroll')
-            .getFirstListItem(
-              `colaborador = "${user.id}" && ano_referencia = ${y} && mes_referencia = ${m}`,
-            )
+            .getList(1, 1, {
+              filter: `colaborador = "${user.id}" && ano_referencia = ${y} && mes_referencia = ${m}`,
+            })
+            .then((res) => res.items[0] || null)
             .catch(() => null),
         ])
 
@@ -164,7 +202,9 @@ export default function SaudeFinanceira() {
         if (isMounted) setLoading(false)
       }
     }
+
     loadData()
+
     return () => {
       isMounted = false
     }
@@ -411,8 +451,33 @@ export default function SaudeFinanceira() {
       </div>
 
       {loading ? (
-        <div className="py-20 flex justify-center">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <div className="space-y-6 animate-in fade-in duration-300">
+          <div className="grid md:grid-cols-3 gap-6">
+            <Card className="md:col-span-3 border-none bg-gradient-to-br from-primary/5 via-primary/5 to-transparent">
+              <CardContent className="p-8 flex flex-col justify-center h-[200px] space-y-4">
+                <Skeleton className="h-4 w-32 bg-primary/10" />
+                <Skeleton className="h-14 w-64 bg-primary/10" />
+                <Skeleton className="h-4 w-full max-w-md mt-4 bg-primary/10" />
+              </CardContent>
+            </Card>
+          </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[1, 2, 3].map((i) => (
+              <Card key={i} className="shadow-sm border-slate-100 dark:border-slate-800">
+                <CardContent className="p-5 space-y-4">
+                  <div className="flex items-start justify-between">
+                    <Skeleton className="h-10 w-10 rounded-lg" />
+                    <Skeleton className="h-6 w-12 rounded-full" />
+                  </div>
+                  <div className="space-y-2 mt-4">
+                    <Skeleton className="h-5 w-3/4" />
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-8 w-1/2 mt-2" />
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </div>
       ) : !record ? (
         <Card className="border-dashed shadow-none bg-transparent">
@@ -438,7 +503,20 @@ export default function SaudeFinanceira() {
           )}
 
           <div className="grid md:grid-cols-3 gap-6">
-            <Card className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border-primary/20 md:col-span-3">
+            <Card className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border-primary/20 md:col-span-3 relative">
+              {user?.role?.toLowerCase() === 'admin' && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute top-4 right-4 text-primary/60 hover:text-primary hover:bg-primary/10 transition-colors z-10"
+                  onClick={() =>
+                    navigate(`/folha-pagamento?month=${filterMonth}&user=${user.id}&action=edit`)
+                  }
+                  title="Editar no módulo de Folha"
+                >
+                  <Edit className="w-5 h-5" />
+                </Button>
+              )}
               <CardContent className="p-8 flex flex-col justify-center h-full">
                 <p className="text-sm font-semibold uppercase tracking-wider text-primary/80 mb-2">
                   {record.status === 'Fechado' ? 'Proventos Pagos' : 'Proventos A Pagar'}
@@ -446,9 +524,7 @@ export default function SaudeFinanceira() {
                 <p className="text-5xl md:text-6xl font-black text-primary">
                   {displayValue(record.net_value)}
                 </p>
-                <p className="text-sm text-slate-500 mt-4">
-                  Sugerimos a seguinte divisão para manter sua saúde financeira em dia.
-                </p>
+                <ObservationText text={payrollRecord?.observacoes} isVisible={isVisible} />
               </CardContent>
             </Card>
 

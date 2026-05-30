@@ -72,11 +72,13 @@ const parseCurrencyInput = (val: string): number | null => {
 export default function FolhaPagamento() {
   const [searchParams, setSearchParams] = useSearchParams()
   const initialUserId = searchParams.get('user')
+  const initialMonth = searchParams.get('month')
 
   const [users, setUsers] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
 
   const [filterMonth, setFilterMonth] = useState(() => {
+    if (initialMonth) return initialMonth
     const now = new Date()
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
   })
@@ -210,6 +212,21 @@ export default function FolhaPagamento() {
     }
   }, [filterMonth])
 
+  useEffect(() => {
+    if (!loading && draftPayrolls.length > 0 && searchParams.get('action') === 'edit') {
+      const userToEdit = searchParams.get('user')
+      if (userToEdit) {
+        const record = draftPayrolls.find((p) => p.colaborador === userToEdit)
+        if (record && !isOpen) {
+          openForm(record)
+          const newParams = new URLSearchParams(searchParams)
+          newParams.delete('action')
+          setSearchParams(newParams, { replace: true })
+        }
+      }
+    }
+  }, [loading, draftPayrolls, searchParams, isOpen])
+
   useRealtime('payroll', () => {
     const hasUnsaved = draftPayrolls.some((p) => p._isDraft || p._isModified)
     if (!hasUnsaved) {
@@ -340,6 +357,15 @@ export default function FolhaPagamento() {
     }
 
     const finalIncentivo = manualInstallQty ? (incentivo ?? 0) : (unitValue || 0) * currentQtde
+    if (!filterMonth) {
+      toast({
+        title: 'Erro de Validação',
+        description: 'Mês de referência não selecionado.',
+        variant: 'destructive',
+      })
+      return
+    }
+
     const finalTotal =
       (baseSalary || 0) +
       finalIncentivo +
@@ -431,6 +457,15 @@ export default function FolhaPagamento() {
   }
 
   const handleSaveRow = async (p: any) => {
+    if (!p.colaborador || !p.mes_referencia || !p.ano_referencia) {
+      toast({
+        title: 'Erro de Validação',
+        description: 'Dados incompletos no registro (colaborador, mês ou ano faltando).',
+        variant: 'destructive',
+      })
+      return
+    }
+
     setSavingRowId(p.colaborador)
     try {
       let currentSettingsId = settingsId

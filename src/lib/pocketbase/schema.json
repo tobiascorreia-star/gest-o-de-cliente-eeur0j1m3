@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-29T22:20:35.159Z",
+  "generatedAt": "2026-05-30T15:20:45.991Z",
   "collections": [
     {
       "name": "users",
@@ -580,8 +580,8 @@
       "name": "payroll",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != '' && @request.auth.role = 'admin'",
-        "view": "@request.auth.id != '' && @request.auth.role = 'admin'",
+        "list": "@request.auth.id != '' && (@request.auth.role = 'admin' || colaborador = @request.auth.id)",
+        "view": "@request.auth.id != '' && (@request.auth.role = 'admin' || colaborador = @request.auth.id)",
         "create": "@request.auth.id != '' && @request.auth.role = 'admin'",
         "update": "@request.auth.id != '' && @request.auth.role = 'admin'",
         "delete": "@request.auth.id != '' && @request.auth.role = 'admin'"
@@ -714,6 +714,12 @@
         {
           "name": "desconto",
           "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "detalhamento_proventos",
+          "type": "text",
           "required": false,
           "system": false
         }

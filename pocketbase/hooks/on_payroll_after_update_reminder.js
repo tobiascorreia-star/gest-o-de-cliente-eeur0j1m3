@@ -36,12 +36,16 @@ onRecordAfterUpdateSuccess((e) => {
     } catch (_) {}
 
     if (!exists) {
-      const notifications = $app.findCollectionByNameOrId('notifications')
-      const notif = new Record(notifications)
-      notif.set('user', admin.id)
-      notif.set('type', typeVal)
-      notif.set('resolved', false)
-      $app.save(notif)
+      try {
+        const notifications = $app.findCollectionByNameOrId('notifications')
+        const notif = new Record(notifications)
+        notif.set('user', admin.id)
+        notif.set('type', typeVal)
+        notif.set('resolved', false)
+        $app.save(notif)
+      } catch (err) {
+        $app.logger().error('Error saving payroll education reminder: ' + err)
+      }
     }
   }
 
