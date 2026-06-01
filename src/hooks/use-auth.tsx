@@ -37,10 +37,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setUser(pb.authStore.record)
             setIsAuthenticated(true)
           }
-        } catch (error) {
-          pb.authStore.clear()
-          setUser(null)
-          setIsAuthenticated(false)
+        } catch (error: any) {
+          // Prevent aggressive logout when starting offline or on slow networks (common in PWA/Standalone mode)
+          if (error?.status === 0 || error?.isAbort) {
+            const record = pb.authStore.record
+            if (record && record.active !== false) {
+              setUser(record)
+              setIsAuthenticated(true)
+            } else {
+              pb.authStore.clear()
+              setUser(null)
+              setIsAuthenticated(false)
+            }
+          } else {
+            pb.authStore.clear()
+            setUser(null)
+            setIsAuthenticated(false)
+          }
         }
       } else {
         pb.authStore.clear()
