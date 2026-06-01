@@ -15,8 +15,9 @@ export function useDashboard() {
   const [passwordResetRequests, setPasswordResetRequests] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
-  const loadData = useCallback(async () => {
+  const loadData = useCallback(async (showLoading = false) => {
     try {
+      if (showLoading) setLoading(true)
       const [clientsData, configData, auditLogsData] = await Promise.all([
         pb.collection('clients').getFullList({
           expand: 'colaborador,solicitacao,status,categoria,pgto,last_modified_by',

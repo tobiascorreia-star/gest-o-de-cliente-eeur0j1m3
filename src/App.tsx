@@ -132,25 +132,25 @@ import { UpdateNotification } from './components/update-notification'
 import { AdminPaymentsAlert } from './components/admin-payments-alert'
 
 const ProtectedRoute = () => {
-  const { user, loading } = useAuth()
+  const { isAuthenticated, user, loading } = useAuth()
   if (loading) return null
-  if (!user) return <Navigate to="/login" replace />
+  if (!isAuthenticated || !user) return <Navigate to="/login" replace />
   if (user.setup_completed === false) return <Navigate to="/setup" replace />
   return <Outlet />
 }
 
 const SetupRoute = () => {
-  const { user, loading } = useAuth()
+  const { isAuthenticated, user, loading } = useAuth()
   if (loading) return null
-  if (!user) return <Navigate to="/login" replace />
+  if (!isAuthenticated || !user) return <Navigate to="/login" replace />
   if (user.setup_completed !== false) return <Navigate to="/" replace />
   return <Outlet />
 }
 
 const AdminRoute = () => {
-  const { user, loading } = useAuth()
+  const { isAuthenticated, user, loading } = useAuth()
   if (loading) return null
-  if (user?.role?.toLowerCase() !== 'admin') return <Navigate to="/" replace />
+  if (!isAuthenticated || user?.role?.toLowerCase() !== 'admin') return <Navigate to="/" replace />
   return <Outlet />
 }
 

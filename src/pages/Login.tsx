@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useApp } from '@/contexts/app-context'
 import { useAuth } from '@/hooks/use-auth'
 
@@ -13,12 +13,18 @@ import pb from '@/lib/pocketbase/client'
 import { APP_VERSION } from '@/constants/version'
 
 export default function Login() {
-  const { signIn } = useAuth()
+  const { signIn, isAuthenticated, loading } = useAuth()
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+
+  useEffect(() => {
+    if (!loading && isAuthenticated) {
+      navigate('/', { replace: true })
+    }
+  }, [isAuthenticated, loading, navigate])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -28,12 +34,12 @@ export default function Login() {
 
     if (!error) {
       sessionStorage.setItem('temp_password', password)
-      navigate('/')
+      navigate('/', { replace: true })
     } else {
       toast({
         title: 'Acesso Negado',
         description:
-          error?.message === 'Sua conta está inativa. Por favor, contate o administrador.'
+          error?.message === 'Sua conta está inativa. Entre em contato com o administrador.'
             ? error.message
             : 'E-mail ou senha incorretos.',
         variant: 'destructive',
@@ -90,6 +96,7 @@ export default function Login() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 className="pl-10 h-12 rounded-xl bg-white dark:bg-slate-950 dark:border-slate-800 transition-colors"
+                disabled={isLoading}
               />
             </div>
           </div>
@@ -136,6 +143,7 @@ export default function Login() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="pl-10 pr-10 h-12 rounded-xl bg-white dark:bg-slate-950 dark:border-slate-800 transition-colors"
+                disabled={isLoading}
               />
               <button
                 type="button"
@@ -147,8 +155,12 @@ export default function Login() {
             </div>
           </div>
 
-          <Button type="submit" className="w-full h-12 mt-8 text-base rounded-xl">
-            Acessar Sistema
+          <Button
+            type="submit"
+            className="w-full h-12 mt-8 text-base rounded-xl"
+            disabled={isLoading}
+          >
+            {isLoading ? 'Acessando...' : 'Acessar Sistema'}
           </Button>
         </form>
       </div>

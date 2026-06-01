@@ -25,11 +25,13 @@ export default function Clientes() {
   const [alertSettings, setAlertSettings] = useState<any>(null)
   const [activeTab, setActiveTab] = useState('ativos')
   const [notifications, setNotifications] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
   const { toast } = useToast()
   const { user } = useAuth()
 
-  const loadData = async () => {
+  const loadData = async (isInitial = false) => {
     try {
+      if (isInitial) setLoading(true)
       const isAdmin = typeof user?.role === 'string' && user?.role?.toLowerCase() === 'admin'
       const [clientsData, alertData, notificationsData] = await Promise.all([
         getClients().catch((err) => {
@@ -52,11 +54,13 @@ export default function Clientes() {
       setNotifications(Array.isArray(notificationsData) ? notificationsData : [])
     } catch (error) {
       console.error(error)
+    } finally {
+      if (isInitial) setLoading(false)
     }
   }
 
   useEffect(() => {
-    loadData()
+    loadData(true)
   }, [])
 
   useEffect(() => {
@@ -67,8 +71,8 @@ export default function Clientes() {
     }
   }, [user?.id])
 
-  useRealtime('clients', loadData)
-  useRealtime('alert_settings', loadData)
+  useRealtime('clients', () => loadData())
+  useRealtime('alert_settings', () => loadData())
   useRealtime(
     'notifications',
     (e) => {
@@ -317,6 +321,7 @@ export default function Clientes() {
               clients={activeClients}
               alertSettings={alertSettings}
               notifications={notifications}
+              loading={loading}
               onEdit={handleEdit}
               onDelete={handleDelete}
               onBaixa={handleBaixa}
@@ -328,6 +333,7 @@ export default function Clientes() {
               clients={completedClients}
               alertSettings={alertSettings}
               notifications={notifications}
+              loading={loading}
               onEdit={handleEdit}
               onDelete={handleDelete}
               onBaixa={handleBaixa}

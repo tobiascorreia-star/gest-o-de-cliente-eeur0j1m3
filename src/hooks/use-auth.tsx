@@ -4,6 +4,7 @@ import { useRealtime } from '@/hooks/use-realtime'
 
 interface AuthContextType {
   user: any
+  isAuthenticated: boolean
   signIn: (email: string, password?: string) => Promise<{ error: any }>
   signOut: () => void
   loading: boolean
@@ -18,7 +19,8 @@ export const useAuth = () => {
 }
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<any>(pb.authStore.record)
+  const [user, setUser] = useState<any>(pb.authStore.isValid ? pb.authStore.record : null)
+  const [isAuthenticated, setIsAuthenticated] = useState(pb.authStore.isValid)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -26,14 +28,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (pb.authStore.isValid && pb.authStore.token) {
         try {
           await pb.collection('users').authRefresh()
-          setUser(pb.authStore.record)
+          const record = pb.authStore.record
+          if (record && record.active === false) {
+            pb.authStore.clear()
+            setUser(null)
+            setIsAuthenticated(false)
+          } else {
+            setUser(pb.authStore.record)
+            setIsAuthenticated(true)
+          }
         } catch (error) {
           pb.authStore.clear()
           setUser(null)
+          setIsAuthenticated(false)
         }
       } else {
         pb.authStore.clear()
         setUser(null)
+        setIsAuthenticated(false)
       }
       setLoading(false)
     }
@@ -43,8 +55,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const unsubscribe = pb.authStore.onChange((_token, record) => {
       if (!pb.authStore.isValid) {
         setUser(null)
+        setIsAuthenticated(false)
       } else {
-        setUser(record)
+        if (record && record.active === false) {
+          pb.authStore.clear()
+          setUser(null)
+          setIsAuthenticated(false)
+        } else {
+          setUser(record)
+          setIsAuthenticated(true)
+        }
       }
     })
 
@@ -58,8 +78,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     (e) => {
       if (user?.id && e.record.id === user.id) {
         if (e.action === 'update') {
-          pb.authStore.save(pb.authStore.token, e.record)
-        } else if (e.action === 'delete' || e.record.active === false) {
+          if (e.record.active === false) {
+            signOut()
+          } else {
+            pb.authStore.save(pb.authStore.token, e.record)
+          }
+        } else if (e.action === 'delete') {
           signOut()
         }
       }
@@ -73,7 +97,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (authData.record.active === false) {
         pb.authStore.clear()
-        return { error: new Error('Sua conta está inativa. Por favor, contate o administrador.') }
+        return { error: new Error('Sua conta está inativa. Entre em contato com o administrador.') }
       }
 
       return { error: null }
@@ -85,10 +109,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signOut = () => {
     sessionStorage.removeItem('temp_password')
     pb.authStore.clear()
+    setUser(null)
+    setIsAuthenticated(false)
   }
 
   return (
-    <AuthContext.Provider value={{ user, signIn, signOut, loading }}>
+    <AuthContext.Provider value={{ user, isAuthenticated, signIn, signOut, loading }}>
       {children}
     </AuthContext.Provider>
   )

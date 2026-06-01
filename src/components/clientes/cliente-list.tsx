@@ -140,6 +140,7 @@ interface ClienteListProps {
   clients: Client[]
   alertSettings?: any
   notifications?: any[]
+  loading?: boolean
   onEdit: (client: Client) => void
   onDelete: (id: string) => void
   onBaixa: (id: string) => void
@@ -167,6 +168,7 @@ export function ClienteList({
   clients,
   alertSettings,
   notifications = [],
+  loading = false,
   onEdit,
   onDelete,
   onBaixa,
@@ -301,397 +303,425 @@ export function ClienteList({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {clients.length === 0 && (
+              {loading && clients.length === 0 ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <TableRow key={`skeleton-${i}`}>
+                    <TableCell colSpan={9} className="py-4">
+                      <div className="h-10 bg-slate-100 dark:bg-slate-800 animate-pulse rounded w-full"></div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : !loading && clients.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={9} className="text-center py-12 text-muted-foreground">
                     <div className="flex flex-col items-center justify-center">
                       <FileText className="h-8 w-8 mb-2 opacity-20" />
-                      Nenhum atendimento encontrado.
+                      Nenhum cliente encontrado.
                     </div>
                   </TableCell>
                 </TableRow>
-              )}
-              {clients.map((client) => {
-                const {
-                  isCritical,
-                  isModerate,
-                  isOldAdmin,
-                  isMonthCritical,
-                  isMonthWarning,
-                  daysSinceUpdated,
-                } = getClientAlertState(client, alertSettings, isAdmin)
+              ) : (
+                clients.map((client) => {
+                  const {
+                    isCritical,
+                    isModerate,
+                    isOldAdmin,
+                    isMonthCritical,
+                    isMonthWarning,
+                    daysSinceUpdated,
+                  } = getClientAlertState(client, alertSettings, isAdmin)
 
-                const showCritical = isCritical || isMonthCritical
-                const showWarning = isMonthWarning
-                const showModerate = isModerate
-                const showOldAdmin = isOldAdmin
-                const showAtrasado = notifications.some((n) => n.client === client.id)
-                const hasUnreadObs = Boolean(client.observacoes && !client.observacao_lida)
-                const hasActiveAlert =
-                  showCritical ||
-                  showWarning ||
-                  showModerate ||
-                  showOldAdmin ||
-                  hasUnreadObs ||
-                  showAtrasado
+                  const showCritical = isCritical || isMonthCritical
+                  const showWarning = isMonthWarning
+                  const showModerate = isModerate
+                  const showOldAdmin = isOldAdmin
+                  const showAtrasado = notifications.some((n) => n.client === client.id)
+                  const hasUnreadObs = Boolean(client.observacoes && !client.observacao_lida)
+                  const hasActiveAlert =
+                    showCritical ||
+                    showWarning ||
+                    showModerate ||
+                    showOldAdmin ||
+                    hasUnreadObs ||
+                    showAtrasado
 
-                return (
-                  <TableRow
-                    key={client.id}
-                    className={cn(
-                      'group transition-colors hover:bg-muted/30 print:break-inside-avoid',
-                      (showModerate || showOldAdmin || showWarning) &&
-                        !showCritical &&
-                        'bg-amber-50/40 hover:bg-amber-50/60 dark:bg-amber-900/10 dark:hover:bg-amber-900/20',
-                      showCritical &&
-                        'bg-destructive/5 hover:bg-destructive/10 dark:bg-destructive/10 dark:hover:bg-destructive/20',
-                    )}
-                  >
-                    <TableCell className="align-top print:px-0.5 print:py-1 print:break-words">
-                      <div className="font-medium text-slate-800 dark:text-slate-200 flex items-center gap-2 print:text-[8px] print:leading-tight">
-                        {hasActiveAlert && (
-                          <div
-                            className="w-2 h-2 rounded-full bg-destructive animate-pulse shrink-0 print:hidden"
-                            title="Alerta Ativo"
-                          />
-                        )}
-                        <span className="print:block">{client.razao_social}</span>
-                        {showAtrasado && (
-                          <Badge
-                            variant="destructive"
-                            className="h-5 px-1.5 text-[10px] flex gap-1 items-center font-medium print:hidden animate-pulse shadow-sm bg-red-600 hover:bg-red-700"
-                          >
-                            <AlertTriangle className="w-3 h-3" /> Atrasado
-                          </Badge>
-                        )}
-                        {!showAtrasado && isMonthCritical && (
-                          <Badge
-                            variant="destructive"
-                            className="h-5 px-1.5 text-[10px] flex gap-1 items-center font-medium print:hidden animate-pulse shadow-sm bg-red-600 hover:bg-red-700"
-                          >
-                            <AlertTriangle className="w-3 h-3" /> Crítico
-                          </Badge>
-                        )}
-                        {!showAtrasado && !isMonthCritical && showWarning && (
-                          <Badge
-                            variant="outline"
-                            className="h-5 px-1.5 text-[10px] flex gap-1 items-center font-medium border-yellow-500 text-yellow-600 bg-yellow-50 dark:bg-yellow-950 dark:text-yellow-500 print:hidden animate-pulse shadow-sm"
-                          >
-                            <AlertTriangle className="w-3 h-3" /> A Pagar
-                          </Badge>
-                        )}
-                        {!showAtrasado && !isMonthCritical && !showWarning && isCritical && (
-                          <Badge
-                            variant="destructive"
-                            className="h-5 px-1.5 text-[10px] flex gap-1 items-center font-medium print:hidden animate-pulse shadow-sm"
-                          >
-                            <AlertTriangle className="w-3 h-3" /> Crítica
-                          </Badge>
-                        )}
-                        {!showAtrasado && !showCritical && showModerate && (
-                          <Badge
-                            variant="outline"
-                            className="h-5 px-1.5 text-[10px] flex gap-1 items-center font-medium border-amber-500 text-amber-600 bg-amber-50 dark:bg-amber-950 dark:text-amber-500 print:hidden"
-                          >
-                            <Clock className="w-3 h-3" /> Pendente
-                          </Badge>
-                        )}
-                        {!showAtrasado && !showCritical && !showModerate && showOldAdmin && (
-                          <Badge
-                            variant="outline"
-                            className="h-5 px-1.5 text-[10px] flex gap-1 items-center font-medium border-purple-500 text-purple-600 bg-purple-50 dark:bg-purple-950 dark:text-purple-500 print:hidden"
-                          >
-                            <AlertTriangle className="w-3 h-3" /> Antiga
-                          </Badge>
-                        )}
-                      </div>
-                      <div className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1.5 group/cnpj print:text-[8px] print:leading-tight">
-                        {client.cnpj}
-                        <button
-                          onClick={(e) => handleCopyCnpj(client.cnpj, e)}
-                          className="text-muted-foreground/50 hover:text-foreground transition-colors print:hidden opacity-0 group-hover/cnpj:opacity-100 focus:opacity-100"
-                          title="Copiar CNPJ"
-                        >
-                          {copiedCnpj === client.cnpj ? (
-                            <Check className="h-3 w-3 text-emerald-500" />
-                          ) : (
-                            <Copy className="h-3 w-3" />
-                          )}
-                        </button>
-                      </div>
-                      <div className="mt-1.5 print:mt-1">
-                        <ConfigBadge
-                          name={client.expand?.categoria?.name}
-                          color={client.expand?.categoria?.color}
-                        />
-                      </div>
-                    </TableCell>
-                    <TableCell className="align-top font-medium text-sm print:px-0.5 print:py-1 print:text-[8px] print:break-words print:leading-tight">
-                      {client.nome_cliente}
-                    </TableCell>
-                    <TableCell className="align-top print:px-0.5 print:py-1 print:break-words">
-                      <ConfigBadge
-                        name={client.expand?.colaborador?.name}
-                        color={client.expand?.colaborador?.color}
-                      />
-                    </TableCell>
-                    <TableCell className="align-top print:px-0.5 print:py-1 print:break-words">
-                      <ConfigBadge
-                        name={client.expand?.solicitacao?.name}
-                        color={client.expand?.solicitacao?.color}
-                      />
-                    </TableCell>
-                    <TableCell className="align-top print:px-0.5 print:py-1 print:break-words">
-                      <div className="flex items-center gap-2">
-                        <ConfigBadge
-                          name={client.expand?.status?.name}
-                          color={client.expand?.status?.color}
-                        />
-                        {(showModerate || showCritical || showOldAdmin || showWarning) && (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <AlertTriangle
-                                className={cn(
-                                  'w-4 h-4 cursor-help shrink-0',
-                                  showCritical
-                                    ? 'text-destructive'
-                                    : showOldAdmin
-                                      ? 'text-purple-500'
-                                      : showWarning
-                                        ? 'text-yellow-500'
-                                        : 'text-amber-500',
-                                )}
-                              />
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              {isMonthCritical ? (
-                                <p>Atendimento crítico: pagamento em aberto do mês anterior</p>
-                              ) : showWarning ? (
-                                <p>Atenção: pagamento em aberto próximo ao fim do mês</p>
-                              ) : isCritical ? (
-                                <p>Atendimento crítico: pendente há {daysSinceUpdated} dias</p>
-                              ) : showOldAdmin ? (
-                                <p>
-                                  Destacada como antiga: pagamento em aberto há {daysSinceUpdated}{' '}
-                                  dias
-                                </p>
-                              ) : (
-                                <p>
-                                  Atendimento pendente há {daysSinceUpdated} dias (limite:{' '}
-                                  {alertSettings?.old_days})
-                                </p>
-                              )}
-                            </TooltipContent>
-                          </Tooltip>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="align-top print:px-0.5 print:py-1 print:break-words">
-                      <ConfigBadge
-                        name={client.expand?.pgto?.name}
-                        color={client.expand?.pgto?.color}
-                      />
-                    </TableCell>
-                    <TableCell className="align-top max-w-[300px] print:max-w-none print:px-0.5 print:py-1 print:break-words">
-                      <ObservationBlock
-                        client={client}
-                        isAdmin={isAdmin}
-                        onMarkAsRead={handleMarkAsRead}
-                      />
-                    </TableCell>
-                    <TableCell className="align-top text-sm text-primary font-medium print:text-[8px] print:px-0.5 print:py-1 print:break-words text-slate-800 dark:text-slate-200">
-                      {client.created ? format(new Date(client.created), 'dd/MM/yyyy') : '-'}
-                    </TableCell>
-                    <TableCell
+                  return (
+                    <TableRow
+                      key={client.id}
                       className={cn(
-                        'align-top print:hidden sticky right-0 backdrop-blur-sm',
-                        showCritical ? 'bg-red-50/90 dark:bg-red-950/90' : 'bg-card/90',
+                        'group transition-colors hover:bg-muted/30 print:break-inside-avoid',
+                        (showModerate || showOldAdmin || showWarning) &&
+                          !showCritical &&
+                          'bg-amber-50/40 hover:bg-amber-50/60 dark:bg-amber-900/10 dark:hover:bg-amber-900/20',
+                        showCritical &&
+                          'bg-destructive/5 hover:bg-destructive/10 dark:bg-destructive/10 dark:hover:bg-destructive/20',
                       )}
                     >
-                      {renderActions(client)}
-                    </TableCell>
-                  </TableRow>
-                )
-              })}
+                      <TableCell className="align-top print:px-0.5 print:py-1 print:break-words">
+                        <div className="font-medium text-slate-800 dark:text-slate-200 flex items-center gap-2 print:text-[8px] print:leading-tight">
+                          {hasActiveAlert && (
+                            <div
+                              className="w-2 h-2 rounded-full bg-destructive animate-pulse shrink-0 print:hidden"
+                              title="Alerta Ativo"
+                            />
+                          )}
+                          <span className="print:block">{client.razao_social}</span>
+                          {showAtrasado && (
+                            <Badge
+                              variant="destructive"
+                              className="h-5 px-1.5 text-[10px] flex gap-1 items-center font-medium print:hidden animate-pulse shadow-sm bg-red-600 hover:bg-red-700"
+                            >
+                              <AlertTriangle className="w-3 h-3" /> Atrasado
+                            </Badge>
+                          )}
+                          {!showAtrasado && isMonthCritical && (
+                            <Badge
+                              variant="destructive"
+                              className="h-5 px-1.5 text-[10px] flex gap-1 items-center font-medium print:hidden animate-pulse shadow-sm bg-red-600 hover:bg-red-700"
+                            >
+                              <AlertTriangle className="w-3 h-3" /> Crítico
+                            </Badge>
+                          )}
+                          {!showAtrasado && !isMonthCritical && showWarning && (
+                            <Badge
+                              variant="outline"
+                              className="h-5 px-1.5 text-[10px] flex gap-1 items-center font-medium border-yellow-500 text-yellow-600 bg-yellow-50 dark:bg-yellow-950 dark:text-yellow-500 print:hidden animate-pulse shadow-sm"
+                            >
+                              <AlertTriangle className="w-3 h-3" /> A Pagar
+                            </Badge>
+                          )}
+                          {!showAtrasado && !isMonthCritical && !showWarning && isCritical && (
+                            <Badge
+                              variant="destructive"
+                              className="h-5 px-1.5 text-[10px] flex gap-1 items-center font-medium print:hidden animate-pulse shadow-sm"
+                            >
+                              <AlertTriangle className="w-3 h-3" /> Crítica
+                            </Badge>
+                          )}
+                          {!showAtrasado && !showCritical && showModerate && (
+                            <Badge
+                              variant="outline"
+                              className="h-5 px-1.5 text-[10px] flex gap-1 items-center font-medium border-amber-500 text-amber-600 bg-amber-50 dark:bg-amber-950 dark:text-amber-500 print:hidden"
+                            >
+                              <Clock className="w-3 h-3" /> Pendente
+                            </Badge>
+                          )}
+                          {!showAtrasado && !showCritical && !showModerate && showOldAdmin && (
+                            <Badge
+                              variant="outline"
+                              className="h-5 px-1.5 text-[10px] flex gap-1 items-center font-medium border-purple-500 text-purple-600 bg-purple-50 dark:bg-purple-950 dark:text-purple-500 print:hidden"
+                            >
+                              <AlertTriangle className="w-3 h-3" /> Antiga
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1.5 group/cnpj print:text-[8px] print:leading-tight">
+                          {client.cnpj}
+                          <button
+                            onClick={(e) => handleCopyCnpj(client.cnpj, e)}
+                            className="text-muted-foreground/50 hover:text-foreground transition-colors print:hidden opacity-0 group-hover/cnpj:opacity-100 focus:opacity-100"
+                            title="Copiar CNPJ"
+                          >
+                            {copiedCnpj === client.cnpj ? (
+                              <Check className="h-3 w-3 text-emerald-500" />
+                            ) : (
+                              <Copy className="h-3 w-3" />
+                            )}
+                          </button>
+                        </div>
+                        <div className="mt-1.5 print:mt-1">
+                          <ConfigBadge
+                            name={client.expand?.categoria?.name}
+                            color={client.expand?.categoria?.color}
+                          />
+                        </div>
+                      </TableCell>
+                      <TableCell className="align-top font-medium text-sm print:px-0.5 print:py-1 print:text-[8px] print:break-words print:leading-tight">
+                        {client.nome_cliente}
+                      </TableCell>
+                      <TableCell className="align-top print:px-0.5 print:py-1 print:break-words">
+                        <ConfigBadge
+                          name={client.expand?.colaborador?.name}
+                          color={client.expand?.colaborador?.color}
+                        />
+                      </TableCell>
+                      <TableCell className="align-top print:px-0.5 print:py-1 print:break-words">
+                        <ConfigBadge
+                          name={client.expand?.solicitacao?.name}
+                          color={client.expand?.solicitacao?.color}
+                        />
+                      </TableCell>
+                      <TableCell className="align-top print:px-0.5 print:py-1 print:break-words">
+                        <div className="flex items-center gap-2">
+                          <ConfigBadge
+                            name={client.expand?.status?.name}
+                            color={client.expand?.status?.color}
+                          />
+                          {(showModerate || showCritical || showOldAdmin || showWarning) && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <AlertTriangle
+                                  className={cn(
+                                    'w-4 h-4 cursor-help shrink-0',
+                                    showCritical
+                                      ? 'text-destructive'
+                                      : showOldAdmin
+                                        ? 'text-purple-500'
+                                        : showWarning
+                                          ? 'text-yellow-500'
+                                          : 'text-amber-500',
+                                  )}
+                                />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                {isMonthCritical ? (
+                                  <p>Atendimento crítico: pagamento em aberto do mês anterior</p>
+                                ) : showWarning ? (
+                                  <p>Atenção: pagamento em aberto próximo ao fim do mês</p>
+                                ) : isCritical ? (
+                                  <p>Atendimento crítico: pendente há {daysSinceUpdated} dias</p>
+                                ) : showOldAdmin ? (
+                                  <p>
+                                    Destacada como antiga: pagamento em aberto há {daysSinceUpdated}{' '}
+                                    dias
+                                  </p>
+                                ) : (
+                                  <p>
+                                    Atendimento pendente há {daysSinceUpdated} dias (limite:{' '}
+                                    {alertSettings?.old_days})
+                                  </p>
+                                )}
+                              </TooltipContent>
+                            </Tooltip>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="align-top print:px-0.5 print:py-1 print:break-words">
+                        <ConfigBadge
+                          name={client.expand?.pgto?.name}
+                          color={client.expand?.pgto?.color}
+                        />
+                      </TableCell>
+                      <TableCell className="align-top max-w-[300px] print:max-w-none print:px-0.5 print:py-1 print:break-words">
+                        <ObservationBlock
+                          client={client}
+                          isAdmin={isAdmin}
+                          onMarkAsRead={handleMarkAsRead}
+                        />
+                      </TableCell>
+                      <TableCell className="align-top text-sm text-primary font-medium print:text-[8px] print:px-0.5 print:py-1 print:break-words text-slate-800 dark:text-slate-200">
+                        {client.created ? format(new Date(client.created), 'dd/MM/yyyy') : '-'}
+                      </TableCell>
+                      <TableCell
+                        className={cn(
+                          'align-top print:hidden sticky right-0 backdrop-blur-sm',
+                          showCritical ? 'bg-red-50/90 dark:bg-red-950/90' : 'bg-card/90',
+                        )}
+                      >
+                        {renderActions(client)}
+                      </TableCell>
+                    </TableRow>
+                  )
+                })
+              )}
             </TableBody>
           </Table>
         </div>
       </div>
 
       <div className="flex flex-col gap-4 md:hidden print:hidden w-full max-w-full overflow-hidden">
-        {clients.length === 0 && (
-          <div className="text-center py-12 text-muted-foreground bg-card border rounded-xl shadow-sm mx-1">
-            Nenhum atendimento encontrado.
-          </div>
-        )}
-        {clients.map((client) => {
-          const {
-            isCritical,
-            isModerate,
-            isOldAdmin,
-            isMonthCritical,
-            isMonthWarning,
-            daysSinceUpdated,
-          } = getClientAlertState(client, alertSettings, isAdmin)
-
-          const showCritical = isCritical || isMonthCritical
-          const showWarning = isMonthWarning
-          const showModerate = isModerate
-          const showOldAdmin = isOldAdmin
-          const showAtrasado = notifications.some((n) => n.client === client.id)
-          const hasUnreadObs = Boolean(client.observacoes && !client.observacao_lida)
-          const hasActiveAlert =
-            showCritical ||
-            showWarning ||
-            showModerate ||
-            showOldAdmin ||
-            hasUnreadObs ||
-            showAtrasado
-
-          return (
-            <Card
-              key={client.id}
-              className={cn(
-                'w-full max-w-full overflow-hidden rounded-xl shadow-sm transition-colors border',
-                (showModerate || showOldAdmin || showWarning) &&
-                  !showCritical &&
-                  'border-amber-200/50 bg-amber-50/40 dark:bg-amber-900/10 dark:border-amber-900/50',
-                showCritical && 'border-destructive/30 bg-destructive/5 dark:bg-destructive/10',
-              )}
-            >
-              <CardContent className="p-4 sm:p-5 flex flex-col gap-3 w-full max-w-full overflow-hidden">
-                <div className="flex justify-between items-start gap-2 w-full max-w-full overflow-hidden">
-                  <div className="min-w-0 flex-1 w-full max-w-full overflow-hidden flex flex-col gap-1">
-                    <div className="flex items-start gap-2 w-full">
-                      {hasActiveAlert && (
-                        <div
-                          className="w-2 h-2 rounded-full bg-destructive animate-pulse shrink-0 mt-1.5 print:hidden"
-                          title="Alerta Ativo"
-                        />
-                      )}
-                      <h4 className="font-bold text-[15px] leading-snug text-foreground break-words w-full">
-                        {client.razao_social}
-                      </h4>
-                    </div>
-                    <p className="text-xs text-muted-foreground flex items-center gap-1.5 truncate">
-                      {client.cnpj}
-                    </p>
-                    <p className="text-sm font-medium mt-1 break-words">
-                      Cliente: {client.nome_cliente}
-                    </p>
-                  </div>
-
-                  <div className="shrink-0 -mt-1 -mr-2">{renderActions(client)}</div>
+        {loading && clients.length === 0 ? (
+          Array.from({ length: 3 }).map((_, i) => (
+            <Card key={`skeleton-mobile-${i}`} className="w-full rounded-xl shadow-sm border">
+              <CardContent className="p-4 sm:p-5 flex flex-col gap-3">
+                <div className="h-4 bg-slate-100 dark:bg-slate-800 animate-pulse rounded w-2/3"></div>
+                <div className="h-3 bg-slate-100 dark:bg-slate-800 animate-pulse rounded w-1/3"></div>
+                <div className="h-3 bg-slate-100 dark:bg-slate-800 animate-pulse rounded w-1/2"></div>
+                <div className="flex gap-2 mt-2">
+                  <div className="h-5 bg-slate-100 dark:bg-slate-800 animate-pulse rounded w-16"></div>
+                  <div className="h-5 bg-slate-100 dark:bg-slate-800 animate-pulse rounded w-16"></div>
                 </div>
-
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-1">
-                  <div className="flex items-center gap-2">
-                    <ConfigBadge
-                      name={client.expand?.status?.name}
-                      color={client.expand?.status?.color}
-                    />
-                    {(showModerate || showCritical || showOldAdmin || showWarning) && (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <AlertTriangle
-                            className={cn(
-                              'w-3.5 h-3.5 shrink-0 cursor-help',
-                              showCritical
-                                ? 'text-destructive'
-                                : showOldAdmin
-                                  ? 'text-purple-500'
-                                  : showWarning
-                                    ? 'text-yellow-500'
-                                    : 'text-amber-500',
-                            )}
-                          />
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          {isMonthCritical ? (
-                            <p>Atendimento crítico: pagamento em aberto do mês anterior</p>
-                          ) : showWarning ? (
-                            <p>Atenção: pagamento em aberto próximo ao fim do mês</p>
-                          ) : isCritical ? (
-                            <p>Atendimento crítico: pendente há {daysSinceUpdated} dias</p>
-                          ) : showOldAdmin ? (
-                            <p>
-                              Destacada como antiga: pagamento em aberto há {daysSinceUpdated} dias
-                            </p>
-                          ) : (
-                            <p>
-                              Atendimento pendente há {daysSinceUpdated} dias (limite:{' '}
-                              {alertSettings?.old_days})
-                            </p>
-                          )}
-                        </TooltipContent>
-                      </Tooltip>
-                    )}
-                  </div>
-                  <ConfigBadge
-                    name={client.expand?.categoria?.name}
-                    color={client.expand?.categoria?.color}
-                  />
-                  {showAtrasado && (
-                    <Badge
-                      variant="destructive"
-                      className="h-5 px-1.5 text-[10px] flex gap-1 items-center font-medium shadow-sm bg-red-600 hover:bg-red-700"
-                    >
-                      <AlertTriangle className="w-2.5 h-2.5" /> Atrasado
-                    </Badge>
-                  )}
-                  {!showAtrasado && isMonthCritical && (
-                    <Badge
-                      variant="destructive"
-                      className="h-5 px-1.5 text-[10px] flex gap-1 items-center font-medium shadow-sm bg-red-600 hover:bg-red-700"
-                    >
-                      <AlertTriangle className="w-2.5 h-2.5" /> Crítico
-                    </Badge>
-                  )}
-                  {!showAtrasado && !isMonthCritical && showWarning && (
-                    <Badge
-                      variant="outline"
-                      className="h-5 px-1.5 text-[10px] flex gap-1 items-center font-medium border-yellow-500 text-yellow-600 bg-yellow-50 dark:bg-yellow-950 dark:text-yellow-500 shadow-sm"
-                    >
-                      <AlertTriangle className="w-2.5 h-2.5" /> A Pagar
-                    </Badge>
-                  )}
-                  {!showAtrasado && !isMonthCritical && !showWarning && isCritical && (
-                    <Badge
-                      variant="destructive"
-                      className="h-5 px-1.5 text-[10px] flex gap-1 items-center font-medium shadow-sm"
-                    >
-                      <AlertTriangle className="w-2.5 h-2.5" /> Crítica
-                    </Badge>
-                  )}
-                  {!showAtrasado && !showCritical && showModerate && (
-                    <Badge
-                      variant="outline"
-                      className="h-5 px-1.5 text-[10px] flex gap-1 items-center font-medium border-amber-500 text-amber-600 bg-amber-50 dark:bg-amber-950 dark:text-amber-500"
-                    >
-                      <Clock className="w-2.5 h-2.5" /> Pendente
-                    </Badge>
-                  )}
-                  {!showAtrasado && !showCritical && !showModerate && showOldAdmin && (
-                    <Badge
-                      variant="outline"
-                      className="h-5 px-1.5 text-[10px] flex gap-1 items-center font-medium border-purple-500 text-purple-600 bg-purple-50 dark:bg-purple-950 dark:text-purple-500 print:hidden"
-                    >
-                      <AlertTriangle className="w-2.5 h-2.5" /> Antiga
-                    </Badge>
-                  )}
-                </div>
-
-                {client.observacoes && (
-                  <ObservationBlock
-                    client={client}
-                    isAdmin={isAdmin}
-                    onMarkAsRead={handleMarkAsRead}
-                  />
-                )}
               </CardContent>
             </Card>
-          )
-        })}
+          ))
+        ) : !loading && clients.length === 0 ? (
+          <div className="text-center py-12 text-muted-foreground bg-card border rounded-xl shadow-sm mx-1">
+            <div className="flex flex-col items-center justify-center">
+              <FileText className="h-8 w-8 mb-2 opacity-20" />
+              Nenhum cliente encontrado.
+            </div>
+          </div>
+        ) : (
+          clients.map((client) => {
+            const {
+              isCritical,
+              isModerate,
+              isOldAdmin,
+              isMonthCritical,
+              isMonthWarning,
+              daysSinceUpdated,
+            } = getClientAlertState(client, alertSettings, isAdmin)
+
+            const showCritical = isCritical || isMonthCritical
+            const showWarning = isMonthWarning
+            const showModerate = isModerate
+            const showOldAdmin = isOldAdmin
+            const showAtrasado = notifications.some((n) => n.client === client.id)
+            const hasUnreadObs = Boolean(client.observacoes && !client.observacao_lida)
+            const hasActiveAlert =
+              showCritical ||
+              showWarning ||
+              showModerate ||
+              showOldAdmin ||
+              hasUnreadObs ||
+              showAtrasado
+
+            return (
+              <Card
+                key={client.id}
+                className={cn(
+                  'w-full max-w-full overflow-hidden rounded-xl shadow-sm transition-colors border',
+                  (showModerate || showOldAdmin || showWarning) &&
+                    !showCritical &&
+                    'border-amber-200/50 bg-amber-50/40 dark:bg-amber-900/10 dark:border-amber-900/50',
+                  showCritical && 'border-destructive/30 bg-destructive/5 dark:bg-destructive/10',
+                )}
+              >
+                <CardContent className="p-4 sm:p-5 flex flex-col gap-3 w-full max-w-full overflow-hidden">
+                  <div className="flex justify-between items-start gap-2 w-full max-w-full overflow-hidden">
+                    <div className="min-w-0 flex-1 w-full max-w-full overflow-hidden flex flex-col gap-1">
+                      <div className="flex items-start gap-2 w-full">
+                        {hasActiveAlert && (
+                          <div
+                            className="w-2 h-2 rounded-full bg-destructive animate-pulse shrink-0 mt-1.5 print:hidden"
+                            title="Alerta Ativo"
+                          />
+                        )}
+                        <h4 className="font-bold text-[15px] leading-snug text-foreground break-words w-full">
+                          {client.razao_social}
+                        </h4>
+                      </div>
+                      <p className="text-xs text-muted-foreground flex items-center gap-1.5 truncate">
+                        {client.cnpj}
+                      </p>
+                      <p className="text-sm font-medium mt-1 break-words">
+                        Cliente: {client.nome_cliente}
+                      </p>
+                    </div>
+
+                    <div className="shrink-0 -mt-1 -mr-2">{renderActions(client)}</div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-1">
+                    <div className="flex items-center gap-2">
+                      <ConfigBadge
+                        name={client.expand?.status?.name}
+                        color={client.expand?.status?.color}
+                      />
+                      {(showModerate || showCritical || showOldAdmin || showWarning) && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <AlertTriangle
+                              className={cn(
+                                'w-3.5 h-3.5 shrink-0 cursor-help',
+                                showCritical
+                                  ? 'text-destructive'
+                                  : showOldAdmin
+                                    ? 'text-purple-500'
+                                    : showWarning
+                                      ? 'text-yellow-500'
+                                      : 'text-amber-500',
+                              )}
+                            />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            {isMonthCritical ? (
+                              <p>Atendimento crítico: pagamento em aberto do mês anterior</p>
+                            ) : showWarning ? (
+                              <p>Atenção: pagamento em aberto próximo ao fim do mês</p>
+                            ) : isCritical ? (
+                              <p>Atendimento crítico: pendente há {daysSinceUpdated} dias</p>
+                            ) : showOldAdmin ? (
+                              <p>
+                                Destacada como antiga: pagamento em aberto há {daysSinceUpdated}{' '}
+                                dias
+                              </p>
+                            ) : (
+                              <p>
+                                Atendimento pendente há {daysSinceUpdated} dias (limite:{' '}
+                                {alertSettings?.old_days})
+                              </p>
+                            )}
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
+                    </div>
+                    <ConfigBadge
+                      name={client.expand?.categoria?.name}
+                      color={client.expand?.categoria?.color}
+                    />
+                    {showAtrasado && (
+                      <Badge
+                        variant="destructive"
+                        className="h-5 px-1.5 text-[10px] flex gap-1 items-center font-medium shadow-sm bg-red-600 hover:bg-red-700"
+                      >
+                        <AlertTriangle className="w-2.5 h-2.5" /> Atrasado
+                      </Badge>
+                    )}
+                    {!showAtrasado && isMonthCritical && (
+                      <Badge
+                        variant="destructive"
+                        className="h-5 px-1.5 text-[10px] flex gap-1 items-center font-medium shadow-sm bg-red-600 hover:bg-red-700"
+                      >
+                        <AlertTriangle className="w-2.5 h-2.5" /> Crítico
+                      </Badge>
+                    )}
+                    {!showAtrasado && !isMonthCritical && showWarning && (
+                      <Badge
+                        variant="outline"
+                        className="h-5 px-1.5 text-[10px] flex gap-1 items-center font-medium border-yellow-500 text-yellow-600 bg-yellow-50 dark:bg-yellow-950 dark:text-yellow-500 shadow-sm"
+                      >
+                        <AlertTriangle className="w-2.5 h-2.5" /> A Pagar
+                      </Badge>
+                    )}
+                    {!showAtrasado && !isMonthCritical && !showWarning && isCritical && (
+                      <Badge
+                        variant="destructive"
+                        className="h-5 px-1.5 text-[10px] flex gap-1 items-center font-medium shadow-sm"
+                      >
+                        <AlertTriangle className="w-2.5 h-2.5" /> Crítica
+                      </Badge>
+                    )}
+                    {!showAtrasado && !showCritical && showModerate && (
+                      <Badge
+                        variant="outline"
+                        className="h-5 px-1.5 text-[10px] flex gap-1 items-center font-medium border-amber-500 text-amber-600 bg-amber-50 dark:bg-amber-950 dark:text-amber-500"
+                      >
+                        <Clock className="w-2.5 h-2.5" /> Pendente
+                      </Badge>
+                    )}
+                    {!showAtrasado && !showCritical && !showModerate && showOldAdmin && (
+                      <Badge
+                        variant="outline"
+                        className="h-5 px-1.5 text-[10px] flex gap-1 items-center font-medium border-purple-500 text-purple-600 bg-purple-50 dark:bg-purple-950 dark:text-purple-500 print:hidden"
+                      >
+                        <AlertTriangle className="w-2.5 h-2.5" /> Antiga
+                      </Badge>
+                    )}
+                  </div>
+
+                  {client.observacoes && (
+                    <ObservationBlock
+                      client={client}
+                      isAdmin={isAdmin}
+                      onMarkAsRead={handleMarkAsRead}
+                    />
+                  )}
+                </CardContent>
+              </Card>
+            )
+          })
+        )}
       </div>
 
       <Dialog open={!!reportClient} onOpenChange={(open) => !open && setReportClient(null)}>
