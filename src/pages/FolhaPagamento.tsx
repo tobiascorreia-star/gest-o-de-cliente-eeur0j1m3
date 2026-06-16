@@ -889,8 +889,8 @@ export default function FolhaPagamento() {
 
   return (
     <>
-      <div className="space-y-4 print:hidden w-full max-w-full overflow-x-hidden">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 w-full">
+      <div className="space-y-4 print:hidden w-full max-w-full overflow-hidden flex flex-col h-full">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 w-full shrink-0">
           <div>
             <h2 className="text-2xl font-medium tracking-tight text-slate-800 dark:text-slate-100 flex items-center gap-2">
               <Banknote className="w-6 h-6 text-primary" />
@@ -914,7 +914,7 @@ export default function FolhaPagamento() {
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-4 bg-white/50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800 flex-wrap sm:items-end w-full">
+        <div className="flex flex-col sm:flex-row gap-4 bg-white/50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800 flex-wrap sm:items-end w-full shrink-0">
           {loading && draftPayrolls.length === 0 ? (
             <>
               <div className="w-full sm:flex-1 sm:min-w-[150px] space-y-2">
@@ -1011,139 +1011,164 @@ export default function FolhaPagamento() {
           )}
         </div>
 
-        <div className="border border-slate-100 rounded-2xl bg-white/50 backdrop-blur-sm shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] dark:bg-slate-900/50 dark:border-slate-800 overflow-hidden w-full max-w-full overflow-x-auto">
-          <Table>
-            <TableHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b-slate-100 dark:border-b-slate-800">
-              <TableRow>
-                <TableHead className="font-medium text-slate-500">Colaborador</TableHead>
-                <TableHead className="font-medium text-slate-500">Competência</TableHead>
-                <TableHead className="font-medium text-slate-500 hidden md:table-cell">
-                  Status
-                </TableHead>
-                <TableHead className="text-right font-medium text-slate-500 hidden sm:table-cell">
-                  Valor Install
-                </TableHead>
-                <TableHead className="text-right font-medium text-slate-500 hidden sm:table-cell">
-                  Incentivo
-                </TableHead>
-                <TableHead className="text-right font-medium text-slate-500">Total</TableHead>
-                <TableHead className="text-right font-medium text-slate-500">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                    <Loader2 className="w-5 h-5 animate-spin mx-auto" />
-                  </TableCell>
+        <div className="flex flex-col border border-slate-100 rounded-2xl bg-white shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] dark:bg-slate-900 dark:border-slate-800 overflow-hidden w-full max-w-full flex-1 min-h-[300px] relative">
+          <div className="overflow-auto custom-scrollbar w-full h-full flex-1">
+            <Table className="min-w-max w-full border-collapse">
+              <TableHeader className="sticky top-0 z-40 bg-slate-50 dark:bg-slate-800 shadow-[0_1px_0_0_#e2e8f0] dark:shadow-[0_1px_0_0_#1e293b]">
+                <TableRow className="hover:bg-transparent border-none">
+                  <TableHead className="font-medium text-slate-500 sticky left-0 z-50 bg-slate-50 dark:bg-slate-800 shadow-[1px_0_0_0_#e2e8f0] dark:shadow-[1px_0_0_0_#1e293b] min-w-[200px]">
+                    Colaborador
+                  </TableHead>
+                  <TableHead className="font-medium text-slate-500">Competência</TableHead>
+                  <TableHead className="font-medium text-slate-500 hidden md:table-cell">
+                    Status
+                  </TableHead>
+                  <TableHead className="text-right font-medium text-slate-500 hidden sm:table-cell">
+                    Valor Install
+                  </TableHead>
+                  <TableHead className="text-right font-medium text-slate-500 hidden sm:table-cell">
+                    Incentivo
+                  </TableHead>
+                  <TableHead className="text-right font-medium text-slate-500">Total</TableHead>
+                  <TableHead className="text-right font-medium text-slate-500 sticky right-0 z-50 bg-slate-50 dark:bg-slate-800 shadow-[-1px_0_0_0_#e2e8f0] dark:shadow-[-1px_0_0_0_#1e293b] w-[140px]">
+                    Ações
+                  </TableHead>
                 </TableRow>
-              ) : filteredPayrolls.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                    Nenhum registro encontrado.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredPayrolls.map((p) => {
-                  const isUnsaved = p._isDraft || p._isModified
-                  return (
-                    <TableRow key={p.id || p.colaborador}>
-                      <TableCell className="font-medium">
-                        {p.expand?.colaborador?.name ||
-                          p.expand?.colaborador?.email ||
-                          'Desconhecido'}
-                      </TableCell>
-                      <TableCell>
-                        {getHeaderCompetence(p.mes_referencia, p.ano_referencia)}
-                      </TableCell>
-                      <TableCell className="hidden md:table-cell">
-                        <Badge
-                          variant={p.status === 'pago' ? 'default' : 'secondary'}
-                          className={
-                            p.status === 'pago' ? 'bg-emerald-500 hover:bg-emerald-600' : ''
-                          }
-                        >
-                          {p.status === 'pago' ? 'Pago' : 'Pendente'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right font-medium text-slate-700 dark:text-slate-300 hidden sm:table-cell">
-                        {fmtC(p.unit_value || 0)}
-                      </TableCell>
-                      <TableCell className="text-right font-medium text-slate-700 dark:text-slate-300 hidden sm:table-cell">
-                        {fmtC((p.incentivo ?? p.install_commission) || 0)}
-                      </TableCell>
-                      <TableCell className="text-right font-medium text-slate-700 dark:text-slate-300">
-                        {fmtC(p.total_a_pagar)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2 items-center">
-                          {isUnsaved && !(p.closed || p.status === 'pago') && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-900/20"
-                              onClick={() => handleSaveRow(p)}
-                              disabled={savingRowId === p.colaborador}
-                              title="Gravar Alterações"
-                            >
-                              {savingRowId === p.colaborador ? (
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                              ) : (
-                                <Save className="w-4 h-4" />
-                              )}
-                            </Button>
+              </TableHeader>
+              <TableBody>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                      <Loader2 className="w-5 h-5 animate-spin mx-auto" />
+                    </TableCell>
+                  </TableRow>
+                ) : filteredPayrolls.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                      Nenhum registro encontrado.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredPayrolls.map((p) => {
+                    const isUnsaved = p._isDraft || p._isModified
+
+                    const bgClass = 'bg-white dark:bg-slate-900'
+                    const hoverBgClass = 'group-hover:bg-slate-50 dark:group-hover:bg-slate-800/50'
+
+                    return (
+                      <TableRow
+                        key={p.id || p.colaborador}
+                        className={cn('group transition-colors', bgClass, hoverBgClass)}
+                      >
+                        <TableCell
+                          className={cn(
+                            'font-medium sticky left-0 z-20 shadow-[1px_0_0_0_#e2e8f0] dark:shadow-[1px_0_0_0_#1e293b]',
+                            bgClass,
+                            hoverBgClass,
                           )}
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setReceiptRecord(p)}
-                            title="Gerar Recibo"
-                          >
-                            <Printer className="w-4 h-4 text-slate-500" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => openForm(p)}
-                            title={
-                              p.closed || p.status === 'pago' ? 'Visualizar (Fechado)' : 'Editar'
+                        >
+                          {p.expand?.colaborador?.name ||
+                            p.expand?.colaborador?.email ||
+                            'Desconhecido'}
+                        </TableCell>
+                        <TableCell>
+                          {getHeaderCompetence(p.mes_referencia, p.ano_referencia)}
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell">
+                          <Badge
+                            variant={p.status === 'pago' ? 'default' : 'secondary'}
+                            className={
+                              p.status === 'pago' ? 'bg-emerald-500 hover:bg-emerald-600' : ''
                             }
                           >
-                            <Edit className="w-4 h-4 text-slate-500" />
-                          </Button>
-                          {(p.closed || p.status === 'pago') && (
+                            {p.status === 'pago' ? 'Pago' : 'Pendente'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right font-medium text-slate-700 dark:text-slate-300 hidden sm:table-cell">
+                          {fmtC(p.unit_value || 0)}
+                        </TableCell>
+                        <TableCell className="text-right font-medium text-slate-700 dark:text-slate-300 hidden sm:table-cell">
+                          {fmtC((p.incentivo ?? p.install_commission) || 0)}
+                        </TableCell>
+                        <TableCell className="text-right font-medium text-slate-700 dark:text-slate-300">
+                          {fmtC(p.total_a_pagar)}
+                        </TableCell>
+                        <TableCell
+                          className={cn(
+                            'text-right sticky right-0 z-20 shadow-[-1px_0_0_0_#e2e8f0] dark:shadow-[-1px_0_0_0_#1e293b]',
+                            bgClass,
+                            hoverBgClass,
+                          )}
+                        >
+                          <div className="flex justify-end gap-2 items-center">
+                            {isUnsaved && !(p.closed || p.status === 'pago') && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-900/20"
+                                onClick={() => handleSaveRow(p)}
+                                disabled={savingRowId === p.colaborador}
+                                title="Gravar Alterações"
+                              >
+                                {savingRowId === p.colaborador ? (
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                  <Save className="w-4 h-4" />
+                                )}
+                              </Button>
+                            )}
                             <Button
                               variant="ghost"
                               size="icon"
-                              onClick={() => handleReopen(p)}
-                              title="Reabrir Folha"
-                              className="hover:text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/20"
+                              onClick={() => setReceiptRecord(p)}
+                              title="Gerar Recibo"
                             >
-                              <RotateCcw className="w-4 h-4 text-orange-500" />
+                              <Printer className="w-4 h-4 text-slate-500" />
                             </Button>
-                          )}
-                          {!(p.closed || p.status === 'pago') && (
                             <Button
                               variant="ghost"
                               size="icon"
-                              onClick={() => handleDelete(p)}
-                              title="Excluir"
-                              className="hover:text-destructive hover:bg-destructive/10"
+                              onClick={() => openForm(p)}
+                              title={
+                                p.closed || p.status === 'pago' ? 'Visualizar (Fechado)' : 'Editar'
+                              }
                             >
-                              <Trash2 className="w-4 h-4" />
+                              <Edit className="w-4 h-4 text-slate-500" />
                             </Button>
-                          )}
-                        </div>
-                      </TableCell>{' '}
-                    </TableRow>
-                  )
-                })
-              )}
-            </TableBody>
-          </Table>
+                            {(p.closed || p.status === 'pago') && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleReopen(p)}
+                                title="Reabrir Folha"
+                                className="hover:text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/20"
+                              >
+                                <RotateCcw className="w-4 h-4 text-orange-500" />
+                              </Button>
+                            )}
+                            {!(p.closed || p.status === 'pago') && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleDelete(p)}
+                                title="Excluir"
+                                className="hover:text-destructive hover:bg-destructive/10"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>{' '}
+                      </TableRow>
+                    )
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </div>
 
-        <div className="w-full max-w-full bg-white/50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 p-4 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] print:hidden">
+        <div className="w-full max-w-full bg-white/50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 p-4 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] print:hidden shrink-0 mt-auto">
           <div className="flex items-center gap-3 w-full sm:w-auto">
             <div className="bg-primary/10 p-2 rounded-lg shrink-0">
               <Banknote className="w-5 h-5 text-primary" />

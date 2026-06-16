@@ -303,15 +303,15 @@ export function ClienteList({
 
   return (
     <>
-      <div className="hidden md:block print:block rounded-2xl border border-slate-100 bg-white/50 backdrop-blur-sm shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] dark:bg-slate-900/50 dark:border-slate-800 overflow-hidden w-full print:border-none print:shadow-none print:rounded-none">
-        <div className="overflow-x-auto w-full pb-2 print:overflow-visible print:p-0">
-          <Table className="min-w-max w-full print:min-w-0 print:w-full print:table-fixed print:text-[10px]">
-            <TableHeader>
-              <TableRow className="bg-slate-50/50 dark:bg-slate-800/50 hover:bg-slate-50/50 border-b-slate-100 dark:border-b-slate-800 print:bg-transparent print:border-b-black">
-                <TableHead className="font-medium text-slate-500 whitespace-nowrap min-w-[200px] print:min-w-0 print:w-[16%] print:whitespace-normal print:px-0.5 print:py-1 print:text-[8px]">
+      <div className="hidden md:flex flex-col flex-1 min-h-0 max-h-[calc(100vh-210px)] print:block rounded-2xl border border-slate-100 bg-white shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] dark:bg-slate-900 dark:border-slate-800 overflow-hidden w-full print:border-none print:shadow-none print:rounded-none relative">
+        <div className="overflow-auto custom-scrollbar w-full h-full flex-1 print:overflow-visible print:p-0">
+          <Table className="min-w-max w-full print:min-w-0 print:w-full print:table-fixed print:text-[10px] relative border-collapse">
+            <TableHeader className="sticky top-0 z-40 bg-slate-50 dark:bg-slate-800 shadow-[0_1px_0_0_#e2e8f0] dark:shadow-[0_1px_0_0_#1e293b]">
+              <TableRow className="hover:bg-transparent border-none print:bg-transparent print:border-b-black">
+                <TableHead className="font-medium text-slate-500 whitespace-nowrap min-w-[250px] max-w-[250px] sticky left-0 z-50 bg-slate-50 dark:bg-slate-800 shadow-[1px_0_0_0_#e2e8f0] dark:shadow-[1px_0_0_0_#1e293b] print:static print:shadow-none print:min-w-0 print:w-[16%] print:whitespace-normal print:px-0.5 print:py-1 print:text-[8px]">
                   CNPJ / Razão Social
                 </TableHead>
-                <TableHead className="font-medium text-slate-500 whitespace-nowrap print:whitespace-normal print:w-[16%] print:px-0.5 print:py-1 print:text-[8px]">
+                <TableHead className="font-medium text-slate-500 whitespace-nowrap min-w-[200px] max-w-[200px] sticky left-[250px] z-50 bg-slate-50 dark:bg-slate-800 shadow-[1px_0_0_0_#e2e8f0] dark:shadow-[1px_0_0_0_#1e293b] print:static print:shadow-none print:whitespace-normal print:w-[16%] print:px-0.5 print:py-1 print:text-[8px]">
                   Cliente
                 </TableHead>
                 <TableHead className="font-medium text-slate-500 whitespace-nowrap print:whitespace-normal print:w-[12%] print:px-0.5 print:py-1 print:text-[8px]">
@@ -332,7 +332,7 @@ export function ClienteList({
                 <TableHead className="font-medium text-slate-500 whitespace-nowrap print:whitespace-normal print:w-[8%] print:px-0.5 print:py-1 print:text-[8px]">
                   Data
                 </TableHead>
-                <TableHead className="w-[60px] print:hidden sticky right-0 bg-card"></TableHead>
+                <TableHead className="w-[60px] print:hidden sticky right-0 z-50 bg-slate-50 dark:bg-slate-800 shadow-[-1px_0_0_0_#e2e8f0] dark:shadow-[-1px_0_0_0_#1e293b]"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -378,19 +378,33 @@ export function ClienteList({
                     hasUnreadObs ||
                     showAtrasado
 
+                  let bgClass = 'bg-white dark:bg-slate-900'
+                  let hoverBgClass = 'group-hover:bg-slate-50 dark:group-hover:bg-slate-800/50'
+
+                  if (showCritical) {
+                    bgClass = 'bg-red-50 dark:bg-red-950'
+                    hoverBgClass = 'group-hover:bg-red-100 dark:group-hover:bg-red-900'
+                  } else if (showModerate || showOldAdmin || showWarning) {
+                    bgClass = 'bg-amber-50 dark:bg-amber-950/80'
+                    hoverBgClass = 'group-hover:bg-amber-100 dark:group-hover:bg-amber-900/80'
+                  }
+
                   return (
                     <TableRow
                       key={client.id}
                       className={cn(
-                        'group transition-colors hover:bg-muted/30 print:break-inside-avoid',
-                        (showModerate || showOldAdmin || showWarning) &&
-                          !showCritical &&
-                          'bg-amber-50/40 hover:bg-amber-50/60 dark:bg-amber-900/10 dark:hover:bg-amber-900/20',
-                        showCritical &&
-                          'bg-destructive/5 hover:bg-destructive/10 dark:bg-destructive/10 dark:hover:bg-destructive/20',
+                        'group transition-colors print:break-inside-avoid border-b border-slate-100 dark:border-slate-800',
+                        bgClass,
+                        hoverBgClass,
                       )}
                     >
-                      <TableCell className="align-top print:px-0.5 print:py-1 print:break-words">
+                      <TableCell
+                        className={cn(
+                          'align-top print:px-0.5 print:py-1 print:break-words sticky left-0 z-20 min-w-[250px] max-w-[250px] shadow-[1px_0_0_0_#e2e8f0] dark:shadow-[1px_0_0_0_#1e293b] print:static print:shadow-none',
+                          bgClass,
+                          hoverBgClass,
+                        )}
+                      >
                         <div className="font-medium text-slate-800 dark:text-slate-200 flex items-center gap-2 print:text-[8px] print:leading-tight">
                           {hasActiveAlert && (
                             <div
@@ -469,8 +483,14 @@ export function ClienteList({
                           />
                         </div>
                       </TableCell>
-                      <TableCell className="align-top font-medium text-sm print:px-0.5 print:py-1 print:text-[8px] print:break-words print:leading-tight">
-                        {client.nome_cliente}
+                      <TableCell
+                        className={cn(
+                          'align-top font-medium text-sm print:px-0.5 print:py-1 print:text-[8px] print:break-words print:leading-tight sticky left-[250px] z-20 min-w-[200px] max-w-[200px] shadow-[1px_0_0_0_#e2e8f0] dark:shadow-[1px_0_0_0_#1e293b] print:static print:shadow-none',
+                          bgClass,
+                          hoverBgClass,
+                        )}
+                      >
+                        <div className="line-clamp-3">{client.nome_cliente}</div>
                       </TableCell>
                       <TableCell className="align-top print:px-0.5 print:py-1 print:break-words">
                         <ConfigBadge
@@ -547,8 +567,9 @@ export function ClienteList({
                       </TableCell>
                       <TableCell
                         className={cn(
-                          'align-top print:hidden sticky right-0 backdrop-blur-sm',
-                          showCritical ? 'bg-red-50/90 dark:bg-red-950/90' : 'bg-card/90',
+                          'align-top print:hidden sticky right-0 z-20 shadow-[-1px_0_0_0_#e2e8f0] dark:shadow-[-1px_0_0_0_#1e293b]',
+                          bgClass,
+                          hoverBgClass,
                         )}
                       >
                         {renderActions(client)}
