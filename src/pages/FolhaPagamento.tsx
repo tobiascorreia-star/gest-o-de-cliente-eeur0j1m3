@@ -88,6 +88,7 @@ export default function FolhaPagamento() {
   const [draftPayrolls, setDraftPayrolls] = useState<any[]>([])
   const [globalQty, setGlobalQty] = useState<string>('')
   const [settingsId, setSettingsId] = useState<string>('')
+  const [isFinEducationClosed, setIsFinEducationClosed] = useState(false)
 
   const [isOpen, setIsOpen] = useState(false)
   const [savingRowId, setSavingRowId] = useState<string | null>(null)
@@ -95,6 +96,8 @@ export default function FolhaPagamento() {
   const [isSaving, setIsSaving] = useState(false)
   const [isClearAllOpen, setIsClearAllOpen] = useState(false)
   const [isClearing, setIsClearing] = useState(false)
+  const [isReopenMonthOpen, setIsReopenMonthOpen] = useState(false)
+  const [isReopeningMonth, setIsReopeningMonth] = useState(false)
 
   const [editingRecord, setEditingRecord] = useState<any>(null)
 
@@ -192,6 +195,17 @@ export default function FolhaPagamento() {
 
       setDraftPayrolls(combined)
       setGlobalQty(qty)
+
+      try {
+        const fData = await pb.collection('financial_education').getFullList({
+          filter: `year = ${y} && month = ${m}`,
+          fields: 'status',
+        })
+        const finClosed = fData.length > 0 && fData.every((f) => f.status === 'Fechado')
+        setIsFinEducationClosed(finClosed)
+      } catch (e) {
+        setIsFinEducationClosed(false)
+      }
       setSettingsId(sId)
     } catch (err) {
       console.error(err)
@@ -619,6 +633,17 @@ export default function FolhaPagamento() {
       return
     }
 
+    const hasPending = draftPayrolls.some((p) => p.status === 'pendente' && !p.closed)
+    if (hasPending) {
+      toast({
+        title: 'Folha com Pendências',
+        description:
+          'Não é possível fechar o mês. Existem lançamentos com status Pendente. Realize o pagamento de todos antes de fechar.',
+        variant: 'destructive',
+      })
+      return
+    }
+
     if (!confirm('Deseja fechar o mês atual e transportar as informações para o próximo mês?')) {
       return
     }
@@ -651,6 +676,18 @@ export default function FolhaPagamento() {
         })
       }
 
+      try {
+        const fData = await pb.collection('financial_education').getFullList({
+          filter: `year = ${currentYear} && month = ${currentMonth} && status != 'Fechado'`,
+        })
+        for (const f of fData) {
+          await pb.collection('financial_education').update(f.id, { status: 'Fechado' })
+        }
+        setIsFinEducationClosed(true)
+      } catch (err) {
+        console.error('Error updating financial education status', err)
+      }
+
       const updatedDrafts = [...draftPayrolls]
       for (let i = 0; i < updatedDrafts.length; i++) {
         const p = updatedDrafts[i]
@@ -677,7 +714,7 @@ export default function FolhaPagamento() {
           extra_3: p.extra_3,
           extra_4: p.extra_4,
           total_a_pagar: p.total_a_pagar,
-          status: 'pago',
+          status: p.status,
           observacoes: p.observacoes,
           closed: true,
         }
@@ -820,6 +857,36 @@ export default function FolhaPagamento() {
 
   const totalProventos = filteredPayrolls.reduce((sum, p) => sum + (p.total_a_pagar || 0), 0)
 
+  const isMonthFullyClosed =
+    (draftPayrolls.length > 0 && draftPayrolls.every((p) => p.closed)) || isFinEducationClosed
+
+  const handleReopenMonth = async () => {
+    setIsReopeningMonth(true)
+    try {
+      const [y, m] = filterMonth.split('-')
+      await pb.send('/backend/v1/payroll/reopen-month', {
+        method: 'POST',
+        body: JSON.stringify({ month: parseInt(m, 10), year: parseInt(y, 10) }),
+        headers: { 'Content-Type': 'application/json' },
+      })
+      setIsFinEducationClosed(false)
+      toast({ title: 'Sucesso', description: 'Mês reaberto com sucesso.' })
+      setIsReopenMonthOpen(false)
+      loadMonthData()
+    } catch (err) {
+      toast({ title: 'Erro', description: getErrorMessage(err), variant: 'destructive' })
+    } finally {
+      setIsReopeningMonth(false)
+    }
+  }
+
+  const getFilterMonthName = () => {
+    if (!filterMonth) return ''
+    const [y, m] = filterMonth.split('-')
+    const date = new Date(parseInt(y, 10), parseInt(m, 10) - 1, 2)
+    return format(date, 'MMMM', { locale: ptBR })
+  }
+
   return (
     <>
       <div className="space-y-4 print:hidden w-full max-w-full overflow-x-hidden">
@@ -870,7 +937,17 @@ export default function FolhaPagamento() {
           ) : (
             <>
               <div className="w-full sm:flex-1 sm:min-w-[150px] space-y-2">
-                <Label>Mês/Ano de Competência</Label>
+                <div className="flex items-center gap-2">
+                  <Label>Mês/Ano de Competência</Label>
+                  {draftPayrolls.length > 0 && draftPayrolls.every((p) => p.closed) && (
+                    <Badge
+                      variant="outline"
+                      className="bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800 font-medium h-5 px-2 text-[10px]"
+                    >
+                      Folha Fechada
+                    </Badge>
+                  )}
+                </div>
                 <Input
                   type="month"
                   value={filterMonth}
@@ -1082,20 +1159,30 @@ export default function FolhaPagamento() {
             </div>
           </div>
           <div className="flex gap-2 w-full sm:w-auto">
-            <Button
-              variant="default"
-              onClick={handleCloseMonth}
-              disabled={isClosingMonth || draftPayrolls.length === 0}
-              className="w-full sm:w-auto"
-            >
-              {isClosingMonth ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Fechando...
-                </>
-              ) : (
-                'Fechar Mês'
-              )}
-            </Button>
+            {isMonthFullyClosed ? (
+              <Button
+                variant="default"
+                className="w-full sm:w-auto bg-orange-500 hover:bg-orange-600 text-white"
+                onClick={() => setIsReopenMonthOpen(true)}
+              >
+                <RotateCcw className="w-4 h-4 mr-2" /> Reabrir Mês
+              </Button>
+            ) : (
+              <Button
+                variant="default"
+                onClick={handleCloseMonth}
+                disabled={isClosingMonth || draftPayrolls.length === 0}
+                className="w-full sm:w-auto"
+              >
+                {isClosingMonth ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Fechando...
+                  </>
+                ) : (
+                  'Fechar Mês'
+                )}
+              </Button>
+            )}
           </div>
         </div>
 
@@ -1472,6 +1559,31 @@ export default function FolhaPagamento() {
             <AlertDialogCancel disabled={isClearing}>Cancelar</AlertDialogCancel>
             <Button variant="destructive" onClick={handleClearAll} disabled={isClearing}>
               {isClearing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+              Confirmar
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={isReopenMonthOpen} onOpenChange={setIsReopenMonthOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reabrir Mês</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja reabrir a folha de {getFilterMonthName().toLowerCase()}? Isso
+              irá desbloquear todos os lançamentos de folha e educação financeira deste mês para
+              edição.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isReopeningMonth}>Cancelar</AlertDialogCancel>
+            <Button
+              variant="default"
+              onClick={handleReopenMonth}
+              disabled={isReopeningMonth}
+              className="bg-orange-500 hover:bg-orange-600 text-white"
+            >
+              {isReopeningMonth ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
               Confirmar
             </Button>
           </AlertDialogFooter>
