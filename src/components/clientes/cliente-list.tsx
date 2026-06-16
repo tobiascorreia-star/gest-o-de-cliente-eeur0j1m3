@@ -179,6 +179,39 @@ export function ClienteList({
   const isAdmin = user?.role?.toLowerCase() === 'admin'
   const [reportClient, setReportClient] = useState<Client | null>(null)
 
+  const sortedClients = [...clients].sort((a, b) => {
+    const alertA = getClientAlertState(a, alertSettings, isAdmin)
+    const alertB = getClientAlertState(b, alertSettings, isAdmin)
+
+    const hasUnreadA = Boolean(a.observacoes && !a.observacao_lida)
+    const hasUnreadB = Boolean(b.observacoes && !b.observacao_lida)
+
+    const isCriticalA =
+      alertA.isCritical ||
+      alertA.isMonthCritical ||
+      notifications.some((n: any) => n.client === a.id)
+    const isCriticalB =
+      alertB.isCritical ||
+      alertB.isMonthCritical ||
+      notifications.some((n: any) => n.client === b.id)
+
+    if (isCriticalA && !isCriticalB) return -1
+    if (!isCriticalA && isCriticalB) return 1
+
+    const isModerateA =
+      alertA.isModerate || alertA.isMonthWarning || alertA.isOldAdmin || hasUnreadA
+    const isModerateB =
+      alertB.isModerate || alertB.isMonthWarning || alertB.isOldAdmin || hasUnreadB
+
+    if (isModerateA && !isModerateB) return -1
+    if (!isModerateA && isModerateB) return 1
+
+    const dateA = new Date(a.updated || a.created || 0).getTime()
+    const dateB = new Date(b.updated || b.created || 0).getTime()
+
+    return dateA - dateB
+  })
+
   const handleMarkAsRead = async (id: string) => {
     try {
       const { updateClient } = await import('@/services/clients')
@@ -311,7 +344,7 @@ export function ClienteList({
                     </TableCell>
                   </TableRow>
                 ))
-              ) : !loading && clients.length === 0 ? (
+              ) : !loading && sortedClients.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={9} className="text-center py-12 text-muted-foreground">
                     <div className="flex flex-col items-center justify-center">
@@ -321,7 +354,7 @@ export function ClienteList({
                   </TableCell>
                 </TableRow>
               ) : (
-                clients.map((client) => {
+                sortedClients.map((client) => {
                   const {
                     isCritical,
                     isModerate,
@@ -544,7 +577,7 @@ export function ClienteList({
               </CardContent>
             </Card>
           ))
-        ) : !loading && clients.length === 0 ? (
+        ) : !loading && sortedClients.length === 0 ? (
           <div className="text-center py-12 text-muted-foreground bg-card border rounded-xl shadow-sm mx-1">
             <div className="flex flex-col items-center justify-center">
               <FileText className="h-8 w-8 mb-2 opacity-20" />
@@ -552,7 +585,7 @@ export function ClienteList({
             </div>
           </div>
         ) : (
-          clients.map((client) => {
+          sortedClients.map((client) => {
             const {
               isCritical,
               isModerate,

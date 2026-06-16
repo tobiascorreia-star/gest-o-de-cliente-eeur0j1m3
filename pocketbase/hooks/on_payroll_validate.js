@@ -20,25 +20,33 @@ onRecordCreateRequest((e) => {
     // If it's a "sql: no rows in result set" error, it's safe to proceed.
   }
 
+  if (e.record.getBool('closed') && e.record.getString('status') === 'pendente') {
+    throw new BadRequestError('Não é possível fechar um lançamento com status pendente.')
+  }
+
   e.next()
 }, 'payroll')
 
 onRecordUpdateRequest((e) => {
   const original = e.record.original()
   if (original) {
-    const wasClosed = original.getBool('closed') || original.getString('status') === 'pago'
-    const isClosed = e.record.getBool('closed') || e.record.getString('status') === 'pago'
+    const wasClosed = original.getBool('closed')
+    const isClosed = e.record.getBool('closed')
 
     if (wasClosed && isClosed) {
       throw new BadRequestError('Não é possível editar um lançamento de folha já fechado.')
     }
   }
 
+  if (e.record.getBool('closed') && e.record.getString('status') === 'pendente') {
+    throw new BadRequestError('Não é possível fechar um lançamento com status pendente.')
+  }
+
   e.next()
 }, 'payroll')
 
 onRecordDeleteRequest((e) => {
-  const isClosed = e.record.getBool('closed') || e.record.getString('status') === 'pago'
+  const isClosed = e.record.getBool('closed')
   if (isClosed) {
     throw new BadRequestError('Não é possível excluir um lançamento de folha já fechado.')
   }

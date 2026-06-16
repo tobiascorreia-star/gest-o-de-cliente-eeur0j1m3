@@ -39,7 +39,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           }
         } catch (error: any) {
           // Prevent aggressive logout when starting offline or on slow networks (common in PWA/Standalone mode)
-          if (error?.status === 0 || error?.isAbort) {
+          // Also protect against 5xx gateway errors that might incorrectly trigger a logout.
+          // Only clear auth on definitive rejection: 401 (Unauthorized), 403 (Forbidden), 404 (Not Found).
+          if (
+            error?.status === 401 ||
+            error?.status === 403 ||
+            error?.status === 404 ||
+            error?.status === 400
+          ) {
+            pb.authStore.clear()
+            setUser(null)
+            setIsAuthenticated(false)
+          } else {
             const record = pb.authStore.record
             if (record && record.active !== false) {
               setUser(record)
@@ -49,10 +60,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               setUser(null)
               setIsAuthenticated(false)
             }
-          } else {
-            pb.authStore.clear()
-            setUser(null)
-            setIsAuthenticated(false)
           }
         }
       } else {
