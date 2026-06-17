@@ -9,7 +9,6 @@ import {
   History,
   ShieldAlert,
   UserCog,
-  CheckSquare,
   Archive,
   FileBarChart,
   Settings,
@@ -20,6 +19,7 @@ import {
   BookOpen,
   CircleDollarSign,
   FileSearch,
+  ChevronRight,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -99,9 +99,7 @@ export function AppSidebar() {
           : 0
         const isCritical = settings && isPending && days >= settings.critical_days
 
-        if (hasUnreadObs || isCritical) {
-          count++
-        }
+        if (hasUnreadObs || isCritical) count++
       })
       setClientAlertsCount(count)
     } catch (err) {
@@ -140,95 +138,109 @@ export function AppSidebar() {
     fetchClientAlerts()
   }, [user])
 
-  useRealtime('admin_payments', () => {
-    fetchPendingAdminPayments()
-  })
-
-  useRealtime('clients', () => {
-    fetchClientAlerts()
-  })
-
-  useRealtime('alert_settings', () => {
-    fetchClientAlerts()
-  })
+  useRealtime('admin_payments', () => { fetchPendingAdminPayments() })
+  useRealtime('clients', () => { fetchClientAlerts() })
+  useRealtime('alert_settings', () => { fetchClientAlerts() })
 
   const filteredNavigation = navigation.filter((item) => {
     const isAdmin = user?.role?.toLowerCase() === 'admin'
-    if (item.adminOnly && !isAdmin) return false
+    if ((item as any).adminOnly && !isAdmin) return false
     if ((item as any).requireAuditoria && !isAdmin && user?.access_auditoria !== true) return false
     return true
   })
+
+  const isActive = (href: string) => location.pathname === href
 
   return (
     <Sidebar
       collapsible={isMobile ? 'offcanvas' : 'icon'}
       variant="sidebar"
-      className="border-r border-slate-100 shadow-sm dark:border-slate-800"
+      className="border-r-0 shadow-2xl"
     >
-      <SidebarHeader className="border-b border-slate-100 h-14 flex items-center justify-center px-4 bg-slate-50/50 dark:bg-slate-900/50 dark:border-slate-800">
+      {/* Header */}
+      <SidebarHeader className="h-16 flex items-center px-4 border-b border-sidebar-border">
         <div className="flex items-center gap-3 w-full overflow-hidden">
-          <div className="shrink-0 flex items-center justify-center">
+          <div className="shrink-0 relative">
+            <div className="absolute inset-0 rounded-xl bg-cyan-500/20 blur-md" />
             <img
               src={logoUrl}
               alt="Logo"
-              className="w-9 h-9 object-contain drop-shadow-lg transition-transform hover:scale-105"
+              className="relative w-9 h-9 object-contain drop-shadow-lg"
             />
           </div>
-          <span className="font-semibold tracking-wide text-[15px] truncate group-data-[collapsible=icon]:hidden text-sidebar-foreground">
-            GestãoFllex
-          </span>
+          <div className="group-data-[collapsible=icon]:hidden overflow-hidden">
+            <span className="font-bold tracking-wide text-[15px] text-sidebar-foreground block leading-none">
+              GestãoFllex
+            </span>
+            <span className="text-[10px] text-sidebar-foreground/40 font-mono tracking-widest uppercase">
+              {APP_VERSION}
+            </span>
+          </div>
         </div>
       </SidebarHeader>
-      <SidebarContent>
+
+      {/* Navigation */}
+      <SidebarContent className="px-2 py-3">
         <SidebarGroup>
-          <SidebarGroupLabel className="group-data-[collapsible=icon]:hidden text-sidebar-foreground/50">
+          <SidebarGroupLabel className="group-data-[collapsible=icon]:hidden text-sidebar-foreground/30 text-[10px] uppercase tracking-widest font-semibold px-2 mb-1">
             Menu Principal
           </SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu>
+            <SidebarMenu className="space-y-0.5">
               {filteredNavigation.map((item) => {
-                const isActive = location.pathname === item.href
+                const active = isActive(item.href)
                 return (
                   <SidebarMenuItem key={item.name}>
                     <SidebarMenuButton
                       asChild
-                      isActive={isActive}
+                      isActive={active}
                       tooltip={item.name}
                       onClick={() => isMobile && setOpenMobile(false)}
-                      className="data-[active=true]:bg-primary/10 data-[active=true]:text-primary data-[active=true]:font-medium transition-all text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-800"
+                      className={cn(
+                        'relative h-9 rounded-lg transition-all duration-150',
+                        active
+                          ? 'bg-sidebar-primary/15 text-sidebar-primary font-medium shadow-sm'
+                          : 'text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent',
+                      )}
                     >
-                      {item.external ? (
+                      {(item as any).external ? (
                         <a
                           href={item.href}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex items-center w-full"
+                          className="flex items-center w-full gap-2.5"
                         >
-                          <item.icon className="w-4 h-4 mr-2" />
-                          <span>{item.name}</span>
+                          <item.icon className={cn('w-4 h-4 shrink-0', active && 'text-sidebar-primary')} />
+                          <span className="text-[13px]">{item.name}</span>
+                          <ChevronRight className="ml-auto w-3 h-3 opacity-30" />
                         </a>
                       ) : (
-                        <Link to={item.href} className="flex items-center w-full">
-                          <item.icon className="w-4 h-4 mr-2" />
-                          <span>{item.name}</span>
+                        <Link to={item.href} className="flex items-center w-full gap-2.5">
+                          <item.icon className={cn('w-4 h-4 shrink-0', active && 'text-sidebar-primary')} />
+                          <span className="text-[13px]">{item.name}</span>
                           {item.name === 'Pag. Admin' && pendingAdminPaymentsCount > 0 && (
                             <span
                               className={cn(
-                                'ml-auto flex items-center justify-center text-white text-[10px] font-bold min-w-[20px] h-5 px-1 rounded-full shadow-sm animate-pulse',
-                                hasOverdueAdminPayments ? 'bg-orange-500' : 'bg-amber-500',
+                                'ml-auto flex items-center justify-center text-white text-[9px] font-bold min-w-[18px] h-[18px] px-1 rounded-full',
+                                hasOverdueAdminPayments
+                                  ? 'bg-orange-500 animate-pulse'
+                                  : 'bg-amber-500',
                               )}
                             >
                               {pendingAdminPaymentsCount > 99 ? '99+' : pendingAdminPaymentsCount}
                             </span>
                           )}
                           {item.name === 'Clientes' && clientAlertsCount > 0 && (
-                            <span className="ml-auto flex items-center justify-center bg-orange-500 text-white text-[10px] font-bold min-w-5 px-1 h-5 rounded-full shadow-sm">
+                            <span className="ml-auto flex items-center justify-center bg-red-500 text-white text-[9px] font-bold min-w-[18px] h-[18px] px-1 rounded-full">
                               {clientAlertsCount > 99 ? '99+' : clientAlertsCount}
                             </span>
                           )}
                         </Link>
                       )}
                     </SidebarMenuButton>
+                    {active && (
+                      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-sidebar-primary rounded-r-full" />
+                    )}
                   </SidebarMenuItem>
                 )
               })}
@@ -236,24 +248,21 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter className="border-t border-slate-100 dark:border-slate-800 pb-2">
+
+      {/* Footer */}
+      <SidebarFooter className="border-t border-sidebar-border px-2 py-3">
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
               onClick={signOut}
               tooltip="Sair da Conta"
-              className="hover:bg-destructive/10 hover:text-destructive text-slate-600 dark:text-slate-400 transition-colors"
+              className="h-9 rounded-lg text-sidebar-foreground/50 hover:text-red-400 hover:bg-red-500/10 transition-colors"
             >
-              <LogOut className="w-4 h-4" />
-              <span>Sair do Sistema</span>
+              <LogOut className="w-4 h-4 shrink-0" />
+              <span className="text-[13px]">Sair do Sistema</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
-        <div className="mt-2 text-center group-data-[collapsible=icon]:hidden">
-          <span className="text-xs text-muted-foreground font-mono tracking-widest">
-            {APP_VERSION}
-          </span>
-        </div>
       </SidebarFooter>
     </Sidebar>
   )
